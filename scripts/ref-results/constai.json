@@ -1,0 +1,38 @@
+[
+  {
+    "url": "https://arxiv.org/abs/2212.08073",
+    "name": "Constitutional AI: Harmlessness from AI Feedback",
+    "snippet": "by Y Bai · 2022 · Cited by 5542 — We experiment with methods for training a harmless AI assistant through self-improvement, without any human labels identifying harmful outputs. Read more",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alphaxiv.org/abs/2212.08073",
+    "name": "Constitutional AI: Harmlessness from AI Feedback",
+    "snippet": "Anthropic's Constitutional AI introduces a two-stage approach using AI-generated feedback based on natural language principles to train AI assistants.",
+    "host_name": "www.alphaxiv.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www-cdn.anthropic.com/7512771452629584566b6303311496c262da1006/Anthropic_ConstitutionalAI_v2.pdf",
+    "name": "Constitutional AI: Harmlessness from AI Feedback",
+    "snippet": "Constitutional RL models trained with AI feedback learn to be less harmful at a given level of helpfulness. CAI reduces the tension between helpfulness and  ... 2 pages",
+    "host_name": "www-cdn.anthropic.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.semanticscholar.org/paper/Constitutional-AI%3A-Harmlessness-from-AI-Feedback-Bai-Kadavath/3936fd3c6187f606c6e4e2e20b196dbc41cc4654",
+    "name": "[PDF] Constitutional AI: Harmlessness from AI Feedback",
+    "snippet": "This work experiments with methods for training a harmless AI assistant through self-improvement, without any human labels identifying harmful outputs,",
+    "host_name": "www.semanticscholar.org",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  }
+]

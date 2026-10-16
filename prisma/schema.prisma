@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  label     String   @default("Kwast session")
+  createdAt DateTime @default(now())
+  turns     Turn[]
+}
+
+model Turn {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userText    String
+  replyText   String
+  action      String
+  riskLevel   String
+  confidence  Float
+  latencyMs   Int      @default(0)
+  frame       String   @default("{}")
+  plan        String   @default("{}")
+  certificate String   @default("{}")
+  trace       String   @default("[]")
+  createdAt   DateTime @default(now())
+
+  auditEntries AuditEntry[]
+}
+
+model AuditEntry {
+  id        String   @id @default(cuid())
+  seq       Int
+  turnId    String?
+  turn      Turn?    @relation(fields: [turnId], references: [id], onDelete: SetNull)
+  stage     String
+  payload   String   @default("{}")
+  prevHash  String
+  hash      String
+  createdAt DateTime @default(now())
+
+  @@index([seq])
+}
+
+model KGNode {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  type      String
+  labelNl   String
+  labelEn   String
+  data      String   @default("{}")
+  createdAt DateTime @default(now())
+
+  edgesOut KGEdge[] @relation("from")
+  edgesIn  KGEdge[] @relation("to")
+}
+
+model KGEdge {
+  id      String  @id @default(cuid())
+  fromKey String
+  from    KGNode  @relation("from", fields: [fromKey], references: [key], onDelete: Cascade)
+  toKey   String
+  to      KGNode  @relation("to", fields: [toKey], references: [key], onDelete: Cascade)
+  rel     String
+  weight  Float   @default(1.0)
+}
+
+model SeedCandidate {
+  id        String    @id @default(cuid())
+  turnId    String?
+  utterance String
+  frame     String    @default("{}")
+  reason    String
+  status    String    @default("pending")
+  /// live | eval | scenario — only live items belong in the human review queue
+  origin    String    @default("live")
+  /// Shadowseed-style authority: born weightless; influence only above the threshold AND via point of use
+  weight         Float    @default(0)
+  recurrence     Int      @default(1)
+  contradictions Int      @default(0)
+  /// JSON array of session ids in which this pattern occurred (independence of recurrence)
+  sessionsSeen   String   @default("[]")
+  intent         String?
+  lastSeenAt     DateTime @default(now())
+  feedback  String?
+  createdAt DateTime  @default(now())
+  decidedAt DateTime?
+
+  @@index([status])
+}
+
+model EvalRun {
+  id        String   @id @default(cuid())
+  mode      String   @default("full")
+  /// probes (single messages) | scenarios (whole conversations)
+  suite     String   @default("probes")
+  total     Int
+  passed    Int
+  results   String   @default("[]")
+  createdAt DateTime @default(now())
+}

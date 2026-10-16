@@ -1,0 +1,38 @@
+[
+  {
+    "url": "https://arxiv.org/abs/2307.15043",
+    "name": "Universal and Transferable Adversarial Attacks on Aligned",
+    "snippet": "by A Zou · 2023 · Cited by 4646 — In this paper, we propose a simple and effective attack method that causes aligned language models to generate objectionable behaviors. Read more",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://llm-attacks.org",
+    "name": "Universal and Transferable Attacks on Aligned Language",
+    "snippet": "We demonstrate that it is in fact possible to automatically construct adversarial attacks on LLMs , specifically chosen sequences of characters",
+    "host_name": "llm-attacks.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net/publication/372684204_Universal_and_Transferable_Adversarial_Attacks_on_Aligned_Language_Models",
+    "name": "(PDF) Universal and Transferable Adversarial Attacks on",
+    "snippet": "In this paper, we propose a simple and effective attack method that causes aligned language models to generate objectionable behaviors.",
+    "host_name": "www.researchgate.net",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.semanticscholar.org/paper/Universal-and-Transferable-Adversarial-Attacks-on-Zou-Wang/47030369e97cc44d4b2e3cf1be85da0fd134904a",
+    "name": "Universal and Transferable Adversarial Attacks on Aligned",
+    "snippet": "Jul 27, 2023 — This work significantly advances the state-of-the-art in adversarial attacks against align ed language models, raising important questions ...",
+    "host_name": "www.semanticscholar.org",
+    "rank": 3,
+    "date": "Jul 27, 2023",
+    "favicon": ""
+  }
+]

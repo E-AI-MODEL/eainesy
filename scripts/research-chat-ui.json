@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.setproduct.com/blog/ai-chat-interface-ui-design",
+    "name": "Designing AI chat interfaces: Anatomy, patterns, pitfalls",
+    "snippet": "May 29, 2026 — The empty state is the first screen many users ever see. Learn how to turn blank screens into guidance that drives the next action, with real ...",
+    "host_name": "www.setproduct.com",
+    "rank": 0,
+    "date": "May 29, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxplanet.org/empty-state-design-a-practical-guide-94ad0adbda45",
+    "name": "Empty State Design: A Practical Guide",
+    "snippet": "Jun 17, 2025 — An empty state is a UI screen with no content or data. · A good empty state includes a visual, a message, an explanation, and optionally a CTA. Read more",
+    "host_name": "uxplanet.org",
+    "rank": 1,
+    "date": "Jun 17, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/vitalyfriedman_design-patterns-for-ai-chat-interfaces-activity-7454793302836600832-8iLz",
+    "name": "Vitaly Friedman's Post",
+    "snippet": "Design Patterns For AI Chat Interfaces . With practical guidelines on how to design more useful and less annoying AI chat (if you must) ...",
+    "host_name": "www.linkedin.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxmagic.ai/blog/empty-states-ui-design",
+    "name": "Empty States in UI Design: Best Practices & Examples",
+    "snippet": "Sep 25, 2026 — The most effective empty states operate like functional landing pages, using structured typography, sample data previews, and clear primary ... Read more",
+    "host_name": "uxmagic.ai",
+    "rank": 3,
+    "date": "Sep 25, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://artium.ai/insights/beyond-chat-how-ai-is-transforming-ui-design-patterns",
+    "name": "Beyond Chat: How AI is Transforming UI Design Patterns",
+    "snippet": "May 23, 2025 — With AI -driven interfaces , you're no longer designing static screens —you're designing systems that can generate countless variations. Focus on ... Read more",
+    "host_name": "artium.ai",
+    "rank": 4,
+    "date": "May 23, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/bestfolios/building-trust-and-enhancing-interactions-7-essential-ai-ux-patterns-in-action-12e7604de435",
+    "name": "7 Essential AI UX Patterns in Action | by bestfolios.com",
+    "snippet": "These patterns help build trust and improve usability. Here are 7 patterns with real-world examples from ChatGPT , Claude , Google Search, Cursor, ... Read more",
+    "host_name": "medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://fuselabcreative.com/chatbot-interface-design-guide",
+    "name": "Chatbot UI Design Patterns and Best Practices 2026",
+    "snippet": "Strong chatbot interface design is evaluated on four properties: capability transparency, recovery patterns , confidence display, and accessibility.",
+    "host_name": "fuselabcreative.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.925studios.co/blog/chatgpt-interface-design-breakdown",
+    "name": "ChatGPT Design Breakdown: The Interface That Defined AI",
+    "snippet": "Mar 31, 2026 — The five patterns most worth adapting from ChatGPT's interface design are: the blank-field-first empty state , streaming text output, outcome ... Read more",
+    "host_name": "www.925studios.co",
+    "rank": 7,
+    "date": "Mar 31, 2026",
+    "favicon": ""
+  }
+]

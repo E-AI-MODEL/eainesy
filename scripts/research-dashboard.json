@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://ui.shadcn.com/examples/dashboard",
+    "name": "The Foundation for your Design System - shadcn/ui",
+    "snippet": "A set of beautifully designed components that you can customize, extend, and build on. Start here then make it your own.",
+    "host_name": "ui.shadcn.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://shadcnspace.com/blog/build-admin-dashboards-using-ai-prompts",
+    "name": "How to Build Admin Dashboards Faster Using AI Prompts",
+    "snippet": "May 6, 2026 — Learn how to build admin dashboards faster using prebuilt AI prompts, agents, and skills in Shadcn . This guide is for developers. KPI cards ...",
+    "host_name": "shadcnspace.com",
+    "rank": 1,
+    "date": "May 6, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://dribbble.com/search/dashboard-shadcn",
+    "name": "dashboard shadcn",
+    "snippet": "Explore thousands of high-quality dashboard shadcn images on Dribbble . Your resource to get inspired, discover and connect with designers worldwide.",
+    "host_name": "dribbble.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://reui.io/blocks/application/dashboard",
+    "name": "Shadcn Dashboard Blocks with KPIs, Charts, and Tables",
+    "snippet": "8 Shadcn dashboard blocks that put KPI stat cards , charts, and a searchable data grid into one overview screen for ops, revenue, and security teams.",
+    "host_name": "reui.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://shadcnuikit.com",
+    "name": "Shadcn UI Kit: Admin Dashboards, UI Blocks, Components",
+    "snippet": "Shadcn UI Kit is a collection of admin dashboards, website templates, components, UI blocks and Figma UI kit. Built with Tailwind CSS and React.",
+    "host_name": "shadcnuikit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://designrevision.com/blog/shadcn-dashboard-tutorial",
+    "name": "shadcn/ui Dashboard Tutorial: Step-by-Step Guide (2026)",
+    "snippet": "Feb 19, 2026 — Building a shadcn dashboard follows a clear sequence: set up the project, architect the layout, add navigation, build out metrics and data ... Read more",
+    "host_name": "designrevision.com",
+    "rank": 5,
+    "date": "Feb 19, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://lollypop.design/blog/2018/may/tips-for-a-great-dashboard-ui",
+    "name": "SaaS Dashboard UI Design: 7 Best Practices (2026)",
+    "snippet": "Learn how to design an intuitive SaaS dashboard UI . See 3 dashboard types, 7 best practices, chart tips, and color contrast rules. Read the guide.",
+    "host_name": "lollypop.design",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/pulse/best-modern-saas-dashboard-templates-wrappixel-fascf",
+    "name": "Best Modern SaaS Dashboard Templates",
+    "snippet": "Explore powerful SaaS dashboard templates for React, Next.js, Angular, and Vue . Designed for analytics platforms, admin panels, and AI SaaS ...",
+    "host_name": "www.linkedin.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

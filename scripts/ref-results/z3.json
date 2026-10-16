@@ -1,0 +1,38 @@
+[
+  {
+    "url": "https://link.springer.com/chapter/10.1007/978-3-540-78800-3_24",
+    "name": "Z3: An Efficient SMT Solver | Springer Nature Link",
+    "snippet": "by L de Moura · 2008 · Cited by 14169 — Z3 is a new and efficient SMT Solver freely available from Microsoft Research. It is used in various software verification and analysis applications.",
+    "host_name": "link.springer.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dl.acm.org/doi/10.5555/1792734.1792766",
+    "name": "Z3: an efficient SMT solver",
+    "snippet": "by L De Moura · 2008 · Cited by 14169 — Z3 is a new and efficient SMT Solver freely available from Microsoft Research. It is used in various software verification and analysis applications.",
+    "host_name": "dl.acm.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.researchgate.net/publication/225142568_Z3_An_Efficient_SMT_Solver",
+    "name": "(PDF) Z3: An Efficient SMT Solver",
+    "snippet": "Jul 14, 2026 — Z3 is a new and efficient SMT Solver freely available from Microsoft Research. It is used in various software verification and analysis ... Read more",
+    "host_name": "www.researchgate.net",
+    "rank": 2,
+    "date": "Jul 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.microsoft.com/en-us/research/publication/z3-an-efficient-smt-solver",
+    "name": "Z3: an efficient SMT solver",
+    "snippet": "May 31, 2018 — Z3 is a new and efficient SMT Solver freely available from Microsoft Research. It is used in various software verification and analysis ... Read more",
+    "host_name": "www.microsoft.com",
+    "rank": 3,
+    "date": "May 31, 2018",
+    "favicon": ""
+  }
+]

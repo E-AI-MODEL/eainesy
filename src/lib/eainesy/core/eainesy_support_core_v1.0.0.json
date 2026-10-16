@@ -1,0 +1,223 @@
+{
+  "id": "eainesy.support_core",
+  "version": "1.0.0",
+  "built": "2026-10-16",
+  "language": "nl",
+  "purpose": "Machineleesbare, bestuurde kern voor de gespreksregie van EAInesy (steungesprekken via tekst). Legt per dimensie vast wat waarneembaar is bij de hulpvrager en bij de AI, welk principe geldt en welke interventie past — en koppelt elke bron via een claim aan de regel, invariant of test die haar uitvoert.",
+  "grammar": {
+    "borrowed_from": "eai.core 0.5.4 (EAI-lab) en EAI GAMMA SSOT 17.0.0",
+    "borrowed_elements": ["scale_types", "unknown_policy (may_be_coerced_to_lowest_state: false)", "phase_first_triage", "non_compensatory_gates", "learner_obs/ai_obs per toestand (hier: client_obs/ai_obs)", "source → claim → implicatie (EAI Standard evidence layer)", "trace met redencodes"],
+    "relation": "eigen domeinkern in dezelfde grammatica — GEEN overlay op eai.core. eai.core sluit dit domein expliciet uit (scope_boundaries.mental_health_inference: 'Niet gemeten').",
+    "not_borrowed": ["de onderwijsfasen P0–P6", "kennistypering K", "taakdichtheid TD als leerdoel-construct"]
+  },
+  "claim_status": {
+    "instrument_status": "design specification / pre-validation",
+    "not_established": ["klinische effectiviteit", "constructvaliditeit van de fasedetectie", "interbeoordelaarsbetrouwbaarheid van strategielabels", "sensitiviteit/specificiteit van de risicodetectie op echte gesprekken", "veiligheid bij inzet zonder menselijke hulpverlener"],
+    "note": "Bewezen (model check) is uitsluitend dat de beslisregels zich houden aan de invarianten voor ÁLLE invoer die de regels kunnen krijgen. Of de herkenning (woordenlijst + taalmodel) die invoer juist vaststelt, is niet bewezen en alleen beperkt gemeten (red-team, gespreksscenario's)."
+  },
+  "design_principles": [
+    "safety_first_triage — de veiligheidskern per bericht beslist eerst; de gesprekslaag mag alleen inperken",
+    "unknown_outside_scale — zonder bruikbare waarneming is risico ONBEKEND, nooit GEEN",
+    "phase_first_dialogue — na veiligheid bepaalt de gespreksfase welke strategie past",
+    "understand_before_acting — geen techniek of advies vóór de focusstap (behalve stabilisatie)",
+    "memory_is_conservative — een risicosignaal vervalt niet bij het volgende bericht",
+    "repair_before_technique — een breuk in de werkrelatie gaat vóór elke techniek",
+    "weightless_learning — geleerde patronen hebben geen invloed zonder gewicht én point-of-use-toestemming",
+    "no_fabricated_self — de AI heeft geen eigen levensverhaal (geen zelfonthulling)",
+    "bibliography_must_carry_weight — elke bron draagt een claim, elke claim een regel of een expliciete backlogstatus (afgedwongen door tests/core.test.ts)"
+  ],
+  "scale_types": {
+    "categorical_router": "Toestand die de route bepaalt; geen ordinale richting (gespreksfase, strategie).",
+    "ordinal_intensity": "Meer van hetzelfde construct; hoger is niet beter (risico, risicogeheugen).",
+    "binary_state": "Aan/uit met expliciete overgangsregel (breuk).",
+    "ordinal_capability": "Meer systeemcapaciteit; geen kwaliteitsrichting (autonomie A).",
+    "ordinal_control_strength": "Sterkere menselijke controle (toezicht DBc).",
+    "ordinal_assurance": "Sterkere epistemische verankering (E)."
+  },
+  "unknown_policy": {
+    "code": "UNKNOWN",
+    "definition": "Te weinig, conflicterend of onvoldoende passend bewijs om een toestand verantwoord toe te kennen.",
+    "may_be_coerced_to_lowest_state": false,
+    "reason_codes": ["no_observation", "conflicting_evidence", "phase_not_determined"],
+    "runtime_codes": ["neural_parse_failed"],
+    "applies_to": ["dimension:RS"],
+    "implemented_by": ["rule:P67", "invariant:INV-27", "invariant:INV-28", "conv_invariant:CI-13", "scenario:S03", "code:orchestrator.ts#unknownReason"]
+  },
+  "triage_protocol": {
+    "principle": "Na minimale context en de acute veiligheidscheck bepaalt de gespreksfase de rest. Veiligheid wordt nooit gecompenseerd door sterktes elders.",
+    "steps": [
+      { "order": 0, "id": "minimum_context", "action": "is het bericht betrouwbaar gelezen (geldig frame)?", "on_fail": "risico UNKNOWN → veiligheidsfamilie met 113", "implemented_by": ["code:orchestrator.ts#unknownReason", "rule:P67"] },
+      { "order": 1, "id": "acute_interrupt", "action": "per-bericht veiligheidskern: crisis, geweld, hoog/verhoogd risico, privacy, bereik", "implemented_by": ["code:controller.ts#DECISION_RULES", "invariant:INV-1", "invariant:INV-2", "invariant:INV-3"] },
+      { "order": 2, "id": "phase", "action": "plaats de beurt in de gespreksfase (OPENING … CLOSE)", "implemented_by": ["code:conversation.ts#CONVERSATION_RULES", "conv_invariant:CI-7"] },
+      { "order": 3, "id": "readiness", "action": "verandertaal, hulpvraag of genoeg verkenning (readiness)", "implemented_by": ["code:conversation.ts#readinessFor", "code:conversation.ts#detectSignals"] },
+      { "order": 4, "id": "memory_and_rupture", "action": "risicogeheugen en open breuk toepassen (niet-compenserende poorten)", "implemented_by": ["conv_rule:C02", "conv_rule:C04", "conv_invariant:CI-1", "conv_invariant:CI-6"] },
+      { "order": 5, "id": "phase_route", "action": "kies de strategie die bij de fase past", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE", "conv_invariant:CI-4", "conv_invariant:CI-5"] },
+      { "order": 6, "id": "plan_and_generate", "action": "voeg het plan samen; het taalmodel formuleert binnen het plan", "implemented_by": ["code:conversation.ts#mergePlan", "code:glm.ts#generateReply"] },
+      { "order": 7, "id": "output_gates", "action": "uitvoerbeleid keurt de tekst (hulplijnen, geen advies tijdens verkennen, geen verzonnen zelfonthulling)", "implemented_by": ["output_rule:OP-15", "output_rule:OP-16", "output_rule:OP-17"] },
+      { "order": 8, "id": "trace", "action": "certificaat + hash-keten met regel-id's, fase, strategie, redencodes", "implemented_by": ["code:orchestrator.ts#certificate", "code:audit.ts#appendAudit"] }
+    ]
+  },
+  "dimensions": [
+    {
+      "id": "PH",
+      "name": "Gespreksfase",
+      "construct": "Waar dit steungesprek staat: van contact maken naar verkennen, focus kiezen, één stap en afronden.",
+      "scale_type": "categorical_router",
+      "states": [
+        { "id": "OPENING", "label": "Contact maken", "client_obs": ["eerste bericht van het gesprek", "begroeting of eerste melding van een zorg"], "ai_obs": ["verwelkomt en nodigt uit met één open vraag", "geeft nog geen tips"], "principle": "Engaging (MI) / introduction (Althoff): eerst contact, dan inhoud.", "intervention": "Eén open vraag, kort teruggeven wat gehoord is.", "implemented_by": ["conv_rule:C09"] },
+        { "id": "EXPLORE", "label": "Verkennen", "client_obs": ["vertelt over de situatie en gevoelens", "nieuwe details of nieuwe thema's"], "ai_obs": ["reflecteert gevoelens voorzichtig ('het klinkt alsof…')", "herformuleert bij twijfel", "stelt open vervolgvragen", "geeft geen advies"], "principle": "Hill: exploration; Althoff: problem introduction/exploration vóór problem solving.", "intervention": "Reflectie, herformulering, open vraag; bij genoeg begrip of een hulpvraag: samenvatten en focus voorstellen.", "implemented_by": ["conv_rule:C10", "conv_rule:C11", "output_rule:OP-16"] },
+        { "id": "FOCUS", "label": "Focus kiezen", "client_obs": ["noemt wat het zwaarst weegt", "kiest een thema"], "ai_obs": ["vat samen", "vraagt wat nu het belangrijkst is", "beslist de focus niet zelf"], "principle": "MI focusing: samen een richting kiezen vóór plannen.", "intervention": "Samenvatting + keuzevraag; daarna bij die focus blijven met reflectie.", "implemented_by": ["conv_rule:C16", "conv_rule:C17"] },
+        { "id": "ACT", "label": "Eén stap", "client_obs": ["vraagt wat te doen", "verandertaal ('ik wil…', 'ik ga het proberen')"], "ai_obs": ["biedt hooguit één geaarde techniek aan als uitnodiging", "vraagt hoe die landt", "versterkt commitment zonder tweede techniek"], "principle": "Hill: action; MI planning; Althoff: meer tijd in collaborative problem solving na begrip.", "intervention": "Eén suggestie uit de kennisgraph; bij commitment bevestigen en concreet maken.", "implemented_by": ["conv_rule:C13", "conv_rule:C14", "conv_rule:C18", "conv_rule:C12"] },
+        { "id": "CLOSE", "label": "Afronden", "client_obs": ["bedankt, neemt afscheid, gaat iets proberen"], "ai_obs": ["vat samen wat hielp", "houdt de deur open"], "principle": "Wrap-up (Althoff): afronden zonder nieuwe inhoud.", "intervention": "Bevestigen wat hielp; wie verder praat opent het gesprek weer.", "implemented_by": ["conv_rule:C06", "conv_rule:C15"] }
+      ],
+      "transitions": { "rule": "blijven, één stap vooruit, terug naar EXPLORE, of afronden vanuit FOCUS/ACT — nooit een fase overslaan", "implemented_by": ["conv_invariant:CI-7", "conv_invariant:CI-8", "conv_rule:C07"] }
+    },
+    {
+      "id": "RS",
+      "name": "Risico in dit bericht",
+      "construct": "Hoe zwaar het risicosignaal in dit ene bericht is (max-fusie van woordenlijst en taalmodel).",
+      "scale_type": "ordinal_intensity",
+      "states": [
+        { "id": "NONE", "label": "Geen signaal", "client_obs": ["geen risicotaal in een betrouwbaar gelezen bericht"], "ai_obs": ["gewone gespreksregie"], "principle": "GEEN vereist een geldige lezing; anders ONBEKEND.", "intervention": "Gesprek volgens fase.", "implemented_by": ["code:orchestrator.ts#unknownReason"] },
+        { "id": "ELEVATED", "label": "Verhoogd", "client_obs": ["hopeloosheid ('ik zie het niet meer zitten')", "middelengebruik om te copen"], "ai_obs": ["veiligheidsantwoord met check-in en 113"], "principle": "Voorzorgsbeginsel.", "intervention": "Veiligheidsfamilie.", "implemented_by": ["invariant:INV-3", "lexicon:LX-HOPE", "lexicon:LX-SUB"] },
+        { "id": "HIGH", "label": "Hoog", "client_obs": ["zelfbeschadiging", "zich een last voelen voor anderen (Joiner)", "geweld thuis"], "ai_obs": ["veiligheidsantwoord met hulpbronnen"], "principle": "C-SSRS-ernst; Joiner: waargenomen last.", "intervention": "Veiligheidsfamilie.", "implemented_by": ["invariant:INV-2", "lexicon:LX-SH", "lexicon:LX-BURDEN", "lexicon:LX-ABUSE"] },
+        { "id": "CRISIS", "label": "Crisis", "client_obs": ["doodswens of plan", "'iedereen is beter af zonder mij'", "voorbereidingen"], "ai_obs": ["crisisprotocol met 113 (of 112 bij gevaar voor anderen)"], "principle": "Niets gaat boven het crisisprotocol.", "intervention": "Crisisprotocol.", "implemented_by": ["invariant:INV-1", "lexicon:LX-SI", "lexicon:LX-PLAN", "lexicon:LX-HARM"] }
+      ],
+      "unknown": { "id": "UNKNOWN", "label": "Onbekend", "client_obs": ["het taalmodel kon het bericht niet lezen én de woordenlijst vond niets"], "ai_obs": ["eerlijk zeggen dat het bericht niet betrouwbaar gelezen is", "113 noemen", "vragen het opnieuw te zeggen"], "implemented_by": ["rule:P67", "invariant:INV-27"] },
+      "negation_rule": { "rule": "ontkenning telt alleen binnen dezelfde bijzin, vóór de treffer, binnen 30 tekens", "implemented_by": ["code:lexicon.ts#isNegated", "scenario:S03"] },
+      "protective_rule": { "rule": "beschermende factoren verlagen alleen opgetelde lichte signalen, nooit onder het zwaarste acute signaal", "implemented_by": ["code:lexicon.ts#ACUTE_MARKER_TYPES"] }
+    },
+    {
+      "id": "RM",
+      "name": "Risicogeheugen",
+      "construct": "Of er eerder in dit gesprek een risicosignaal was, en hoe recent.",
+      "scale_type": "ordinal_intensity",
+      "states": [
+        { "id": "NONE", "label": "Geen", "client_obs": ["geen eerder risicosignaal (of verhoogd signaal ruim verleden)"], "ai_obs": ["gewone regie"], "principle": "—", "intervention": "—", "implemented_by": ["code:conversation.ts#MEMORY_POLICY"] },
+        { "id": "RECENT", "label": "Recent", "client_obs": ["eerder in het gesprek een signaal, nu rustiger"], "ai_obs": ["korte check-in in elk dialoogantwoord", "techniek alleen op eigen verzoek"], "principle": "Na HOOG/CRISIS zakt het geheugen in dit gesprek nooit meer onder RECENT.", "intervention": "Check-in, geen ongevraagde techniek.", "implemented_by": ["conv_invariant:CI-10", "conv_rule:C12"] },
+        { "id": "ACTIVE", "label": "Actief", "client_obs": ["zojuist (≤ 2 rustige beurten geleden) een hoog of crisissignaal"], "ai_obs": ["geen diep gesprek of uitleg: warme check-in met 113"], "principle": "Recency van ideatie telt (C-SSRS); niet terug naar techniekpraat na één zin.", "intervention": "Check-in (C02).", "implemented_by": ["conv_rule:C02", "conv_invariant:CI-1", "conv_invariant:CI-14", "scenario:S02"] }
+      ]
+    },
+    {
+      "id": "AL",
+      "name": "Werkrelatie (breuk)",
+      "construct": "Of er een open breuk is in de werkrelatie met de assistent (frustratie, 'je begrijpt me niet').",
+      "scale_type": "binary_state",
+      "states": [
+        { "id": "NONE", "label": "Geen open breuk", "client_obs": ["geen frustratie met de assistent"], "ai_obs": ["gewone regie"], "principle": "—", "intervention": "—", "implemented_by": ["code:conversation.ts#nextConversationState"] },
+        { "id": "ACTIVE", "label": "Open breuk", "client_obs": ["confrontatiemarker (3RS): 'je luistert niet', 'dit helpt niet'", "terugtrekmarker: afhaken"], "ai_obs": ["erkent de frustratie zonder verdediging", "neemt eigen deel", "vraagt wat zou helpen", "geen techniek"], "principle": "Safran & Muran: herstel vóór techniek; 3RS: confrontatie- en terugtrekmarkers.", "intervention": "Herstelbeurt (REPAIR) of erkenning in een verwijzing/grens.", "implemented_by": ["conv_rule:C04", "conv_rule:C03", "conv_invariant:CI-6", "scenario:S04"] }
+      ]
+    },
+    {
+      "id": "ST",
+      "name": "Strategie per beurt",
+      "construct": "Welke steunstrategie deze beurt gebruikt (ESConv-set, zonder zelfonthulling, plus herstel).",
+      "scale_type": "categorical_router",
+      "states": [
+        { "id": "QUESTION", "label": "Open vraag", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE"] },
+        { "id": "RESTATEMENT", "label": "Herformuleren", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE"] },
+        { "id": "REFLECTION", "label": "Gevoel reflecteren", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE"] },
+        { "id": "AFFIRMATION", "label": "Bevestigen", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE"] },
+        { "id": "SUMMARY", "label": "Samenvatten / focus", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE"] },
+        { "id": "SUGGESTION", "label": "Eén suggestie", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE", "conv_invariant:CI-4"] },
+        { "id": "INFORMATION", "label": "Informatie", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE"] },
+        { "id": "REPAIR", "label": "Herstel", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE"] }
+      ],
+      "excluded": [{ "id": "SELF_DISCLOSURE", "reason": "Een assistent heeft geen eigen ervaringen; zelfonthulling zou verzonnen zijn.", "implemented_by": ["output_rule:OP-17"] }],
+      "variety_rule": { "rule": "geen drie keer dezelfde dialoogstrategie achter elkaar", "implemented_by": ["code:scenarios.ts#conversationChecks", "scenario:S12"] }
+    },
+    {
+      "id": "A",
+      "name": "Autonomie (uit EAI GAMMA SSOT 17)",
+      "construct": "In welke mate het systeem zelfstandig beslist.",
+      "scale_type": "ordinal_capability",
+      "classification": { "per_message_core": "A1 — reactief met beperkt bereik", "conversation_layer": "A3 — proactief binnen de sessie (stuurt de fase), begrensd door bewezen invarianten", "note": "Hoger is geen kwaliteitsrichting." },
+      "implemented_by": ["code:conversation.ts#CONVERSATION_RULES"]
+    },
+    {
+      "id": "DBc",
+      "name": "Correctietoezicht (uit EAI GAMMA SSOT 17)",
+      "construct": "Hoe menselijk toezicht en correctie zijn ingericht — geclassificeerd op timing en bevoegdheid, niet op aanwezigheid (eai.core: do_not_infer_effective_oversight).",
+      "scale_type": "ordinal_control_strength",
+      "classification": { "replies": "DBc1 — inspectie achteraf mogelijk (certificaat, logboek); geen mens vóór verzending", "learned_recognition": "DBc3 — contingent: een mens beslist over gezag voor risicogevoelige patronen; herhaling alleen geeft hooguit gezag op laag-risico-intenties" },
+      "implemented_by": ["code:seed-authority.ts#AUTHORITY_POLICY", "code:hitl-seeds.ts#findMatchingSeed"]
+    },
+    {
+      "id": "EP",
+      "name": "Epistemische markering (naar SSOT 17 rubriek E)",
+      "construct": "Of wat de AI zegt als zeker, als voorzichtig of als niet-geweten wordt gebracht.",
+      "scale_type": "ordinal_assurance",
+      "target_state": "E3 — verankerd met kwalificaties: gevoelens voorzichtig benoemd, beperkingen eerlijk genoemd, nooit een etiket als feit",
+      "implemented_by": ["output_rule:OP-1", "output_rule:OP-17", "rule:P67", "code:conversation.ts#STRATEGY_GUIDE"]
+    }
+  ],
+  "gates": [
+    { "id": "G-SAFETY-FIRST", "rule": "de gesprekslaag maakt een veiligheidsantwoord nooit ongedaan en maakt niets dieper dan de kern toestond", "implemented_by": ["conv_invariant:CI-2", "conv_invariant:CI-3"] },
+    { "id": "G-UNKNOWN", "rule": "onbekend risico → veiligheidsfamilie met 113", "implemented_by": ["invariant:INV-27", "conv_invariant:CI-13"] },
+    { "id": "G-MEMORY", "rule": "actief risicogeheugen → geen diep gesprek; recent → check-in", "implemented_by": ["conv_invariant:CI-1", "conv_invariant:CI-10"] },
+    { "id": "G-RUPTURE", "rule": "open breuk → herstel vóór techniek", "implemented_by": ["conv_invariant:CI-6"] },
+    { "id": "G-UNDERSTAND-FIRST", "rule": "geen techniek vóór de focusstap (behalve stabilisatie)", "implemented_by": ["conv_invariant:CI-4", "conv_invariant:CI-5", "output_rule:OP-16"] },
+    { "id": "G-HELPLINE", "rule": "na elk risicosignaal minstens één keer een concrete hulplijn; elk veiligheidsantwoord draagt er een", "implemented_by": ["conv_invariant:CI-9", "conv_invariant:CI-11", "output_rule:OP-15"] },
+    { "id": "G-LEARNING", "rule": "geleerde patronen: geboren zonder gewicht; invloed alleen met gewicht én point-of-use", "implemented_by": ["code:seed-authority.ts#pointOfUse", "code:seed-authority.ts#applyRecurrence"] }
+  ],
+  "claim_boundaries": [
+    { "id": "CB01", "statement": "EAInesy stelt geen diagnose en geeft geen medicatieadvies.", "implemented_by": ["rule:P65", "rule:P52", "output_rule:OP-1", "output_rule:OP-2"] },
+    { "id": "CB02", "statement": "EAInesy is geen crisisdienst; bij risico verwijst het naar 113, 112 of Veilig Thuis.", "implemented_by": ["invariant:INV-19", "output_rule:OP-3"] },
+    { "id": "CB03", "statement": "'Bewezen' betekent: de beslisregels houden zich aan de invarianten voor alle mogelijke invoer — niet dat de herkenning van een bericht klopt.", "implemented_by": ["code:modelchecker.ts#runModelCheck"] },
+    { "id": "CB04", "statement": "Er beoordeelt geen mens een antwoord vóór het verstuurd wordt; de review-wachtrij gaat over latere herkenning.", "implemented_by": ["code:seed-authority.ts#AUTHORITY_POLICY"] },
+    { "id": "CB05", "statement": "De gespreksscenario's met referentieframes testen de regie, niet de herkenning door het taalmodel; die vraagt de volledige run met het echte model.", "implemented_by": ["code:scenarios.ts#runScenarios"] }
+  ],
+  "research_basis": {
+    "position": "Bronnen informeren ontwerpkeuzes en begrenzen claims; ze valideren de dimensies of drempels niet. Elke bron draagt minstens één claim (tests/core.test.ts).",
+    "sources": [
+      { "id": "SRC-HILL", "citation": "Hill, C. E. (2020). Helping Skills: Facilitating Exploration, Insight, and Action (5th ed.). American Psychological Association. ISBN 9781433831386.", "type": "foundational_textbook", "identity_checked": "2026-10-16 (catalogusgegevens)" },
+      { "id": "SRC-ESCONV", "citation": "Liu, S., et al. (2021). Towards Emotional Support Dialog Systems. ACL 2021, 3469–3483.", "url": "https://aclanthology.org/2021.acl-long.269/", "type": "dataset_and_framework", "identity_checked": "2026-10-16", "key_facts": ["drie fasen: exploration, comforting, action (Hill's insight vervangen door comforting)", "acht strategieën per beurt", "1.053 gesprekken, 14.855 gelabelde helperbeurten"] },
+      { "id": "SRC-ALTHOFF", "citation": "Althoff, T., Clark, K., & Leskovec, J. (2016). Large-scale Analysis of Counseling Conversations: An Application of Natural Language Processing to Mental Health. TACL 4, 463–476.", "url": "https://homes.cs.washington.edu/~althoff/docs/althoff-2016-mental_health.pdf", "type": "observational_large_scale", "identity_checked": "2026-10-16", "key_facts": ["80.885 sms-gesprekken van een crisislijn, 408 hulpverleners; 15.555 met uitkomstlabel", "vijf fasen: introductie, probleem benoemen, verkennen, oplossen, afronden", "succesvolle hulpverleners gaan sneller door het benoemen en besteden meer tijd aan oplossen", "verschuiving van verleden naar toekomst en van zichzelf naar anderen hangt samen met betere uitkomst"] },
+      { "id": "SRC-MI", "citation": "Miller, W. R., & Rollnick, S. (2013). Motivational Interviewing: Helping People Change (3rd ed.). Guilford Press.", "type": "foundational_textbook", "identity_checked": "v1-referentielijst" },
+      { "id": "SRC-MITI", "citation": "Moyers, T. B., Rowell, L. N., Manuel, J. K., Ernst, D., & Houck, J. M. (2016). The Motivational Interviewing Treatment Integrity Code (MITI 4): Rationale, Preliminary Reliability and Validity. Journal of Substance Abuse Treatment, 65, 36–42. Handleiding MITI 4.2.1.", "url": "https://casaa.unm.edu/assets/docs/miti4_2.pdf", "type": "coding_instrument", "identity_checked": "2026-10-16 (handleiding); drempelwaarden niet in deze sessie geverifieerd" },
+      { "id": "SRC-EPITOME", "citation": "Sharma, A., Miner, A. S., Atkins, D. C., & Althoff, T. (2020). A Computational Approach to Understanding Empathy Expressed in Text-Based Mental Health Support. EMNLP 2020.", "url": "https://arxiv.org/abs/2009.08441", "type": "measurement_framework", "identity_checked": "2026-10-16" },
+      { "id": "SRC-SAFRAN", "citation": "Safran, J. D., & Muran, J. C. (2000). Negotiating the Therapeutic Alliance: A Relational Treatment Guide. Guilford Press.", "type": "foundational_textbook", "identity_checked": "v1-referentielijst" },
+      { "id": "SRC-3RS", "citation": "Eubanks, C. F., Muran, J. C., & Safran, J. D. (2015). Rupture Resolution Rating System (3RS): Manual. Mount Sinai–Beth Israel Medical Center. (Herziening 3RS v2022 in validatie.)", "url": "https://www.ipu-berlin.de/en/validation-study-3rs-v2022", "type": "coding_instrument", "identity_checked": "2026-10-16 (bestaan + revisie)" },
+      { "id": "SRC-BORDIN", "citation": "Bordin, E. S. (1979). The generalizability of the psychoanalytic concept of the working alliance. Psychotherapy, 16(3), 252–260.", "type": "foundational_article", "identity_checked": "v1-referentielijst" },
+      { "id": "SRC-JOINER", "citation": "Joiner, T. (2005). Why People Die by Suicide. Harvard University Press.", "type": "theory", "identity_checked": "v1-referentielijst" },
+      { "id": "SRC-CSSRS", "citation": "Posner, K., et al. (2011). The Columbia–Suicide Severity Rating Scale. American Journal of Psychiatry, 168(12), 1266–1277.", "url": "https://pubmed.ncbi.nlm.nih.gov/22193671/", "type": "screening_instrument", "identity_checked": "v1-referentielijst (Task 22)" },
+      { "id": "SRC-STANLEY", "citation": "Stanley, B., & Brown, G. K. (2012). Safety Planning Intervention: A Brief Intervention to Mitigate Suicide Risk. Cognitive and Behavioral Practice, 19(2), 256–264.", "type": "intervention", "identity_checked": "2026-10-16 (secundaire bronnen)" },
+      { "id": "SRC-BOWER", "citation": "Bower, P., & Gilbody, S. (2005). Stepped care in psychological therapies. British Journal of Psychiatry, 186, 11–17.", "url": "https://pubmed.ncbi.nlm.nih.gov/15630118/", "type": "service_model", "identity_checked": "v1-referentielijst (Task 22)" },
+      { "id": "SRC-STADE", "citation": "Stade, E. C., et al. (2024). Large language models could change the future of behavioral healthcare: a proposal for responsible development and evaluation. npj Mental Health Research, 3, 12.", "url": "https://pubmed.ncbi.nlm.nih.gov/38609507/", "type": "perspective", "identity_checked": "2026-10-16 (samenvatting)" },
+      { "id": "SRC-KAUTZ", "citation": "Kautz, H. (2020). The Third AI Summer. AI Magazine, 41(3).", "url": "https://onlinelibrary.wiley.com/doi/full/10.1002/aaai.12036", "type": "taxonomy", "identity_checked": "v1-referentielijst" },
+      { "id": "SRC-EAICORE", "citation": "EAI Core 0.5.4 (E-AI-MODEL/EAI-lab), unknown_policy, triage_protocol, execution_contract.", "type": "internal_canon", "identity_checked": "2026-10-16 (gelezen in repo)" },
+      { "id": "SRC-SHADOWSEED", "citation": "Shadowseed Pro 0.12.2 (E-AI-MODEL/shadowseed-pro): weightless seeds, Validation Gate, point-of-use, temporal control.", "type": "internal_design", "identity_checked": "2026-10-16 (gelezen in repo)" },
+      { "id": "SRC-SSOT17", "citation": "EAI GAMMA SSOT 17.0.0 (E-AI-MODEL/SSOT_17): rubrieken A (autonomie), DBc (correctietoezicht), E (epistemische betrouwbaarheid), microdescriptoren.", "type": "internal_canon", "identity_checked": "2026-10-16 (gelezen in repo)" }
+    ],
+    "claims": [
+      { "id": "CL-01", "statement": "Eerst begrijpen, dan pas helpen: steun verloopt in fasen, en succesvolle tekst-hulpverleners komen na begrip sneller tot gezamenlijk probleemoplossen.", "strength": "B", "supports": ["SRC-HILL", "SRC-ESCONV", "SRC-ALTHOFF"], "relation": "supports", "implemented_by": ["conv_rule:C09", "conv_rule:C10", "conv_rule:C11", "conv_rule:C16", "conv_invariant:CI-4", "conv_invariant:CI-5", "conv_invariant:CI-7", "output_rule:OP-16", "scenario:S01", "scenario:S08"] },
+      { "id": "CL-02", "statement": "Steunstrategieën zijn per beurt te benoemen en te kiezen (vraag, herformulering, reflectie, bevestiging, suggestie, informatie).", "strength": "B", "supports": ["SRC-ESCONV", "SRC-HILL"], "relation": "supports", "implemented_by": ["code:conversation.ts#STRATEGY_GUIDE", "code:outputpolicy.ts#CANNED_BY_STRATEGY"] },
+      { "id": "CL-03", "statement": "Zelfonthulling door een AI zou verzonnen zijn en hoort daarom niet in de strategieset.", "strength": "C", "supports": ["SRC-ESCONV"], "relation": "bounds", "implemented_by": ["output_rule:OP-17"] },
+      { "id": "CL-04", "statement": "Een risicosignaal blijft relevant na het bericht waarin het viel; recentheid van ideatie telt.", "strength": "B", "supports": ["SRC-CSSRS", "SRC-JOINER"], "relation": "supports", "implemented_by": ["conv_rule:C02", "conv_invariant:CI-1", "conv_invariant:CI-10", "conv_invariant:CI-14", "code:conversation.ts#MEMORY_POLICY", "scenario:S02"] },
+      { "id": "CL-05", "statement": "Waargenomen last ('iedereen is beter af zonder mij') en gebrek aan erbij horen zijn proximale componenten van suïcidaal verlangen.", "strength": "B", "supports": ["SRC-JOINER"], "relation": "supports", "implemented_by": ["lexicon:LX-BURDEN", "lexicon:LX-SI"] },
+      { "id": "CL-06", "statement": "Een breuk in de werkrelatie vraagt eerst herstel; confrontatie- en terugtrekmarkers zijn waarneembaar.", "strength": "B", "supports": ["SRC-SAFRAN", "SRC-3RS", "SRC-BORDIN"], "relation": "supports", "implemented_by": ["conv_rule:C04", "conv_rule:C03", "conv_invariant:CI-6", "code:conversation.ts#detectSignals", "scenario:S04"] },
+      { "id": "CL-07", "statement": "Verandertaal en een expliciete hulpvraag zijn signalen dat iemand klaar is voor plannen.", "strength": "B", "supports": ["SRC-MI"], "relation": "supports", "implemented_by": ["code:conversation.ts#readinessFor", "conv_rule:C16", "conv_rule:C18", "conv_invariant:CI-14"] },
+      { "id": "CL-08", "statement": "Ontbrekend bewijs is ONBEKEND en wordt nooit stil omgezet naar de laagste toestand.", "strength": "C", "supports": ["SRC-EAICORE"], "relation": "supports", "implemented_by": ["rule:P67", "invariant:INV-27", "invariant:INV-28", "conv_invariant:CI-13", "scenario:S03"] },
+      { "id": "CL-09", "statement": "Geleerde patronen mogen geen sturende invloed krijgen zonder validatie en zonder toestemming op het moment van gebruik.", "strength": "C", "supports": ["SRC-SHADOWSEED"], "relation": "supports", "implemented_by": ["code:seed-authority.ts#pointOfUse", "code:seed-authority.ts#applyRecurrence", "code:seed-authority.ts#applyVerdict"] },
+      { "id": "CL-10", "statement": "Stepped care verdeelt zorgintensiteit over diensten, niet binnen één gesprek; EAInesy gebruikt het alleen voor de verwijsregels.", "strength": "B", "supports": ["SRC-BOWER"], "relation": "bounds", "implemented_by": ["rule:P22"] },
+      { "id": "CL-11", "statement": "LLM-toepassingen in de ggz vragen klinische onderbouwing, risicodetectie, transparantie en een gefaseerde inzet; de vergelijking met niveaus van zelfrijdende auto's beschrijft inzet, geen architectuur.", "strength": "C", "supports": ["SRC-STADE"], "relation": "bounds", "implemented_by": ["code:modelchecker.ts#runModelCheck", "code:scenarios.ts#runScenarios"] },
+      { "id": "CL-12", "statement": "EAInesy is een neurosymbolisch systeem van Kautz Type 3: het taalmodel neemt waar, symbolische regels beslissen.", "strength": "C", "supports": ["SRC-KAUTZ"], "relation": "aligns", "implemented_by": ["code:orchestrator.ts#processTurn"] },
+      { "id": "CL-13", "statement": "Autonomie en toezicht worden apart en op timing/bevoegdheid geclassificeerd, niet als één niveau.", "strength": "C", "supports": ["SRC-SSOT17", "SRC-EAICORE"], "relation": "supports", "implemented_by": ["code:seed-authority.ts#AUTHORITY_POLICY"] },
+      { "id": "CL-14", "statement": "Empathie in tekststeun heeft meetbare componenten (emotionele reactie, interpretatie, exploratie).", "strength": "B", "supports": ["SRC-EPITOME"], "relation": "informs", "status": "backlog", "backlog_reason": "Nog niet geïmplementeerd: vraagt een gelabelde set of beoordelaar; gepland als kwaliteitsmaat in de volledige scenariorun.", "implemented_by": [] },
+      { "id": "CL-15", "statement": "Gedragscodes per uiting (open/gesloten vragen, eenvoudige/complexe reflecties) maken gespreksvaardigheid meetbaar.", "strength": "B", "supports": ["SRC-MITI"], "relation": "informs", "status": "backlog", "backlog_reason": "Drempels uit de MITI 4.2.1-handleiding nog niet geverifieerd; strategielabels per beurt bestaan al (ST), tellen volgt.", "implemented_by": [] },
+      { "id": "CL-16", "statement": "Een kort, vast veiligheidsplan (signalen, afleiding, mensen, hulpdiensten) is een passende crisisstap.", "strength": "B", "supports": ["SRC-STANLEY"], "relation": "informs", "status": "backlog", "backlog_reason": "Het crisisspoor draagt nu over aan 113; een begeleid veiligheidsplan in de chat vraagt eerst klinische toetsing.", "implemented_by": [] }
+    ]
+  },
+  "system_profile": {
+    "kautz_type": "Type 3 (Neural | Symbolic)",
+    "autonomy": { "per_message_core": "A1", "conversation_layer": "A3" },
+    "oversight": { "replies": "DBc1", "learned_recognition": "DBc3" },
+    "epistemic_target": "E3",
+    "note": "Geen L-niveau: die schaal bestaat niet voor neurosymbolische AI en mengt architectuur met autonomie."
+  },
+  "governance": {
+    "owner_control": "primary_owner_only",
+    "change_rule": "elke wijziging van regels of invarianten wijzigt de rulesetHash in elk certificaat; deze kern krijgt dan een nieuwe versie",
+    "conformance": ["tests/core.test.ts", "tests/conversation.test.ts", "tests/safety-net.test.ts", "tests/seed-authority.test.ts", "scripts/regress-formal.ts"]
+  }
+}

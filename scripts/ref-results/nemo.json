@@ -1,0 +1,38 @@
+[
+  {
+    "url": "https://arxiv.org/abs/2310.10501",
+    "name": "NeMo Guardrails: A Toolkit for Controllable and Safe LLM",
+    "snippet": "by T Rebedea · 2023 · Cited by 716 — Abstract:NeMo Guardrails is an open-source toolkit for easily adding programmable guardrails to LLM-based conversational systems. Read more",
+    "host_name": "arxiv.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aclanthology.org/2023.emnlp-demo.40",
+    "name": "NeMo Guardrails: A Toolkit for Controllable and Safe LLM",
+    "snippet": "by T Rebedea · 2023 · Cited by 716 — NeMo Guardrails is an open-source toolkit for easily adding programmable guardrails to LLM -based conversational systems.",
+    "host_name": "aclanthology.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/NVIDIA-NeMo/Guardrails",
+    "name": "NeMo Guardrails is an open-source toolkit for easily",
+    "snippet": "The NeMo Guardrails library enables developers building LLM-based applications to add programmable guardrails between the application code and the LLM. Read more",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.nvidia.com/nemo/guardrails/resources/research",
+    "name": "Research on Guardrails | NVIDIA NeMo",
+    "snippet": "NeMo Guardrails: Rebedea, Nemo guardrails : A toolkit for controllable and safe llm applications with programmable rails.",
+    "host_name": "docs.nvidia.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  }
+]
