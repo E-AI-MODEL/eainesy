@@ -1,0 +1,47 @@
+name: EAInesy Z3 - Real integration audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/eainesy/z3cert.ts'
+      - 'src/lib/eainesy/orchestrator.ts'
+      - 'src/lib/eainesy/lexicon.ts'
+      - 'src/lib/eainesy/conversation.ts'
+      - 'scripts/z3-decision-audit.mjs'
+      - 'scripts/z3-bun-runtime-probe.ts'
+      - '.github/workflows/z3-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  z3-contract:
+    name: Real decision certificates and Bun runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - name: Install declared dependencies
+        run: bun install --frozen-lockfile
+      - name: Bundle unchanged production certificate for Node
+        run: bun build ./src/lib/eainesy/z3cert.ts --target=node --format=esm --external z3-solver --outfile .z3-audit/z3cert.mjs
+      - name: Real Z3 SAT/UNSAT decision-certificate matrix
+        id: node_contract
+        continue-on-error: true
+        run: timeout 110s node scripts/z3-decision-audit.mjs
+      - name: Production Bun + real Z3 integration probe
+        id: bun_probe
+        continue-on-error: true
+        run: timeout 40s bun scripts/z3-bun-runtime-probe.ts
+      - name: Report without masking failures
+        if: always()
+        run: |
+          echo "Real Z3 decision matrix: ${{ steps.node_contract.outcome }}"
+          echo "Real Bun runtime:         ${{ steps.bun_probe.outcome }}"
+          test "${{ steps.node_contract.outcome }}" = success
+          test "${{ steps.bun_probe.outcome }}" = success
