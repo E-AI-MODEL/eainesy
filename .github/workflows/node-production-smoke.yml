@@ -1,0 +1,50 @@
+name: EAInesy - Node production startup validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/node-production-smoke.yml'
+      - 'package.json'
+      - 'src/lib/eainesy/z3cert.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  node-production:
+    name: Build and start Next.js standalone under Node
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: file:./dev.db
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      PORT: "3000"
+      HOSTNAME: "127.0.0.1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - run: bun install --frozen-lockfile
+      - run: bun run db:generate
+      - run: bun run db:push
+      - run: bun run build
+      - name: Start actual Next.js standalone server under Node
+        run: |
+          node .next/standalone/server.js > /tmp/eainesy-node-server.log 2>&1 &
+          echo $! > /tmp/eainesy-node.pid
+          for i in $(seq 1 40); do
+            if curl --fail --silent "http://127.0.0.1:3000/api/verify" -o /tmp/eainesy-node-verify.json; then break; fi
+            if ! kill -0 "$(cat /tmp/eainesy-node.pid)" 2>/dev/null; then cat /tmp/eainesy-node-server.log; exit 1; fi
+            sleep 1
+          done
+          test -s /tmp/eainesy-node-verify.json || { cat /tmp/eainesy-node-server.log; exit 1; }
+          node -e "const fs=require('fs'); const v=JSON.parse(fs.readFileSync('/tmp/eainesy-node-verify.json','utf8')); console.log(JSON.stringify({modelCheckPass:v.modelCheck?.pass,states:v.modelCheck?.statesChecked,invariants:v.modelCheck?.invariantsChecked})); if(v.modelCheck?.pass!==true) process.exit(1)"
+      - name: Stop server and show startup
+        if: always()
+        run: |
+          if test -f /tmp/eainesy-node.pid; then kill "$(cat /tmp/eainesy-node.pid)" 2>/dev/null || true; fi
+          if test -f /tmp/eainesy-node-server.log; then tail -n 25 /tmp/eainesy-node-server.log; fi
