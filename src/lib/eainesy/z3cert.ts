@@ -30,7 +30,7 @@ export interface Z3Certificate {
    *                 proof of inconsistency, but the arithmetic is untrusted →
    *                 fail closed as a precaution (conservative, never silent);
    *  - 'skipped'  : check not executed (solver unavailable/error) — no
-   *                 override; the exhaustive model check remains primary.
+   *                 permission for a live automated reply.
    */
   result: 'sat' | 'unsat' | 'unknown' | 'skipped';
   ms: number;
@@ -41,9 +41,26 @@ const LEVEL_INDEX: Record<RiskLevel, number> = { NONE: 0, ELEVATED: 1, HIGH: 2, 
 
 export const CONFIDENCE_BAND_THRESHOLDS = { HIGH: 0.7, MEDIUM: 0.45 } as const;
 
+/** Deadline bounds the response but cannot forcibly terminate a stuck WASM worker. */
+export const Z3_DEADLINE_MS = 5000;
 let z3Promise: Promise<Awaited<ReturnType<typeof init>> | null> | null = null;
+let circuitUntil = 0;
+async function withDeadline<T>(work: Promise<T>, start: number): Promise<T> {
+  const left = Math.max(1, Z3_DEADLINE_MS - (performance.now() - start));
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([work, new Promise<never>((_,reject) => {
+      timeout = setTimeout(() => reject(new Error('Z3 deadline exceeded')), left);
+    })]);
+  } finally { if (timeout !== undefined) clearTimeout(timeout); }
+}
+function tripCircuit(): void {
+  circuitUntil = performance.now() + 30000;
+  z3Promise = null;
+}
 
 function getZ3() {
+  if (performance.now() < circuitUntil) return Promise.resolve(null);
   if (!z3Promise) {
     z3Promise = init().catch(() => null);
   }
@@ -52,8 +69,7 @@ function getZ3() {
 
 /**
  * Produce a certificate for one decision.
- * Never throws — all failures degrade to { result: 'skipped' } so the
- * pipeline can proceed under the exhaustive model check.
+ * Never throws — all solver failures return 'skipped'; live chat MUST abstain when this occurs.
  */
 export async function certifyDecision(params: {
   riskScore: number;
@@ -69,9 +85,9 @@ export async function certifyDecision(params: {
 }): Promise<Z3Certificate> {
   const t0 = performance.now();
   try {
-    const z3 = await getZ3();
+    const z3 = await withDeadline(getZ3(), t0);
     if (!z3) {
-      return { available: false, result: 'skipped', ms: performance.now() - t0, detail: 'Z3 WASM unavailable; exhaustive lattice proof remains active.' };
+      return { available: false, result: 'skipped', ms: performance.now() - t0, detail: 'Z3 WASM unavailable; live automated answer is withheld.' };
     }
     const { Context } = z3;
     const { Solver, Real, Int, Eq, And, Or } = new Context('eainesy-cert');
@@ -113,7 +129,7 @@ export async function certifyDecision(params: {
           : c.lt(Real.val(String(CONFIDENCE_BAND_THRESHOLDS.MEDIUM)));
     solver.add(bandLink);
 
-    const verdict = await solver.check();
+    const verdict = await withDeadline(solver.check(), t0);
     const ms = performance.now() - t0;
     const policyNote = params.policyBand && params.policyBand !== params.numericBand
       ? ` Policy band ${params.policyBand} after conformal downgrade (humility step, not an arithmetic claim).`
@@ -126,6 +142,7 @@ export async function certifyDecision(params: {
     }
     return { available: true, result: 'unknown', ms, detail: `SMT check returned unknown (solver could not decide — not a proof of inconsistency): arithmetic untrusted as a precaution — orchestrator must fail closed.${policyNote}` };
   } catch (err) {
+    tripCircuit();
     return {
       available: false,
       result: 'skipped',

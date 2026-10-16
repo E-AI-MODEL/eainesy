@@ -41,6 +41,7 @@ import {
   STABILISE_RULES, PHASE_GOAL, STRATEGY_GUIDE, type ConversationInput,
 } from './conversation';
 import { certifyDecision, type Z3Certificate } from './z3cert';
+import { assertVerificationGate, VerificationHalt } from './verification-gate';
 import { parseFrame, generateReply } from './glm';
 import { verifyOutput, violationFeedback, cannedReplyFor } from './outputpolicy';
 import { appendAudit } from './audit';
@@ -92,9 +93,8 @@ export interface TurnResult {
  *  - 'unknown' : the solver could not decide — NOT a proof of inconsistency,
  *                but the arithmetic is untrusted as a precaution → same
  *                fail-closed outcome, reported truthfully as 'unknown'.
- *  - 'sat'/'skipped' : untouched (skipped = check not executed; the
- *                exhaustive model check remains primary, degradation is
- *                documented instead of overridden).
+ *  - 'sat'/'skipped': unchanged in synthetic fixtures ONLY; live HTTP now
+ *                stops before this helper on every non-SAT result.
  * The override also swaps the plan template for the canonical crisis plan
  * (P04) so the shipped plan is coherent: tone, moves, mustInclude and the
  * sentence bound all belong to the crisis family, not to the overridden
@@ -309,6 +309,12 @@ export async function processTurn(
     detail: { pass: modelCheck.pass, rulesetHash: modelCheck.rulesetHash, layers: modelCheck.layers, checkedAt: modelCheck.checkedAt },
   });
 
+  // Refuse to generate from a failed rule-set model check, including in fixtures.
+  if (!modelCheck.pass) {
+    await appendAudit('turn.verification_blocked', null, { sessionId, reason: 'modelcheck_failed', rulesetHash: modelCheck.rulesetHash });
+    throw new VerificationHalt('modelcheck_failed', null, false);
+  }
+
   // --- 8. Z3 SMT certificate -------------------------------------------------------
   ts = performance.now();
   let z3cert = await certifyDecision({
@@ -327,7 +333,20 @@ export async function processTurn(
     summary: z3cert.detail,
   });
 
-  // Z3 unsat/unknown ⇒ our own arithmetic cannot be trusted ⇒ fail closed to the SAFEST action
+  // Automatic live-chat answers require ACTUAL SAT. Preset test fixtures are
+  // explicitly synthetic and run with a mocked Z3; never count them as verified.
+  if (origin === 'live' && !presetProvided) {
+    try {
+      assertVerificationGate(modelCheck.pass, z3cert);
+    } catch (err) {
+      if (err instanceof VerificationHalt) {
+        await appendAudit('turn.verification_blocked', null, { sessionId, reason: err.reason, z3: z3cert.result, available: z3cert.available });
+      }
+      throw err;
+    }
+  }
+
+  // Legacy research fixture: Z3 unsat/unknown ⇒ simulated fall-back action
   const z3Fallback = applyZ3Fallback(z3cert.result, decision);
   if (z3Fallback.override) {
     trace.push({
