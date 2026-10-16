@@ -33,6 +33,26 @@ The example `DATABASE_URL="file:./dev.db"` is resolved by Prisma relative to `pr
 
 Open `http://localhost:3000`. UI pages and deterministic tests can be examined without a live GLM connection; live chat will require the provider environment described below.
 
+## Node-runtime, Z3-procesisolatie en grenzen
+
+De **automatische live-chatcontrole vereist een echt Z3-certificaat**. Bun wordt gebruikt als pakketbeheerder, builder en deterministische testrunner, maar **Node** moet de gebouwde standalone-server uitvoeren. `z3-solver` is onder Bun 1.3.4 aantoonbaar instabiel (WASM/pthreads).
+
+```bash
+bun run db:generate
+bun run db:push
+bun run build
+bun run start
+```
+
+`bun run build` plaatst de Z3-childworker plus de vanuit `src/lib/eainesy/z3cert.ts` gegenereerde controlecode in `.next/standalone/`. Voor elke live-controle start de server een apart afbreekbaar Node-proces; maximaal **vier** mogen tegelijk actief zijn per serverproces. De deadline is **vijf seconden**. Onbeschikbaarheid, crashes, onleesbare berichten, volle capaciteit en tegenstrijdige solveruitslagen blokkeren automatische antwoorden met `ABSTAIN_HITL`; dit is **geen actieve menselijke reviewwachtrij** (`humanReviewQueued=false`).
+
+De gewone Bun-tests mocken Z3 bewust. Echte checks draaien in GitHub Actions:
+[Z3-procesfouten en belasting](https://github.com/E-AI-MODEL/eainesy/actions/runs/38970336471) en
+[standalone-API met 12 gelijktijdige gespreksaanvragen](https://github.com/E-AI-MODEL/eainesy/actions/runs/38970521481).
+Een nieuwe lokale Bun-devserver zonder vooraf gebouwde Z3-worker kan voor live-chat geen geldig solvercertificaat krijgen en zal dan antwoorden tegenhouden; dit is verwacht fail-closed gedrag.
+
+Dit is een **reproduceerbaar softwareonderzoek**, niet een aantoonbaar veilige gespreksdienst. De Z3-bewijsgrens is numerieke consistentie van de vastgelegde regels. Zie [Z3-integratie-audit](docs/Z3-audit-2026-10-16.md).
+
 ## Live GLM and build checks
 
 `src/lib/eainesy/glm.ts` currently initializes `z-ai-web-dev-sdk` through `ZAI.create()`. The repository does **not** contain portable credentials or a provider-neutral adapter. Live GLM calls require the compatible hosting environment and its documented SDK authentication. No credentials should be committed. Tests that need a live provider **must be labelled as such** and must not be presented as equivalent to the deterministic suite.
@@ -43,7 +63,7 @@ bunx eslint src --max-warnings=0
 bun run build
 ```
 
-Note: `next.config.ts` currently has `typescript.ignoreBuildErrors: true`; therefore, a successful `bun run build` **does not** prove type correctness. The original research scripts may have pre-existing TypeScript errors; report the full compiler output rather than claiming a clean whole-project typecheck. The production build requires Prisma client generation first.
+Note: `next.config.ts` currently has `typescript.ignoreBuildErrors: true`; therefore, a successful `bun run build` **does not** prove type correctness. GitHub Actions voert ook een afzonderlijke TypeScript-controle uit. Het optionele WebSocket-voorbeeld is bewust uitgesloten van het applicatie-TypeScript-project, omdat zijn eigen afhankelijkheden niet in de applicatie zijn opgenomen. The production build requires Prisma client generation first.
 
 ## Optional environment and historical artifacts
 
