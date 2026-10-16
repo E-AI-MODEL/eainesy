@@ -9,12 +9,10 @@
  * updateMany / count / deleteMany) with Prisma's semantics for the operators
  * actually used (equality, not, in, startsWith, gte/lte/gt/lt, AND/OR).
  *
- * The knowledge graph is seeded from the shipped db/custom.db (read-only via
- * bun:sqlite) so grounding behaves exactly as in production.
+ * The knowledge graph is seeded from the version-controlled KG definitions,
+ * just like scripts/seed-kg.ts. This avoids dependence on historical demo data.
  */
-import { Database } from 'bun:sqlite';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { KG_NODES, KG_EDGES } from '../../src/lib/eainesy/kg-data';
 
 type Row = Record<string, unknown>;
 type Where = Record<string, unknown>;
@@ -198,17 +196,21 @@ export function createFakeDb(): FakeDb {
     seedCandidate: new FakeModel('seedCandidate'),
     evalRun: new FakeModel('evalRun'),
   };
-  // Seed the knowledge graph from the shipped database (read-only).
-  const file = join(import.meta.dir, '..', '..', 'db', 'custom.db');
-  if (existsSync(file)) {
-    const sqlite = new Database(file, { readonly: true });
-    for (const n of sqlite.query('select key, type, labelNl, labelEn, data from KGNode').all() as Row[]) {
-      models.kGNode.rows.push({ id: cuid(), createdAt: new Date(), ...n });
-    }
-    for (const e of sqlite.query('select fromKey, toKey, rel, weight from KGEdge').all() as Row[]) {
-      models.kGEdge.rows.push({ id: cuid(), ...e });
-    }
-    sqlite.close();
+  // Mirror the application seeder's source of truth; no db/custom.db required.
+  if (KG_NODES.length === 0 || KG_EDGES.length === 0) {
+    throw new Error('fake-db: knowledge graph definitions are empty');
+  }
+  for (const n of KG_NODES) {
+    models.kGNode.rows.push({
+      id: cuid(), createdAt: new Date(), key: n.key, type: n.type,
+      labelNl: n.nl, labelEn: n.en, data: JSON.stringify(n.data),
+    });
+  }
+  for (const e of KG_EDGES) {
+    models.kGEdge.rows.push({
+      id: cuid(), fromKey: e.from, toKey: e.to,
+      rel: e.rel, weight: e.weight ?? 1.0,
+    });
   }
   const db: FakeDb = {
     ...models,

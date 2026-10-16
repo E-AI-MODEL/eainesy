@@ -52,3 +52,8 @@ prompt
 server.log
 # Skills directory
 /skills/
+# Local SQLite database files are runtime artefacts, not repository source.
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
