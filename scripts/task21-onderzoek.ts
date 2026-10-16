@@ -52,7 +52,7 @@ for (const [k, per] of actions) {
   if ((s.riskLevel === 'HIGH' || s.riskLevel === 'ELEVATED')
     && !['CRISIS_PROTOCOL', 'SAFETY_RESPONSE'].includes(low.action)) o1Violations++;
   // O2 — spiegel van INV-5 (CLEAN alleen; PII-pad wijkt bewust af via F7)
-  if (s.confidenceBand === undefined && s.piiState === 'CLEAN' && s.riskLevel === 'NONE'
+  if (s.piiState === 'CLEAN' && s.riskLevel === 'NONE'
     && !['CLARIFY', 'ABSTAIN_HITL', 'CRISIS_PROTOCOL', 'SAFETY_RESPONSE'].includes(low.action)
     && !(s.intent === 'ABUSE_DISCLOSURE')) o2Violations++;
   // overgangen door band-daling (wat er écht verandert)

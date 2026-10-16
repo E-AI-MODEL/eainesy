@@ -137,7 +137,7 @@ async function c5z3() {
   // z3-solver WASM (pthreads) crasht onder de bun-runtime bij init — daarom
   // alleen uitvoeren in een node-achtige runtime; het Z3-bewijs voor deze
   // omgeving is geleverd via het live /api/chat-certificaat (sat, 10,5 ms).
-  if (typeof Bun !== 'undefined') {
+  if (typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined') {
     console.log('FAIL-soft  C5 Z3-steekproef — NOT RUN: z3-solver WASM crasht onder bun (pthread-abort); gevalideerd in de server-runtime via live chat-certificaat (sat).');
     return;
   }

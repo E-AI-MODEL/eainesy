@@ -10,7 +10,6 @@
 import {
   enumerateControllerInputs,
   type ControllerInput,
-  type DecisionRule as _unused,
 } from '../src/lib/eainesy/types';
 import { decide, DECISION_RULES, crisisOverridePlanTemplate } from '../src/lib/eainesy/controller';
 import { verifyOutput, CANNED_REPLIES } from '../src/lib/eainesy/outputpolicy';

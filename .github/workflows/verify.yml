@@ -63,10 +63,14 @@ jobs:
         id: lint
         continue-on-error: true
         run: bunx eslint src --max-warnings=0
-      - name: Full-project TypeScript check
+      - name: Application + research scripts TypeScript check
         id: typescript
         continue-on-error: true
         run: bunx tsc --noEmit
+      - name: Actual Z3 WASM solver under Node
+        id: z3node
+        continue-on-error: true
+        run: node scripts/z3-node-runtime-smoke.mjs
       - name: Production build
         id: build
         continue-on-error: true
@@ -86,6 +90,7 @@ jobs:
           echo "DB contract:   ${{ steps.dbcontract.outcome }}"
           echo "Lint:          ${{ steps.lint.outcome }}"
           echo "TypeScript:    ${{ steps.typescript.outcome }}"
+          echo "Z3/Node:       ${{ steps.z3node.outcome }}"
           echo "Build:         ${{ steps.build.outcome }}"
           for status in \
             '${{ steps.install.outcome }}' \
@@ -98,6 +103,7 @@ jobs:
             '${{ steps.dbcontract.outcome }}' \
             '${{ steps.lint.outcome }}' \
             '${{ steps.typescript.outcome }}' \
+            '${{ steps.z3node.outcome }}' \
             '${{ steps.build.outcome }}'; do
             if [ "$status" != success ]; then exit 1; fi
           done

@@ -22,3 +22,9 @@ mock.module('z-ai-web-dev-sdk', () => ({
     }),
   },
 }));
+
+ // Bun CLI cannot safely initialize the z3-solver pthread WASM worker.
+ // Deterministic tests report Z3 as SKIPPED; CI tests the real solver under Node.
+mock.module('z3-solver', () => ({
+  init: async () => { throw new Error('Z3 unavailable in Bun test runner; run Node smoke separately'); },
+}));
