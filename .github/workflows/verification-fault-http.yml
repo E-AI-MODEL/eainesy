@@ -1,0 +1,40 @@
+name: EAInesy - HTTP verification failure tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/eainesy/z3cert.ts'
+      - 'src/lib/eainesy/verification-gate.ts'
+      - 'src/lib/eainesy/modelchecker.ts'
+      - 'src/lib/eainesy/orchestrator.ts'
+      - 'src/app/api/chat/route.ts'
+      - 'scripts/ci-verification-fault-http.mjs'
+      - '.github/workflows/verification-fault-http.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verification-faults:
+    name: Four synthetic failures via real Node chat HTTP
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: file:${{ github.workspace }}/prisma/dev.db
+      NEXT_TELEMETRY_DISABLED: "1"
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - name: Locked installation
+        run: bun install --frozen-lockfile
+      - name: Initialize disposable database
+        run: |
+          bun run db:generate
+          bun run db:push
+      - name: Four actual HTTP abstentions (ephemeral CI builds)
+        run: node scripts/ci-verification-fault-http.mjs
