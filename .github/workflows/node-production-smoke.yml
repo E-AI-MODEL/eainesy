@@ -43,6 +43,13 @@ jobs:
           done
           test -s /tmp/eainesy-node-verify.json || { cat /tmp/eainesy-node-server.log; exit 1; }
           node -e "const fs=require('fs'); const v=JSON.parse(fs.readFileSync('/tmp/eainesy-node-verify.json','utf8')); console.log(JSON.stringify({modelCheckPass:v.modelCheck?.pass,states:v.modelCheck?.statesChecked,invariants:v.modelCheck?.invariantsChecked})); if(v.modelCheck?.pass!==true) process.exit(1)"
+      - name: Real chat API turn with actual Z3 inside Next.js under Node
+        run: |
+          curl --fail --silent --show-error --max-time 65 \
+            -H 'Content-Type: application/json' \
+            -d '{"message":"Hallo, ik test de gespreksketen op een rustige dag."}' \
+            http://127.0.0.1:3000/api/chat > /tmp/eainesy-node-chat.json
+          node -e "const fs=require('fs');const r=JSON.parse(fs.readFileSync('/tmp/eainesy-node-chat.json','utf8'));console.log(JSON.stringify({failClosed:r.failClosed??false,action:r.action,z3:r.certificate?.z3,modelCheck:r.certificate?.modelCheck?.pass,outputPolicy:r.certificate?.outputPolicy?.pass}));if(r.failClosed||r.certificate?.z3?.result!=='sat'||r.certificate?.modelCheck?.pass!==true)process.exit(1)"
       - name: Stop server and show startup
         if: always()
         run: |
