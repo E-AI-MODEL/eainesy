@@ -8,6 +8,9 @@ on:
       - '.github/workflows/node-production-smoke.yml'
       - 'package.json'
       - 'src/lib/eainesy/z3cert.ts'
+      - 'src/lib/eainesy/z3-isolated.ts'
+      - 'scripts/z3-cert-worker.mjs'
+      - 'scripts/ci-chat-burst.mjs'
 
 permissions:
   contents: read
@@ -50,6 +53,8 @@ jobs:
             -d '{"message":"Hallo, ik test de gespreksketen op een rustige dag."}' \
             http://127.0.0.1:3000/api/chat > /tmp/eainesy-node-chat.json
           node -e "const fs=require('fs');const r=JSON.parse(fs.readFileSync('/tmp/eainesy-node-chat.json','utf8'));console.log(JSON.stringify({failClosed:r.failClosed??false,action:r.action,z3:r.certificate?.z3,modelCheck:r.certificate?.modelCheck?.pass,outputPolicy:r.certificate?.outputPolicy?.pass}));if(r.failClosed||r.certificate?.z3?.result!=='sat'||r.certificate?.modelCheck?.pass!==true)process.exit(1)"
+      - name: Twelve concurrent HTTP chat turns (every reply must have SAT)
+        run: node scripts/ci-chat-burst.mjs
       - name: Stop server and show startup
         if: always()
         run: |
