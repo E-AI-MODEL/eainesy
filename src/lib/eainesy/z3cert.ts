@@ -87,6 +87,9 @@ export async function certifyDecision(params: {
   try {
     const z3 = await withDeadline(getZ3(), t0);
     if (!z3) {
+      // Failed initialization may resolve to null. Make recovery possible after
+      // a bounded circuit pause instead of permanently caching a failed promise.
+      if (performance.now() >= circuitUntil) tripCircuit();
       return { available: false, result: 'skipped', ms: performance.now() - t0, detail: 'Z3 WASM unavailable; live automated answer is withheld.' };
     }
     const { Context } = z3;
