@@ -1,0 +1,35 @@
+name: EAInesy Z3 - process isolation and load
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/eainesy/z3-isolated.ts'
+      - 'src/lib/eainesy/z3cert.ts'
+      - 'src/lib/eainesy/orchestrator.ts'
+      - 'scripts/z3-cert-worker.mjs'
+      - 'scripts/z3-process-test.mjs'
+      - 'package.json'
+      - '.github/workflows/z3-isolation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  worker-fault-and-load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.4'
+      - run: bun install --frozen-lockfile
+      - name: Bundle isolated production Z3 core and worker entry
+        run: |
+          mkdir -p .next/standalone
+          bun build ./src/lib/eainesy/z3cert.ts --target=node --format=esm --external z3-solver --outfile .next/standalone/z3-cert-core.mjs
+          bun build ./src/lib/eainesy/z3-isolated.ts --target=node --format=esm --outfile .next/standalone/z3-isolated-core.mjs
+          cp scripts/z3-cert-worker.mjs .next/standalone/z3-cert-worker.mjs
+      - name: Real Z3 worker failures, forced kill and concurrent requests
+        run: node scripts/z3-process-test.mjs
