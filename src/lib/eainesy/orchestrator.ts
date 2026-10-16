@@ -41,6 +41,7 @@ import {
   STABILISE_RULES, PHASE_GOAL, STRATEGY_GUIDE, type ConversationInput,
 } from './conversation';
 import { certifyDecision, type Z3Certificate } from './z3cert';
+import { certifyDecisionIsolated } from './z3-isolated';
 import { assertVerificationGate, VerificationHalt } from './verification-gate';
 import { parseFrame, generateReply } from './glm';
 import { verifyOutput, violationFeedback, cannedReplyFor } from './outputpolicy';
@@ -317,7 +318,7 @@ export async function processTurn(
 
   // --- 8. Z3 SMT certificate -------------------------------------------------------
   ts = performance.now();
-  let z3cert = await certifyDecision({
+  let z3cert = await (origin === 'live' && !presetProvided ? certifyDecisionIsolated : certifyDecision)({
     riskScore: Math.max(neuralScore, lexicalScore),
     claimedLevel: fusedLevel,
     neuralLevel,
