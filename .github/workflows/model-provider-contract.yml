@@ -2,6 +2,8 @@ name: EAInesy - GLM provider contract (synthetic)
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
     paths:
       - 'src/lib/eainesy/glm.ts'
       - 'src/lib/eainesy/model-provider.ts'
