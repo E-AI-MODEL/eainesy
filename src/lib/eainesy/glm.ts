@@ -6,7 +6,7 @@
  * All responses that fail validation are returned as null / flagged —
  * the symbolic side decides what to do with failures (fail-closed).
  */
-import { completeModel } from './model-provider';
+import { completeModel, completeModelWithStatus, ModelProviderUnavailable } from './model-provider';
 import { FrameSchema, type Frame, type Plan } from './types';
 
 const FRAME_SCHEMA_PROMPT = `You are the semantic parser of EAInesy, a neuro-symbolic support assistant (Dutch + English).
@@ -63,21 +63,26 @@ export async function parseFrame(text: string, recentHistory: { role: 'user' | '
     }
     messages.push({ role: 'user', content: text });
 
-    let raw = await completeModel(messages, 0.1);
-    let frame = raw === null ? null : tryParseFrame(raw);
+    // A delivered but schema-invalid frame differs fundamentally from a
+    // provider outage. The latter must block live automatic decisions.
+    const first = await completeModelWithStatus(messages, 0.1);
+    if (first.status === 'unavailable') throw new ModelProviderUnavailable(first.reason);
+    let raw = first.text;
+    const frame = tryParseFrame(raw);
     if (frame) return frame;
 
-    // one repair retry with the validation error feedback
-    if (raw !== null) {
-      messages.push({ role: 'assistant', content: raw.slice(0, 800) });
-    }
+    // Only a delivered, structurally unreadable response is eligible for a
+    // schema repair; transport failures are not a reason to hallucinate a frame.
+    messages.push({ role: 'assistant', content: raw.slice(0, 800) });
     messages.push({
       role: 'user',
-      content: 'Your previous reply was not valid JSON for the schema. Reply again with STRICT JSON only, matching the schema exactly.',
+      content: 'Your previous reply did not match the required frame schema. Reply with STRICT JSON containing a valid intent and only allowed riskMarker types.',
     });
-    raw = await completeModel(messages, 0.0);
-    return raw === null ? null : tryParseFrame(raw);
-  } catch {
+    const repaired = await completeModelWithStatus(messages, 0.0);
+    if (repaired.status === 'unavailable') throw new ModelProviderUnavailable(repaired.reason);
+    return tryParseFrame(repaired.text);
+  } catch (error) {
+    if (error instanceof ModelProviderUnavailable) throw error;
     return null;
   }
 }
