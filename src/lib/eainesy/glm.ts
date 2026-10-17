@@ -70,46 +70,63 @@ export async function parseFrame(text: string, recentHistory: { role: 'user' | '
     // provider outage. The latter must block live automatic decisions.
     const first = await completeModelWithStatus(messages, 0.1);
     if (first.status === 'unavailable') throw new ModelProviderUnavailable(first.reason);
-    let raw = first.text;
-    const frame = tryParseFrame(raw);
-    if (frame) return frame;
+    const parsed = tryParseFrame(first.text);
+    if (parsed.ok) return parsed.frame;
 
-    // Only a delivered, structurally unreadable response is eligible for a
-    // schema repair; transport failures are not a reason to hallucinate a frame.
-    messages.push({ role: 'assistant', content: raw.slice(0, 800) });
-    messages.push({
-      role: 'user',
-      content: 'Your previous reply did not match the required frame schema. Reply with STRICT JSON containing a valid intent and only allowed riskMarker types.',
-    });
+    // Only a delivered but schema-invalid result is eligible for a repair.
+    // Transport failures remain separate typed errors and never reach here.
+    messages.push({ role: 'assistant', content: first.text.slice(0, 800) });
+    messages.push({ role: 'user', content: repairInstruction(parsed) });
     const repaired = await completeModelWithStatus(messages, 0.0);
     if (repaired.status === 'unavailable') throw new ModelProviderUnavailable(repaired.reason);
-    return tryParseFrame(repaired.text);
+    const second = tryParseFrame(repaired.text);
+    return second.ok ? second.frame : null;
   } catch (error) {
     if (error instanceof ModelProviderUnavailable) throw error;
     return null;
   }
 }
 
-function tryParseFrame(raw: string | null): Frame | null {
-  if (!raw) return null;
+type ParseFailure = { ok: false; kind: 'no_json' | 'schema'; issues: string[] };
+type ParseOutcome = { ok: true; frame: Frame } | ParseFailure;
+
+/** Real but bounded schema feedback: field paths and messages, not the user's words. */
+function repairInstruction(failure: ParseFailure): string {
+  if (failure.kind === 'no_json') {
+    return 'Your previous reply contained no JSON object. Reply again with STRICT JSON only and no markdown.';
+  }
+  const issues = failure.issues.slice(0, 3).map(issue => '- ' + issue.slice(0, 160)).join('\n');
+  return 'Your previous reply was valid JSON but violated the schema. Fix these errors and reply with STRICT JSON only:\n' + issues;
+}
+
+function tryParseFrame(raw: string | null): ParseOutcome {
+  if (!raw) return { ok: false, kind: 'no_json', issues: [] };
   const jsonSlice = extractJson(raw);
-  if (!jsonSlice) return null;
+  if (!jsonSlice) return { ok: false, kind: 'no_json', issues: [] };
   try {
-    const parsed = JSON.parse(jsonSlice);
+    const parsed: unknown = JSON.parse(jsonSlice);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return { ok: false, kind: 'schema', issues: ['root: expected a JSON object'] };
+    }
     const result = FrameSchema.safeParse(parsed);
-    if (result.success) return result.data;
-    // tolerate minor deviations: coerce and retry once
+    if (result.success) return { ok: true, frame: result.data };
+    const object = parsed as Record<string, unknown>;
     const coerced = FrameSchema.safeParse({
-      ...parsed,
-      parseConfidence: typeof parsed.parseConfidence === 'number' ? parsed.parseConfidence : 0.5,
-      emotions: Array.isArray(parsed.emotions) ? parsed.emotions.map(String).slice(0, 8) : [],
-      topics: Array.isArray(parsed.topics) ? parsed.topics.map(String).slice(0, 8) : [],
-      riskMarkers: Array.isArray(parsed.riskMarkers) ? parsed.riskMarkers : [],
-      paraphrase: typeof parsed.paraphrase === 'string' ? parsed.paraphrase : '',
+      ...object,
+      parseConfidence: typeof object.parseConfidence === 'number' ? object.parseConfidence : 0.5,
+      emotions: Array.isArray(object.emotions) ? object.emotions.map(String).slice(0, 8) : [],
+      topics: Array.isArray(object.topics) ? object.topics.map(String).slice(0, 8) : [],
+      riskMarkers: Array.isArray(object.riskMarkers) ? object.riskMarkers : [],
+      paraphrase: typeof object.paraphrase === 'string' ? object.paraphrase : '',
     });
-    return coerced.success ? coerced.data : null;
+    if (coerced.success) return { ok: true, frame: coerced.data };
+    return {
+      ok: false, kind: 'schema',
+      issues: result.error.issues.map(issue =>
+        (issue.path.length ? issue.path.map(String).join('.') + ': ' : '') + issue.message),
+    };
   } catch {
-    return null;
+    return { ok: false, kind: 'no_json', issues: [] };
   }
 }
 
