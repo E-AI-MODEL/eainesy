@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
-import {completeModel,completeModelWithStatus,ModelProviderUnavailable} from '../.provider-ci/provider.mjs';
+import {completeModel,completeModelWithStatus} from '../.provider-ci/provider.mjs';
 import {parseFrame,generateReply} from '../.provider-ci/glm.mjs';
 
 if(process.env.CI!=='true')throw Error('Contract requires CI=true for local HTTP allowlist');
@@ -72,7 +72,7 @@ try {
   assert.deepEqual(await completeModelWithStatus(chat,0.1),
     {status:'unavailable',reason:'rate_limited'});
   await assert.rejects(parseFrame('Fictief bericht met uitgevallen provider.',[]),
-    e=>e instanceof ModelProviderUnavailable && e.reason==='rate_limited');
+    e=>e?.name==='ModelProviderUnavailable' && e.reason==='rate_limited');
   console.log('PASS repeated 429 reports provider unavailable, not a semantically invalid frame');
   providerMode='invalid-json-response';
   assert.equal(await completeModel(chat,0.1),null);
