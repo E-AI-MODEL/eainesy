@@ -3,6 +3,7 @@
 // Never injects or exposes worker overrides in the live HTTP endpoint.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {certifyDecisionIsolated,z3WorkerStatus,Z3_MAX_CONCURRENT_WORKERS,Z3_WORKER_TIMEOUT_MS,Z3_MAX_QUEUED_REQUESTS,Z3_QUEUE_WAIT_MS} from '../.next/standalone/z3-isolated-core.mjs';
 
@@ -15,6 +16,27 @@ const good={
 };
 const invalid={...good,claimedLevel:'NONE'};
 const now=()=>performance.now();
+/** Linux runner: summed resident set sizes of Node parent and direct Z3 child
+ * processes. RSS double-counts shared pages and is a point-in-time estimate;
+ * deliberately NOT described as global host/cgroup physical memory usage.
+ */
+function sampleNodeAndChildren() {
+  const parentRss = process.memoryUsage().rss;
+  const table = execFileSync('ps',['-eo','ppid=,rss=,args='],{encoding:'utf8'});
+  let childRssBytes=0,children=0;
+  for (const line of table.split('\n')) {
+    const match=line.trim().match(/^(\d+)\s+(\d+)\s+(.+)$/);
+    if (!match) continue;
+    if (Number(match[1])===process.pid && /z3-cert-worker\.mjs/.test(match[3])) {
+      children += 1;
+      childRssBytes += Number(match[2])*1024;
+    }
+  }
+  return {children,parentRssMiB:Math.round(parentRss/1048576),
+    childRssMiB:Math.round(childRssBytes/1048576),
+    summedRssMiB:Math.round((parentRss+childRssBytes)/1048576)};
+}
+
 async function drained(){
   for(let i=0;i<50;i++){
     if(z3WorkerStatus().running===0)return;
@@ -102,21 +124,34 @@ try{
   await fs.writeFile(worker,original);
   await check('12 real concurrent requests: SAT or explicit bounded abstention',async()=>{
     const start=now();
-    const certs=await Promise.all(Array.from({length:12},()=>certifyDecisionIsolated(good)));
+    const tasks=Array.from({length:12},()=>certifyDecisionIsolated(good));
+    await sleep(80);
+    const sampled=sampleNodeAndChildren();
+    assert.ok(sampled.children<=Z3_MAX_CONCURRENT_WORKERS);
+    assert.ok(sampled.summedRssMiB<2048,'Excessive sum of RSS for bounded Z3 workers');
+    const certs=await Promise.all(tasks);
     const sat=certs.filter(c=>c.result==='sat').length;
     const unavailable=certs.filter(c=>c.result==='skipped').length;
     assert.equal(sat+unavailable,12);
     assert.ok(sat>=4,'The initial four workers should produce real certificates');
     assert.ok(certs.every(c=>c.result!=='sat'||c.available));
     assert.ok(z3WorkerStatus().peak<=4);
-    console.log('Real concurrent:',JSON.stringify({sat,unavailable,elapsedMs:Math.round(now()-start),rssMiB:Math.round(process.memoryUsage().rss/1048576)}));
+    console.log('Real concurrent:',JSON.stringify({sat,unavailable,elapsedMs:Math.round(now()-start),memorySample:sampled}));
   });
   await check('soak: 20 rounds of 8 real worker requests, no active children left',async()=>{
     const start=now();
     const rssBefore=process.memoryUsage().rss;
     let sat=0, skipped=0;
+    let peakSummedRssMiB=0,peakObservedChildren=0;
     for(let round=0;round<20;round++){
-      const results=await Promise.all(Array.from({length:8},()=>certifyDecisionIsolated(good)));
+      const tasks=Array.from({length:8},()=>certifyDecisionIsolated(good));
+      await sleep(80);
+      const sample=sampleNodeAndChildren();
+      peakSummedRssMiB=Math.max(peakSummedRssMiB,sample.summedRssMiB);
+      peakObservedChildren=Math.max(peakObservedChildren,sample.children);
+      assert.ok(sample.children<=Z3_MAX_CONCURRENT_WORKERS,'Too many OS solver children');
+      assert.ok(sample.summedRssMiB<2048,'Node + direct Z3 child RSS exceeded 2 GiB sampled cap');
+      const results=await Promise.all(tasks);
       sat += results.filter(c=>c.result==='sat'&&c.available).length;
       skipped += results.filter(c=>c.result==='skipped').length;
       assert.equal(results.length,8);
@@ -133,6 +168,7 @@ try{
       parentRssBeforeMiB:Math.round(rssBefore/1048576),
       parentRssAfterMiB:Math.round(rssAfter/1048576),
       peakWorkers:z3WorkerStatus().peak,remainingWorkers:z3WorkerStatus().running,
+      peakObservedChildren,peakSummedRssMiB,
     }));
     assert.ok(sat>=140,'Too many genuine Z3 abstentions in modest repeated load');
     // Parent RSS excludes children. This is a regression observation, not a
