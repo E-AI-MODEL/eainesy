@@ -124,6 +124,8 @@ export interface GenerationInput {
   techniqueLines: string[];   // grounded technique/resource lines the reply may use
   history: { role: 'user' | 'assistant'; content: string }[];
   violationFeedback?: string[];
+  /** Enforce provider availability in real chat; research fixtures retain nullable fallback. */
+  requireModel?: boolean;
   /** User steering hint ("bijsturing") — flavour only; the plan stays binding. */
   style?: 'concise' | 'normal' | 'elaborate';
   /** Conversation layer brief: where we are and what this turn should do. */
@@ -146,7 +148,7 @@ const TONE_NL: Record<Plan['tone'], string> = {
 
 /** Generate the reply under the symbolic plan's constraints. */
 export async function generateReply(input: GenerationInput): Promise<string | null> {
-  const { plan, frame, techniqueLines, history, violationFeedback, style, conversation } = input;
+  const { plan, frame, techniqueLines, history, violationFeedback, style, conversation, requireModel } = input;
   const lang = plan.language;
   const styleLine = style === 'concise'
     ? (lang === 'nl' ? 'Stijlwens: hou het kort en krachtig.' : 'Style wish: keep it short and to the point.')
@@ -205,9 +207,15 @@ ${frame?.paraphrase ? `\nRestatement of what the user said: "${frame.paraphrase}
       messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content.slice(0, 700) });
     }
 
+    if (requireModel) {
+      const result = await completeModelWithStatus(messages, violationFeedback ? 0.3 : 0.65);
+      if (result.status === 'unavailable') throw new ModelProviderUnavailable(result.reason);
+      return result.text.trim();
+    }
     const raw = await completeModel(messages, violationFeedback ? 0.3 : 0.65);
     return raw && raw.trim().length > 0 ? raw.trim() : null;
-  } catch {
+  } catch (error) {
+    if (error instanceof ModelProviderUnavailable) throw error;
     return null;
   }
 }
