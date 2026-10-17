@@ -55,6 +55,29 @@ Een nieuwe lokale Bun-devserver zonder vooraf gebouwde Z3-worker kan voor live-c
 
 Dit is een **reproduceerbaar softwareonderzoek**, niet een aantoonbaar veilige gespreksdienst. De Z3-bewijsgrens is numerieke consistentie van de vastgelegde regels. Zie [Z3-integratie-audit](docs/Z3-audit-2026-10-16.md).
 
+## GLM-modelproviders en bewijsgrenzen
+
+EAInesy houdt de semantische GLM-koppeling gescheiden van de symbolische controle, Z3 en de uitvoercontrole. De standaardbackend `zai-sdk` behoudt de oorspronkelijke `z-ai-web-dev-sdk`-aanroep. Als alternatief ondersteunt `src/lib/eainesy/model-provider.ts` een **expliciet geconfigureerd OpenAI-compatibel HTTP-endpoint**. De provider wordt uitsluitend via de serveromgeving gekozen; de chatgebruiker mag niet een eigen endpoint instellen.
+
+Voor een compatibel endpoint zijn de volgende serverinstellingen nodig (gebruik een secret store; commit geen API-sleutel):
+
+```dotenv
+EAINESY_MODEL_BACKEND=openai-compatible
+EAINESY_MODEL_ENDPOINT=https://<provider-host>/v1/chat/completions
+EAINESY_MODEL_NAME=<jouw-model-id>
+EAINESY_MODEL_API_KEY=<alleen-via-secrets>
+```
+
+Een ontbrekende sleutel, ongeldig endpoint, onjuiste backend, ongeldige respons of serverfout leidt tot `null`; er volgt **geen stille modelwissel**. De adapter staat alleen HTTPS toe, met een beperkte localhost-HTTP-uitzondering voor `CI=true`. Redirects worden geweigerd. De HTTP-aanroep heeft een timeout van 20 seconden; de bestaande Z.ai-SDK wordt niet door een nieuwe HTTP-timeout afgebroken.
+
+**Getest zonder echte GLM-credentials:**
+- [Transportcontract](https://github.com/E-AI-MODEL/eainesy/actions/runs/39025242061): schemareparatie, retries, antwoordgeneratie, authentificatie en ongeldige configuratie tegen een lokale nep-provider
+- [Volledige HTTP-keten](https://github.com/E-AI-MODEL/eainesy/actions/runs/39025327484): twee fictieve gespreksverzoeken door Next.js, parser, symbolische beslisregels, echte Z3, generator en uitvoercontrole; beide geslaagd
+
+**Optionele echte providerproef:** de workflow [Manual live GLM synthetic check](https://github.com/E-AI-MODEL/eainesy/actions/workflows/manual-live-glm.yml) draait *niet automatisch*. Configureer in GitHub Actions Secrets `EAINESY_MODEL_ENDPOINT`, `EAINESY_MODEL_NAME` en `EAINESY_MODEL_API_KEY`. Start daarna handmatig `Run workflow`. Er worden vijf fictieve Nederlandse tekstvoorbeelden voor herkenning gebruikt; de provider kan hiervoor kosten in rekening brengen. Deze workflow is nog niet met een externe provider uitgevoerd. De uitkomst zou uitsluitend een eerste modeldiagnose zijn, **geen onderbouwde veiligheids- of klinische validatie**.
+
+Zie [GLM-transportaudit](docs/GLM-transport-audit-2026-10-17.md).
+
 ## Live GLM and build checks
 
 `src/lib/eainesy/glm.ts` currently initializes `z-ai-web-dev-sdk` through `ZAI.create()`. The repository does **not** contain portable credentials or a provider-neutral adapter. Live GLM calls require the compatible hosting environment and its documented SDK authentication. No credentials should be committed. Tests that need a live provider **must be labelled as such** and must not be presented as equivalent to the deterministic suite.
