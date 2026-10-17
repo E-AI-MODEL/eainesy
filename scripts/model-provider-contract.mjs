@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
-import {completeModel} from '../.provider-ci/provider.mjs';
+import {completeModel,completeModelWithStatus,ModelProviderUnavailable} from '../.provider-ci/provider.mjs';
 import {parseFrame,generateReply} from '../.provider-ci/glm.mjs';
 
 if(process.env.CI!=='true')throw Error('Contract requires CI=true for local HTTP allowlist');
@@ -29,6 +29,13 @@ const server=createServer(async(req,res)=>{
   if(isParser)stats.parse++;else stats.generate++;
   if(providerMode==='http429'&&stats.retries++===0) {
     res.writeHead(429,{'Content-Type':'application/json'});res.end('{"error":"synthetic rate limit"}');return;
+  }
+  if(providerMode==='always429') {
+    res.writeHead(429,{'Content-Type':'application/json'});res.end('{"error":"synthetic rate limit"}');return;
+  }
+  if(providerMode==='always-schema-invalid'&&isParser) {
+    res.writeHead(200,{'Content-Type':'application/json'});
+    res.end(JSON.stringify({choices:[{message:{content:'{"not_a_frame":true}'}}]}));return;
   }
   if(providerMode==='invalid-json-response') {
     res.writeHead(200,{'Content-Type':'application/json'});res.end('not-json');return;
@@ -61,9 +68,20 @@ try {
   assert.equal(await completeModel(chat,0.1),'Ik heb je technische testbericht ontvangen.');
   assert.equal(stats.retries,2);
   console.log('PASS explicit 429 retry');
+  providerMode='always429';
+  assert.deepEqual(await completeModelWithStatus(chat,0.1),
+    {status:'unavailable',reason:'rate_limited'});
+  await assert.rejects(parseFrame('Fictief bericht met uitgevallen provider.',[]),
+    e=>e instanceof ModelProviderUnavailable && e.reason==='rate_limited');
+  console.log('PASS repeated 429 reports provider unavailable, not a semantically invalid frame');
   providerMode='invalid-json-response';
   assert.equal(await completeModel(chat,0.1),null);
   console.log('PASS malformed provider response fails closed');
+  assert.deepEqual(await completeModelWithStatus(chat,0.1),
+    {status:'unavailable',reason:'invalid_response'});
+  providerMode='always-schema-invalid';
+  assert.equal(await parseFrame('Fictief bericht met schemafout.',[]),null);
+  console.log('PASS delivered but semantically invalid JSON remains unreadable, NOT an outage');
   providerMode='normal';
   const parsed=await parseFrame('Dit is een technische proef, zonder echte personen.',[]);
   assert.equal(parsed?.intent,'GENERAL_VENT');
@@ -88,6 +106,8 @@ try {
   process.env.EAINESY_MODEL_ENDPOINT='http://127.0.0.1:'+port+'/v1/chat/completions';
   delete process.env.EAINESY_MODEL_API_KEY;
   assert.equal(await completeModel(chat,0.1),null);
+  assert.deepEqual(await completeModelWithStatus(chat,0.1),
+    {status:'unavailable',reason:'invalid_configuration'});
   console.log('PASS missing key fails closed without silently contacting default Z.ai SDK');
   process.env.EAINESY_MODEL_API_KEY='ci-local-placeholder';
   process.env.EAINESY_MODEL_BACKEND='invalid-provider';
