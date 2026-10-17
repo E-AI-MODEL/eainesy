@@ -6,15 +6,8 @@
  * All responses that fail validation are returned as null / flagged —
  * the symbolic side decides what to do with failures (fail-closed).
  */
-import ZAI from 'z-ai-web-dev-sdk';
+import { completeModel } from './model-provider';
 import { FrameSchema, type Frame, type Plan } from './types';
-
-let zaiInstance: Awaited<ReturnType<typeof ZAI.create>> | null = null;
-
-async function getZai() {
-  if (!zaiInstance) zaiInstance = await ZAI.create();
-  return zaiInstance;
-}
 
 const FRAME_SCHEMA_PROMPT = `You are the semantic parser of EAInesy, a neuro-symbolic support assistant (Dutch + English).
 Parse the user's LAST message into a strict JSON object. Respond with JSON ONLY, no markdown fences, no commentary.
@@ -62,7 +55,6 @@ Guidelines:
 /** Parse an utterance into a validated Frame, or null when unparseable. */
 export async function parseFrame(text: string, recentHistory: { role: 'user' | 'assistant'; content: string }[]): Promise<Frame | null> {
   try {
-    const zai = await getZai();
     const messages: { role: 'assistant' | 'user'; content: string }[] = [
       { role: 'assistant', content: FRAME_SCHEMA_PROMPT },
     ];
@@ -71,7 +63,7 @@ export async function parseFrame(text: string, recentHistory: { role: 'user' | '
     }
     messages.push({ role: 'user', content: text });
 
-    let raw = await callZai(zai, messages, 0.1);
+    let raw = await completeModel(messages, 0.1);
     let frame = raw === null ? null : tryParseFrame(raw);
     if (frame) return frame;
 
@@ -83,7 +75,7 @@ export async function parseFrame(text: string, recentHistory: { role: 'user' | '
       role: 'user',
       content: 'Your previous reply was not valid JSON for the schema. Reply again with STRICT JSON only, matching the schema exactly.',
     });
-    raw = await callZai(zai, messages, 0.0);
+    raw = await completeModel(messages, 0.0);
     return raw === null ? null : tryParseFrame(raw);
   } catch {
     return null;
@@ -119,29 +111,6 @@ function extractJson(raw: string): string | null {
   const end = trimmed.lastIndexOf('}');
   if (start === -1 || end === -1 || end <= start) return null;
   return trimmed.slice(start, end + 1);
-}
-
-async function callZai(
-  zai: Awaited<ReturnType<typeof ZAI.create>>,
-  messages: { role: 'assistant' | 'user'; content: string }[],
-  temperatureHint: number,
-): Promise<string | null> {
-  // Rate-limit aware call: 2 retries with backoff on 429/5xx, then give up (caller fails closed).
-  const backoffMs = [1200, 2800];
-  for (let attempt = 0; ; attempt++) {
-    try {
-      const completion = await zai.chat.completions.create({
-        messages,
-        temperature: temperatureHint,
-        thinking: { type: 'disabled' },
-      } as Parameters<typeof zai.chat.completions.create>[0]);
-      return completion.choices[0]?.message?.content ?? null;
-    } catch (err) {
-      const retriable = attempt < backoffMs.length && String(err).match(/429|Too many|5\d\d/);
-      if (!retriable) return null;
-      await new Promise((r) => setTimeout(r, backoffMs[attempt]));
-    }
-  }
 }
 
 export interface GenerationInput {
@@ -186,7 +155,6 @@ export async function generateReply(input: GenerationInput): Promise<string | nu
     ? `\nCONVERSATION GUIDANCE (binding):\n- Phase: ${plan.phase ?? 'unknown'} — ${conversation.phaseGoal}\n- Strategy this turn: ${plan.strategy ?? '—'} — ${conversation.strategyInstruction}${conversation.focus.length ? `\n- Agreed focus: ${conversation.focus.join(', ')}` : ''}${conversation.riskMemory !== 'NONE' ? '\n- Earlier in this conversation there was a risk signal: be extra careful and briefly check how they are doing now.' : ''}\n- Never invent own experiences ("I've been there too"): you have no life story of your own.\n`
     : '';
   try {
-    const zai = await getZai();
     const isNl = lang === 'nl';
     const system = isNl
       ? `Je bent EAInesy, een ondersteunende luisterassistent (GEEN therapeut, geen crisisdienst).
@@ -232,7 +200,7 @@ ${frame?.paraphrase ? `\nRestatement of what the user said: "${frame.paraphrase}
       messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content.slice(0, 700) });
     }
 
-    const raw = await callZai(zai, messages, violationFeedback ? 0.3 : 0.65);
+    const raw = await completeModel(messages, violationFeedback ? 0.3 : 0.65);
     return raw && raw.trim().length > 0 ? raw.trim() : null;
   } catch {
     return null;
