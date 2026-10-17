@@ -1,0 +1,27 @@
+name: EAInesy - Manual live GLM synthetic check
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-live:
+    name: Five fictional prompts against configured external model
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      EAINESY_MODEL_BACKEND: openai-compatible
+      EAINESY_MODEL_ENDPOINT: ${{ secrets.EAINESY_MODEL_ENDPOINT }}
+      EAINESY_MODEL_API_KEY: ${{ secrets.EAINESY_MODEL_API_KEY }}
+      EAINESY_MODEL_NAME: ${{ secrets.EAINESY_MODEL_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - run: bun install --frozen-lockfile
+      - name: Bundle real production GLM parser without stubs
+        run: |
+          mkdir -p .provider-ci
+          bun build ./src/lib/eainesy/glm.ts --target=node --format=esm --external z-ai-web-dev-sdk --outfile .provider-ci/glm.mjs
+      - name: Execute five fictional GLM checks (requires configured secrets)
+        run: node scripts/manual-live-glm-check.mjs
