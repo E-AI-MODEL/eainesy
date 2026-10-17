@@ -1,0 +1,31 @@
+name: EAInesy - GLM provider contract (synthetic)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/eainesy/glm.ts'
+      - 'src/lib/eainesy/model-provider.ts'
+      - 'scripts/model-provider-contract.mjs'
+      - '.github/workflows/model-provider-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-provider-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - run: bun install --frozen-lockfile
+      - name: Bundle unchanged model boundary and GLM module under Node
+        run: |
+          mkdir -p .provider-ci
+          bun build ./src/lib/eainesy/model-provider.ts --target=node --format=esm --external z-ai-web-dev-sdk --outfile .provider-ci/provider.mjs
+          bun build ./src/lib/eainesy/glm.ts --target=node --format=esm --external z-ai-web-dev-sdk --outfile .provider-ci/glm.mjs
+      - name: Run local provider contract without model credentials
+        run: node scripts/model-provider-contract.mjs
