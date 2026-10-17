@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { ChatRequestSchema } from '@/lib/eainesy/types';
 import { processTurn } from '@/lib/eainesy/orchestrator';
 import { VerificationHalt } from '@/lib/eainesy/verification-gate';
+import { ModelProviderUnavailable } from '@/lib/eainesy/model-provider';
 
 export const maxDuration = 120;
 
@@ -33,6 +34,26 @@ export async function POST(req: NextRequest) {
     const result = await processTurn(sessionId, parsed.data.message, { steer: parsed.data.steer });
     return NextResponse.json(result);
   } catch (err) {
+    if (err instanceof ModelProviderUnavailable) {
+      // The model could not be reached / completed; do not represent this as
+      // an uncertain semantic reading or attach a Z3 success certificate.
+      const en = parsed?.success && parsed.data.uiLang === 'en';
+      return NextResponse.json({
+        error: 'Model provider unavailable',
+        failClosed: true,
+        action: 'ABSTAIN_HITL',
+        reply: en
+          ? 'The language model is temporarily unavailable. EAInesy cannot complete verification and will not give an automatic answer.'
+          : 'Het taalmodel is tijdelijk niet beschikbaar. EAInesy kan de controle niet afronden en geeft daarom geen automatisch antwoord.',
+        verification: {
+          status: 'blocked',
+          reason: 'model_unavailable',
+          providerReason: err.reason,
+          z3: null,
+          humanReviewQueued: false,
+        },
+      }, { status: 200 });
+    }
     if (err instanceof VerificationHalt) {
       console.warn('[chat] verification blocked', { reason: err.reason, z3: err.z3?.result });
       const en = parsed?.success && parsed.data.uiLang === 'en';
