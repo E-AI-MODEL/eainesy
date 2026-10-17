@@ -1,0 +1,31 @@
+name: EAInesy - GLM simulated full HTTP + real Z3
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/lib/eainesy/glm.ts'
+      - 'src/lib/eainesy/model-provider.ts'
+      - 'scripts/ci-model-http.mjs'
+      - '.github/workflows/model-http.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  model-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: file:${{ github.workspace }}/prisma/dev.db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - run: bun install --frozen-lockfile
+      - run: bun run db:generate
+      - run: bun run db:push
+      - run: bun run build
+      - name: Synthetic OpenAI-compatible model + actual Node/Z3 HTTP
+        run: node scripts/ci-model-http.mjs
