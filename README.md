@@ -44,11 +44,13 @@ bun run build
 bun run start
 ```
 
-`bun run build` plaatst de Z3-childworker plus de vanuit `src/lib/eainesy/z3cert.ts` gegenereerde controlecode in `.next/standalone/`. Voor elke live-controle start de server een apart afbreekbaar Node-proces; maximaal **vier** mogen tegelijk actief zijn per serverproces. De deadline is **vijf seconden**. Onbeschikbaarheid, crashes, onleesbare berichten, volle capaciteit en tegenstrijdige solveruitslagen blokkeren automatische antwoorden met `ABSTAIN_HITL`; dit is **geen actieve menselijke reviewwachtrij** (`humanReviewQueued=false`).
+`bun run build` plaatst de Z3-childworker plus de vanuit `src/lib/eainesy/z3cert.ts` gegenereerde controlecode in `.next/standalone/`. Voor elke live-controle start de server een apart afbreekbaar Node-proces. Er kunnen maximaal **vier** processen tegelijk draaien en **acht** aanvragen wachten in een FIFO-wachtrij (maximaal **twee seconden**). Per worker geldt daarna een uitvoerdeadline van **vijf seconden**. Onbeschikbaarheid, crashes, onleesbare berichten, volle wachtrij, wachttijdoverschrijding en tegenstrijdige solveruitslagen blokkeren automatische antwoorden met `ABSTAIN_HITL`; dit is **geen actieve menselijke reviewwachtrij** (`humanReviewQueued=false`).
 
 De gewone Bun-tests mocken Z3 bewust. Echte checks draaien in GitHub Actions:
-[Z3-procesfouten en belasting](https://github.com/E-AI-MODEL/eainesy/actions/runs/38970336471) en
-[standalone-API met 12 gelijktijdige gespreksaanvragen](https://github.com/E-AI-MODEL/eainesy/actions/runs/38970521481).
+[FIFO-wachtrij, 160 echte Z3-verzoeken en procesgeheugen](https://github.com/E-AI-MODEL/eainesy/actions/runs/39024303976) en
+[standalone-API met 12/12 gelijktijdig gecertificeerde gesprekken](https://github.com/E-AI-MODEL/eainesy/actions/runs/39024160778).
+In de nieuwe GitHub-duurtest slaagden **160/160** echte Z3-verzoeken. De grootste gemeten som van resident geheugen voor het Node-hoofdproces en directe Z3-children was **311 MiB** op de CI-runner. Dit is een momentopname en optelling van RSS (gedeelde pagina's kunnen dubbel meetellen), geen garantie voor iedere deployment. De wachtrij is per serverproces, niet globaal over meerdere replicas.
+
 Een nieuwe lokale Bun-devserver zonder vooraf gebouwde Z3-worker kan voor live-chat geen geldig solvercertificaat krijgen en zal dan antwoorden tegenhouden; dit is verwacht fail-closed gedrag.
 
 Dit is een **reproduceerbaar softwareonderzoek**, niet een aantoonbaar veilige gespreksdienst. De Z3-bewijsgrens is numerieke consistentie van de vastgelegde regels. Zie [Z3-integratie-audit](docs/Z3-audit-2026-10-16.md).
