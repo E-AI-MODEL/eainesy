@@ -11,10 +11,13 @@ import {createServer} from 'node:http';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {setTimeout as sleep} from 'node:timers/promises';
+import {PrismaClient} from '@prisma/client';
 
 if(process.env.CI!=='true')throw Error('Synthetic HTTP server requires CI');
 const stats={total:0,parse:0,generate:0,frameRepair:0};
 let corruptOnce=false;
+let outageMode='none';
+const db=new PrismaClient();
 const mock=createServer(async(req,res)=>{
   assert.equal(req.method,'POST');
   assert.equal(req.headers.authorization,'Bearer ci-synthetic-not-a-secret');
@@ -26,6 +29,11 @@ const mock=createServer(async(req,res)=>{
   stats.total++;
   const parser=system.includes('semantic parser');
   if(parser)stats.parse++; else stats.generate++;
+  if(outageMode==='all' || (outageMode==='generation' && !parser)) {
+    res.writeHead(429,{'Content-Type':'application/json'});
+    res.end('{"error":"synthetic rate limit"}');
+    return;
+  }
   let text;
   if(parser){
     if(corruptOnce){
@@ -98,6 +106,38 @@ try{
       mockParseCalls:stats.parse-before.parse,mockGenerateCalls:stats.generate-before.generate,
     }));
   }
+  // Both error paths must refuse automatic generation without storing a turn,
+  // falsely claiming a completed Z3 certificate, or losing the audit reason.
+  for(const [mode,expectedStage] of [['all','parse'],['generation','generate']]){
+    outageMode=mode;
+    const beforeTurns=await db.turn.count();
+    const beforeAudit=await db.auditEntry.count({where:{stage:'turn.model_unavailable'}});
+    const response=await fetch(base+'/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:'Fictieve proef met tijdelijke provideruitval: '+mode,uiLang:'nl'}),
+      signal:AbortSignal.timeout(45000),
+    });
+    assert.equal(response.status,200);
+    const result=await response.json();
+    assert.equal(result.failClosed,true,JSON.stringify(result));
+    assert.equal(result.action,'ABSTAIN_HITL');
+    assert.equal(result.verification?.reason,'model_unavailable');
+    assert.equal(result.verification?.providerReason,'rate_limited');
+    assert.equal(result.verification?.humanReviewQueued,false);
+    assert.equal(result.verification?.z3,null);
+    assert.ok(!('certificate' in result),'Outage must not show a completed certificate');
+    assert.equal(await db.turn.count(),beforeTurns,'Unverified turn must not persist');
+    const newAudit=await db.auditEntry.findMany({
+      where:{stage:'turn.model_unavailable'},orderBy:{createdAt:'desc'},take:1,
+    });
+    assert.equal(await db.auditEntry.count({where:{stage:'turn.model_unavailable'}}),beforeAudit+1);
+    const payload=JSON.parse(newAudit[0].payload);
+    assert.equal(payload.phase,expectedStage);
+    assert.equal(payload.reason,'rate_limited');
+    console.log('PASS HTTP GLM outage',JSON.stringify({mode,expectedStage,
+      action:result.action,turnsPersisted:0,auditReason:payload.reason}));
+  }
   console.log('E2E SYNTHETIC GLM PROVIDER PASS',JSON.stringify(stats));
 } catch(error){
   console.error(stdout.join('').slice(-4000));
@@ -105,4 +145,5 @@ try{
 }finally{
   if(child&&child.exitCode===null)child.kill('SIGKILL');
   mock.close();
+  await db.$disconnect();
 }
