@@ -2,9 +2,13 @@ name: EAInesy - GLM simulated full HTTP + real Z3
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
     paths:
       - 'src/lib/eainesy/glm.ts'
       - 'src/lib/eainesy/model-provider.ts'
+      - 'src/lib/eainesy/orchestrator.ts'
+      - 'src/app/api/chat/route.ts'
       - 'scripts/ci-model-http.mjs'
       - '.github/workflows/model-http.yml'
   workflow_dispatch:
