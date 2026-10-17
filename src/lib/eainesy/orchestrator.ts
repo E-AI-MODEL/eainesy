@@ -44,6 +44,7 @@ import { certifyDecision, type Z3Certificate } from './z3cert';
 import { certifyDecisionIsolated } from './z3-isolated';
 import { assertVerificationGate, VerificationHalt } from './verification-gate';
 import { parseFrame, generateReply } from './glm';
+import { ModelProviderUnavailable } from './model-provider';
 import { verifyOutput, violationFeedback, cannedReplyFor } from './outputpolicy';
 import { appendAudit } from './audit';
 import { findMatchingSeed, type SeedRow } from './hitl-seeds';
@@ -200,7 +201,19 @@ export async function processTurn(
   // --- 2. neural parse (GLM) ------------------------------------------------
   ts = performance.now();
   const presetProvided = opts && 'presetFrame' in opts;
-  const frame: Frame | null = presetProvided ? (opts!.presetFrame ?? null) : await parseFrame(userText, historyPast);
+  let frame: Frame | null;
+  try {
+    frame = presetProvided ? (opts!.presetFrame ?? null) : await parseFrame(userText, historyPast);
+  } catch (error) {
+    if (error instanceof ModelProviderUnavailable) {
+      // No turn is persisted, no Z3 check is represented as a semantic proof.
+      // Never log the message, prompt, output or remote provider details.
+      await appendAudit('turn.model_unavailable', null, {
+        sessionId, origin, phase: 'parse', reason: error.reason,
+      });
+    }
+    throw error;
+  }
   const frameValidity: FrameValidity = frame ? 'VALID' : 'INVALID';
   // Reply language: follow the user (frame language) unless steered.
   const language: 'nl' | 'en' = steer.replyLang !== 'auto' ? steer.replyLang : (frame?.language ?? fallbackLanguage);
@@ -443,9 +456,25 @@ export async function processTurn(
     riskMemory: convState.riskMemory,
     turn: convState.turn + 1,
   };
-  let reply = skipGeneration
-    ? null
-    : await generateReply({ plan, frame, techniqueLines, history: historyAll, style: steer.style, conversation: conversationBrief });
+  // Generation outages also abstain in real chat rather than shipping a
+  // fallback response carrying a Z3 certificate as if all stages had run.
+  const requireModel = origin === 'live' && !presetProvided && !skipGeneration;
+  const guardedGeneration = async (feedback?: string[]) => {
+    try {
+      return await generateReply({
+        plan, frame, techniqueLines, history: historyAll, style: steer.style,
+        conversation: conversationBrief, violationFeedback: feedback, requireModel,
+      });
+    } catch (error) {
+      if (error instanceof ModelProviderUnavailable) {
+        await appendAudit('turn.model_unavailable', null, {
+          sessionId, origin, phase: 'generate', reason: error.reason,
+        });
+      }
+      throw error;
+    }
+  };
+  let reply = skipGeneration ? null : await guardedGeneration();
   let outPolicy = verifyOutput(reply ?? '', plan);
   let repaired = false;
   if (!reply) {
@@ -456,7 +485,7 @@ export async function processTurn(
     outPolicy = verifyOutput(reply, plan);
   } else if (!outPolicy.pass) {
     const feedback = violationFeedback(outPolicy.violations, language);
-    const retry = await generateReply({ plan, frame, techniqueLines, history: historyAll, violationFeedback: feedback, style: steer.style, conversation: conversationBrief });
+    const retry = await guardedGeneration(feedback);
     const retryCheck = verifyOutput(retry ?? '', plan);
     if (retry && retryCheck.pass) {
       reply = retry;
