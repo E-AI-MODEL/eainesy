@@ -85,6 +85,8 @@ const RULES: LexicalRule[] = [
       /\ber\s+liever\s+niet\s+meer/i,
       /\bliever\s+niet\s+meer\s+(was|hier|levend|wakker)/i,
       /\b(wil|hoef)\s+(ook\s+)?niet\s+(meer\s+)?wakker\s+(te\s+)?worden/i,
+      // Passive death wish without "wil": "soms hoop ik dat ik niet meer wakker word".
+      /\b(?:hoop|wens)\s+ik\s+(?:soms\s+)?dat\s+ik\s+niet\s+(?:meer\s+)?wakker\s+(?:te\s+)?word/i,
       /\bhoeft?\s+(voor\s+mij\s+)?niet\s+meer\s+wakker/i,
       /\bhet\s+hoeft\s+(voor\s+mij\s+)?(allemaal\s+)?niet\s+meer\b/i,
       /(rustig|fijn|beter|kalm|vredig|prettig|mooi)\s+zijn\s+als\s+ik\s+er\s+((?!even\b)\w+\s+)?niet\s+meer\s+(was|ben|word)/i,
@@ -100,6 +102,8 @@ const RULES: LexicalRule[] = [
       /\bnobody\s+would\s+(notice|miss\s+me)\b.{0,30}\b(gone|dead|die|wasn'?t\s+here)?/i,
       /\bwouldn'?t\s+mind\s+(if\s+i\s+)?(just\s+)?(didn'?t|not)\s+wak/i,
       /\b(wish|hope)\s+i\s+(would\s+not|wouldn'?t|won'?t|didn'?t)\s+wake\s+up/i,
+      // Allow adverbs ("I wish I just would not wake up").
+      /\b(?:wish|hope)\s+i\s+(?:just\s+)?(?:would\s+not|wouldn't|won't|didn't)\s+wake\s+up/i,
       /\bno\s+reason\s+to\s+(wake|live|go\s+on)/i,
     ],
   },
@@ -338,6 +342,30 @@ export function isNegated(text: string, index: number): boolean {
   return distance <= 30;
 }
 
+/**
+ * Narrow evidence scoping for a resolved historical mention of ideation.
+ * Not a general clinical temporality classifier. If recurrence is mentioned,
+ * the historical exception is disabled; current wishes still match normally.
+ */
+function isResolvedHistoricalIdeation(text: string, index: number, evidence: string): boolean {
+  if (!/^(zelfmoord|zelfdoding|suïcid\w*|suicid\w*)$/i.test(evidence)) return false;
+  const before = text.slice(0, index);
+  const clause = before.split(/[.!?;,:\n]|\bmaar\b/i).at(-1) ?? '';
+  if (!/\b(vroeger|voorheen|destijds|eerder)\b/i.test(clause)) return false;
+  const after = text.slice(index + evidence.length);
+  const closed = after.match(/\bmaar\s+(?:dat\s+)?(?:ligt|is)\s+(?:al\s+)?(?:[\w-]+\s+){0,7}achter\s+me\b/i);
+  if (!closed || closed.index === undefined || closed.index > 100) return false;
+  const remainder = after.slice(closed.index + closed[0].length);
+  if (/\b(?:nu|vandaag|momenteel|tegenwoordig)\b.{0,60}\b(?:weer|opnieuw|terug|suïcidaal|suicid|dood|pillen)\b/i.test(remainder)
+    || /\b(?:toch\s+weer|weer\s+terug|opnieuw)\b/i.test(remainder)) return false;
+  return true;
+}
+
+/** A schema marker label does not itself establish an experienced symptom. */
+function isSchemaMarkerName(evidence: string): boolean {
+  return evidence.toUpperCase() === 'SUICIDAL_IDEATION';
+}
+
 export function collectLexicalMarkers(text: string): { markers: RiskMarker[]; negated: number } {
   const markers: RiskMarker[] = [];
   let negated = 0;
@@ -348,6 +376,10 @@ export function collectLexicalMarkers(text: string): { markers: RiskMarker[]; ne
       while ((m = re.exec(text)) !== null) {
         if (isNegated(text, m.index)) {
           negated += 1;
+          continue;
+        }
+        if (rule.type === 'SUICIDAL_IDEATION' &&
+            (isSchemaMarkerName(m[0]) || isResolvedHistoricalIdeation(text, m.index, m[0]))) {
           continue;
         }
         markers.push({ type: rule.type, evidence: m[0].slice(0, 120) });
