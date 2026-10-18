@@ -14,6 +14,7 @@ import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {resolve,join,dirname} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
+import {BOUNDARY_CRITERIA,BOUNDARY_CRITERIA_VERSION} from './locked-boundary-criteria.mjs';
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const DIR=join(ROOT,'.live-eval');
 const fixture=join(DIR,'fixtures.mjs');
@@ -54,11 +55,17 @@ if(PARSE_CASES.length!==39||SEQUENCE_CASES.reduce((n,c)=>n+c.turns.length,0)!==1
   new Set(all.map(c=>c.id)).size!==58)throw Error('Expected exactly 58 unique cases');
 if(ids&&[...ids].some(id=>!all.some(c=>c.id===id)))throw Error('Unknown case ID');
 const selected=all.filter(c=>!ids||ids.has(c.id)).slice(0,max);
+if(Object.keys(BOUNDARY_CRITERIA).some(id=>!all.some(c=>c.id===id)))
+  throw Error('Locked prospective criterion references a missing case ID');
+const criterionFor=(item)=>BOUNDARY_CRITERIA[item.id] ??
+  (item.kind==='turn'?item.turn.expect:item.case.expect);
 const reviewIds=selected.filter(c=>c.case.humanReview).map(c=>c.id);
 if(dry){
   console.log(JSON.stringify({mode:'offline fixture inventory',externalCalls:0,
     total:58,selected:selected.length,parse:39,turns:13,generation:6,
     reviewIds,openDeviation:'nl-injection-schema',ids:selected.map(c=>c.id),
+    prospectiveCriteriaVersion:BOUNDARY_CRITERIA_VERSION,
+    prospectivelyTightenedIds:Object.keys(BOUNDARY_CRITERIA),
     fixtureSha256:dataHash},null,2));
   process.exit(0);
 }
@@ -69,13 +76,14 @@ if(backend==='openai-compatible'&&
  throw Error('Missing HTTPS-compatible provider credentials');
 const signature=createHash('sha256');
 for(const buf of [data,...['src/lib/eainesy/glm.ts','src/lib/eainesy/model-provider.ts',
-  'scripts/live-glm-eval.mjs'].map(p=>readFileSync(join(ROOT,p)))])signature.update(buf);
+  'scripts/live-glm-eval.mjs','scripts/locked-boundary-criteria.mjs'].map(p=>readFileSync(join(ROOT,p)))])signature.update(buf);
 signature.update(backend);signature.update(process.env.EAINESY_MODEL_NAME||'SDK-managed');
 const digest=signature.digest('hex');
 mkdirSync(DIR,{recursive:true});
 if(flags.has('--fresh')&&existsSync(stateFile))rmSync(stateFile);
 let state={metadata:{signature:digest,patchSha256:metadata.patchSha256,
-  fixtureSha256:dataHash,backend,model:process.env.EAINESY_MODEL_NAME||'SDK-managed',
+  fixtureSha256:dataHash,backend,criteriaVersion:BOUNDARY_CRITERIA_VERSION,
+  model:process.env.EAINESY_MODEL_NAME||'SDK-managed',
   createdAt:new Date().toISOString()},results:{}};
 if(existsSync(stateFile)){
   const previous=JSON.parse(readFileSync(stateFile,'utf8'));
@@ -142,9 +150,9 @@ async function attempt(fn,id){
     }
   }
 }
-async function parseCase(c,history){
+async function parseCase(c,history,criteria){
   const t=performance.now(),frame=await glm.parseFrame(c.user,history);
-  return {...judge(frame,c.expect,c.lang),elapsedMs:Math.round(performance.now()-t)};
+  return {...judge(frame,criteria,c.lang),elapsedMs:Math.round(performance.now()-t)};
 }
 async function generationCase(c){
   const t=performance.now(),frame=await glm.parseFrame(c.user,c.history||[]);
@@ -175,7 +183,7 @@ for(const item of selected){
     continue;
   }
   let runner;
-  if(item.kind==='parse')runner=()=>parseCase(item.case,item.case.history||[]);
+  if(item.kind==='parse')runner=()=>parseCase(item.case,item.case.history||[],criterionFor(item));
   else if(item.kind==='generation')runner=()=>generationCase(item.case);
   else{
     const seq=item.case;
@@ -185,7 +193,7 @@ for(const item of selected){
       const prev=seq.turns[h.length/2];
       h.push({role:'user',content:prev.user},{role:'assistant',content:'Bedankt voor het delen, ik luister.'});
     }
-    runner=()=>parseCase({...item.turn,lang:seq.lang},h);
+    runner=()=>parseCase({...item.turn,lang:seq.lang},h,criterionFor(item));
   }
   const rec=await attempt(runner,item.id);
   const status=rec.status==='OUTAGE'?'OUTAGE':rec.problems.length?'DEVIATION':'PASS';
@@ -208,6 +216,8 @@ console.log('LIVE GLM EVALUATION SUMMARY',JSON.stringify({
   totalDefined:58,selected:selected.length,completed:result.length,
   pass:count('PASS'),deviation:count('DEVIATION'),outage:count('OUTAGE'),
   newChecks,cachedChecks,humanReviewIds:reviewIds,
+  prospectiveCriteriaVersion:BOUNDARY_CRITERIA_VERSION,
+  comparedWithPrior57of58:false,
   modelCallCount:'not instrumented',criteriaIndependentlyReviewed:false,
   checkpoint:'.live-eval/state.json',
   clinicalValidity:'not established',
