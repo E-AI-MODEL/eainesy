@@ -20,7 +20,13 @@ De volgende onderdelen zijn daarom *semantisch gemerged*, niet byte-identiek gek
 2. `tests/glm-repair.test.ts`: zes deterministische regressies, aangepast aan het verplichte getypeerde afbraakpad voor provideruitval.
 3. De al bestaande `model-provider.ts`, `orchestrator.ts`, `api/chat/route.ts`, contract- en HTTP-tests behouden de nieuwe expliciete `rate_limited`/timeout/foutconfiguratie-statussen. Bij provideruitval geen automatisch inhoudelijk antwoord, geen opgeslagen beurt en geen volledig certificaat.
 
-**Niet integraal geïmporteerd:** de aanvullende opt-in scripts (`live-glm-eval-cases.mjs`, `live-glm-eval.mjs`, `live-http-e2e.mjs`, `glm-access-probe.mjs`), de oorspronkelijke herbouw-worklog en het volledige oorspronkelijke onderzoeksdocument. Ze zijn beschikbaar in het aangeleverde en geverifieerde patchbestand, maar de combinatie met de getypeerde transportlaag en veilige reproduceerbaarheid moet eerst onafhankelijk worden beoordeeld. Claim deze scripts dus NIET als draaiend vanuit de GitHub-branch.
+**Vervolgimplementatie:** de aparte, opt-in onderzoeksroute is nu toegevoegd aan deze branch:
+- `scripts/import-live-glm-patch.mjs` controleert de oorspronkelijke SHA-256 en reconstrueert **precies de oorspronkelijke 58 casussen**, buiten de Git-werkboom in `.live-eval/`. Een onafhankelijke lokale extractie gaf een byte-identiek casusbestand met SHA-256 `5ac8013b40c81506377beb4bc7ed2703eef443ac5c1765b323169ec693a3da25`.
+- `scripts/live-glm-eval.mjs` gebruikt de actuele productie-parser en de nieuwe getypeerde transportstatus, met expliciete `--live --accept-costs`, optionele `--max=3`, eerlijke `CACHED`-status en code/model/casushash in checkpoints.
+- `scripts/live-http-e2e.mjs` biedt een afzonderlijke, betaalde vierbeurten-test met een eigen wegwerpdatabase, Node en echt Z3; `scripts/glm-access-probe.mjs` is eveneens uitsluitend opt-in.
+- `docs/GLM-live-evaluation-2026-10-17.md` legt de oorspronkelijke onderzoeksclaim, provenance en zeven beoordelingsvragen vast; dit is **geen nieuwe onafhankelijke live-meting**.
+
+**Nog niet integraal in Git:** de oorspronkelijke patch met de 58 volledige fictieve casuszinnen (bewust niet opnieuw uitgeschreven), de verloren herbouw-worklog en de volledige oorspronkelijke rapporttekst. Voor een reproductie is daarom de apart bewaarde patch nodig. De nieuwe scripts zijn pas syntactisch/offline in GitHub Actions gecontroleerd; zonder modelcredentials zijn zij daar nog niet live uitgevoerd.
 
 ## Live onderzoeksresultaten — alleen volgens de aangeleverde audit
 
