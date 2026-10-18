@@ -57,3 +57,6 @@ server.log
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Local GLM research: imported fictional corpus, private checkpoints and bundles.
+/.live-eval/
