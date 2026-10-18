@@ -40,8 +40,10 @@ const mock=createServer(async(req,res)=>{
       corruptOnce=false;stats.frameRepair++;
       text='not valid JSON';
     }else {
+      const historical=input.messages.some(m=>m.role==='user' &&
+        m.content?.includes('vroeger had ik wel suïcidale gedachten'));
       text=JSON.stringify({
-        intent:'GENERAL_VENT',emotions:[],topics:['softwaretest'],
+        intent:historical?'POSITIVE_PROGRESS':'GENERAL_VENT',emotions:[],topics:['softwaretest'],
         riskMarkers:[],language:'nl',
         paraphrase:'Er is een fictief softwaretestbericht.',
         parseConfidence:0.93,changeTalk:false,asksForHelp:false,
@@ -104,6 +106,31 @@ try{
       action:body.action,outputPolicy:body.certificate.outputPolicy?.pass,
       repaired:body.certificate.outputPolicy?.repaired,
       mockParseCalls:stats.parse-before.parse,mockGenerateCalls:stats.generate-before.generate,
+    }));
+  }
+  // Guard against false-current-risk escalation on a clearly resolved,
+  // fictional historical mention even when GLM correctly reports no current risk.
+  {
+    const before={...stats};
+    const response=await fetch(base+'/api/chat',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        message:'Fictief scenario: vroeger had ik wel suïcidale gedachten, maar dat ligt al twee jaar achter me. ik heb mijn leven weer op de rails, ik werk zelfs weer.',
+        uiLang:'nl',
+      }),
+      signal:AbortSignal.timeout(45000),
+    });
+    assert.equal(response.status,200);
+    const body=await response.json();
+    assert.equal(body.failClosed??false,false,'Historical case failed closed: '+JSON.stringify(body));
+    assert.equal(body.certificate?.z3?.result,'sat','Missing genuine Z3 check');
+    assert.equal(body.certificate?.outputPolicy?.pass,true);
+    assert.ok(!['CRISIS_PROTOCOL','SAFETY_RESPONSE'].includes(body.action),
+      'Resolved historical term wrongly escalated as a current crisis: '+body.action);
+    assert.equal(stats.parse-before.parse,1,'Historical phrase unexpectedly needed parser repair');
+    console.log('PASS HTTP historical temporal boundary',JSON.stringify({
+      scenario:'past-ideation-resolved',action:body.action,z3:body.certificate.z3.result,
+      parserCalls:stats.parse-before.parse,syntheticProvider:true,
     }));
   }
   // Both error paths must refuse automatic generation without storing a turn,
