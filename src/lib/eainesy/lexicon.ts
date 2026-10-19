@@ -68,8 +68,10 @@ const RULES: LexicalRule[] = [
     type: 'SUICIDAL_IDEATION',
     weight: MARKER_WEIGHTS.SUICIDAL_IDEATION,
     patterns: [
-      // explicit wish to die / not to live (NL) — adverbs allowed in between
-      /\bwil\s+((echt|gewoon|eigenlijk|liever|zo|al|nu|soms|vaak)\s+){0,2}(niet\s+meer\s+(leven|bestaan)|dood(gaan)?\b|er\s+niet\s+meer\s+zijn|weg\s+zijn\s+voor\s+altijd)/i,
+      // explicit wish to die / not to live (NL) — adverbs allowed in between.
+      // Optional subject slot covers verb-first word order ("soms wil ik niet
+      // meer leven", "eigenlijk wil ik dood") next to subject-first order.
+      /\bwil\s+(?:(?:ik|jij|je|hij|zij|ze|wij|we|u|jullie)\s+)?((echt|gewoon|eigenlijk|liever|zo|al|nu|soms|vaak)\s+){0,2}(niet\s+meer\s+(leven|bestaan)|dood(gaan)?\b|er\s+niet\s+meer\s+zijn|weg\s+zijn\s+voor\s+altijd)/i,
       /\bwil\s+de\s+(wereld\s+)?uit/i,
       /\b(zelfmoord|zelfdoding|suïcid\w*|suicid\w*)/i,
       /\b(er\s+)?een\s+eind(e)?\s+aan\s+(maken|te\s+maken|mijn\s+leven|m'n\s+leven|het\s+leven|alles)\b/i,
@@ -87,6 +89,13 @@ const RULES: LexicalRule[] = [
       /\b(wil|hoef)\s+(ook\s+)?niet\s+(meer\s+)?wakker\s+(te\s+)?worden/i,
       // Passive death wish without "wil": "soms hoop ik dat ik niet meer wakker word".
       /\b(?:hoop|wens)\s+ik\s+(?:soms\s+)?dat\s+ik\s+niet\s+(?:meer\s+)?wakker\s+(?:te\s+)?word/i,
+      // Conditional/passive wish variants (2026-10-19 generalisation repair,
+      // fictional live probes): "soms zou ik willen dat ik gewoon niet meer
+      // wakker word" and preoccupation "ik denk er vaak aan om niet meer
+      // wakker te worden". Bounded: "niet meer wakker" with an explicit
+      // wish/preposition frame, never a bare sleep complaint.
+      /\bzou\s+(?:ik\s+)?(?:graag\s+)?(?:willen|wensen)\s+dat\s+ik\s+(?:gewoon\s+|liever\s+|liefst\s+)?niet\s+meer\s+wakker/i,
+      /\baan\s+om\s+niet\s+meer\s+wakker/i,
       /\bhoeft?\s+(voor\s+mij\s+)?niet\s+meer\s+wakker/i,
       /\bhet\s+hoeft\s+(voor\s+mij\s+)?(allemaal\s+)?niet\s+meer\b/i,
       /(rustig|fijn|beter|kalm|vredig|prettig|mooi)\s+zijn\s+als\s+ik\s+er\s+((?!even\b)\w+\s+)?niet\s+meer\s+(was|ben|word)/i,
@@ -104,6 +113,13 @@ const RULES: LexicalRule[] = [
       /\b(wish|hope)\s+i\s+(would\s+not|wouldn'?t|won'?t|didn'?t)\s+wake\s+up/i,
       // Allow adverbs ("I wish I just would not wake up").
       /\b(?:wish|hope)\s+i\s+(?:just\s+)?(?:would\s+not|wouldn't|won't|didn't)\s+wake\s+up/i,
+      // Present-tense EN passive wish with a finality marker ("Some nights I
+      // hope I simply do not wake up anymore"). The finality word (anymore /
+      // again / never) excludes plain sleep-in talk ("hope I do not wake up
+      // early"), the trailing lookahead excludes transitive uses
+      // ("hope I do not wake up my neighbors").
+      /\b(?:wish|hoping|hope)\s+i\s+(?:\w+\s+){0,3}(?:do\s+not|don'?t)\s+wake\s+up\s+(?:any\s*more|again)\b(?!\s+(?:my|the|him|her|them|anyone|anybody)\b)/i,
+      /\b(?:wish|hoping|hope)\s+i\s+(?:\w+\s+){0,3}never\s+wake\s+up\b(?!\s+(?:my|the|him|her|them|anyone|anybody)\b)/i,
       /\bno\s+reason\s+to\s+(wake|live|go\s+on)/i,
     ],
   },
@@ -167,7 +183,7 @@ const RULES: LexicalRule[] = [
       /\bkomt\s+nooit\s+(meer\s+)?goed/i,
       /\bgeen\s+zin\s+meer\b/i,
       /\bzinloos/i,
-      /\bhooploos|geen\s+hoop/i,
+      /\bhopeloos|hooploos|geen\s+hoop/i,
       /\bno\s+(point|hope|way\s+out)\b/i,
       /\bhopeless/i,
       /\bhet\s+komt\s+toch\s+niet\s+goed/i,
@@ -344,20 +360,48 @@ export function isNegated(text: string, index: number): boolean {
 
 /**
  * Narrow evidence scoping for a resolved historical mention of ideation.
- * Not a general clinical temporality classifier. If recurrence is mentioned,
- * the historical exception is disabled; current wishes still match normally.
+ * Not a general clinical temporality classifier. Requires a PAST-time anchor
+ * in the same clause as the bare suicide term, an explicit RESOLUTION closure
+ * within 100 characters after it, and NO recurrence or current-risk language
+ * afterwards (any later risk word voids the exception — fail toward
+ * detection). Current wishes still match normally.
  */
 function isResolvedHistoricalIdeation(text: string, index: number, evidence: string): boolean {
   if (!/^(zelfmoord|zelfdoding|suïcid\w*|suicid\w*)$/i.test(evidence)) return false;
   const before = text.slice(0, index);
   const clause = before.split(/[.!?;,:\n]|\bmaar\b/i).at(-1) ?? '';
-  if (!/\b(vroeger|voorheen|destijds|eerder)\b/i.test(clause)) return false;
+  const pastAnchorNl = /\b(vroeger|voorheen|destijds|eerder|geleden|verleden|toen)\b/i;
+  const pastAnchorEn = /\b(years?\s+ago|in\s+the\s+past|back\s+then|used\s+to|when\s+i\s+was\s+(?:younger|a\s+teenager))\b/i;
+  if (!pastAnchorNl.test(clause) && !pastAnchorEn.test(clause)) return false;
   const after = text.slice(index + evidence.length);
-  const closed = after.match(/\bmaar\s+(?:dat\s+)?(?:ligt|is)\s+(?:al\s+)?(?:[\w-]+\s+){0,7}achter\s+me\b/i);
-  if (!closed || closed.index === undefined || closed.index > 100) return false;
-  const remainder = after.slice(closed.index + closed[0].length);
-  if (/\b(?:nu|vandaag|momenteel|tegenwoordig)\b.{0,60}\b(?:weer|opnieuw|terug|suïcidaal|suicid|dood|pillen)\b/i.test(remainder)
+  const closures = [
+    /\bmaar\s+(?:dat\s+)?(?:ligt|is)\s+(?:al\s+)?(?:[\w-]+\s+){0,7}achter\s+me\b/i,
+    /\b(?:inmiddels|nu|dat|dit)\s+is\s+(?:dat\s+|dit\s+)?(?:helemaal\s+|volledig\s+|al\s+|lang\s+)?over\b/i,
+    /\b(?:dat|dit)\s+ligt\s+(?:al\s+)?(?:[\w-]+\s+){0,7}achter\s+(?:me|mij)\b/i,
+    /\b(?:behandeling|therapie|hulp)\s+(?:heeft\s+geholpen|hielp)\b/i,
+    /\bdaar\s+ben\s+ik\s+(?:overheen|doorheen)\b/i,
+    /\bik\s+(?:ben|voel\s+me)\s+(?:inmiddels\s+|nu\s+|weer\s+)?(?:goed|beter|weer\s+op\s+de\s+rails)\b/i,
+    /\btreatment\s+(?:has\s+)?helped\b/i,
+    /\bthat'?s\s+behind\s+me\b/i,
+    /\b(?:i\s+(?:am|feel)|i'?ve\s+been)\s+(?:fine|well|better|recovered)\b/i,
+    /\bi'?ve\s+been\s+doing\s+well\b/i,
+  ];
+  let closed: { index: number; end: number } | null = null;
+  for (const re of closures) {
+    const m = after.match(re);
+    if (m && m.index !== undefined && m.index <= 100 &&
+        (closed === null || m.index < closed.index)) {
+      closed = { index: m.index, end: m.index + m[0].length };
+    }
+  }
+  if (!closed) return false;
+  const remainder = after.slice(closed.end);
+  // Recurrence guard (original) — time cue plus return word.
+  if (/\b(?:nu|vandaag|momenteel|tegenwoordig|now|again)\b.{0,60}\b(?:weer|opnieuw|terug|suïcidaal|suicid|dood|pillen|suicidal|depressed|dead|dying)\b/i.test(remainder)
     || /\b(?:toch\s+weer|weer\s+terug|opnieuw)\b/i.test(remainder)) return false;
+  // Post-closure risk-language guard (2026-10-19): ANY explicit suicide/die
+  // language after the resolution voids the historical exception.
+  if (/\b(?:suïcid\w*|suicid\w*|zelfmoord|zelfdoding|dood(?:gaan)?|eind\s+aan\s+(?:mijn\s+'?n?\s+)?(?:leven|alles)|niet\s+meer\s+wakker|er\s+niet\s+meer\s+(?:zijn|ben|was)|niet\s+meer\s+(?:leven|bestaan)|suicidal|ending\s+(?:it|my\s+life)|not\s+wake\s+up|taking\s+my\s+life)\b/i.test(remainder)) return false;
   return true;
 }
 
