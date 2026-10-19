@@ -1,19 +1,36 @@
 /**
- * EAInesy model transport boundary (server only).
- *
- * "zai-sdk" preserves the research host's original SDK. An explicitly
- * configured "openai-compatible" transport enables external GLM deployments
- * without changing the parser or symbolic decision-making.
- *
- * No provider is authorized to choose the verification policy. A missing,
- * invalid or failing provider returns null and upstream code fails closed.
- * Never log model prompts, model output or API credentials here.
+ * EAInesy server-side GLM transport.
+ * Exposes a typed transport result so rate limits and outages cannot be
+ * mistaken for a semantically unreadable (but delivered) model response.
+ * The legacy nullable helper remains for existing callers and evaluations.
  */
 import ZAI from 'z-ai-web-dev-sdk';
 
 export type ModelMessage = { role: 'assistant' | 'user'; content: string };
 export type ModelBackend = 'zai-sdk' | 'openai-compatible';
 export const MODEL_REQUEST_TIMEOUT_MS = 20_000;
+export type ModelTransportReason =
+  | 'invalid_configuration'
+  | 'rate_limited'
+  | 'timeout'
+  | 'provider_error'
+  | 'invalid_response';
+
+export type ModelCompletion =
+  | { status: 'ok'; text: string }
+  | { status: 'unavailable'; reason: ModelTransportReason };
+
+export class ModelProviderUnavailable extends Error {
+  constructor(public readonly reason: ModelTransportReason) {
+    super('Model provider unavailable: ' + reason);
+    this.name = 'ModelProviderUnavailable';
+  }
+}
+
+const unavailable = (reason: ModelTransportReason): ModelCompletion =>
+  ({ status: 'unavailable', reason });
+const successful = (text: string): ModelCompletion => ({ status: 'ok', text });
+const SDK_DELAYS = [1200, 2800];
 
 let sdk: Awaited<ReturnType<typeof ZAI.create>> | null = null;
 async function getSdk() {
@@ -33,23 +50,24 @@ function endpointFromEnvironment(): URL | null {
     const url = new URL(raw);
     if (url.username || url.password || url.hash) return null;
     if (url.protocol === 'https:') return url;
-    // HTTP localhost is allowed ONLY for local CI contract checks, not public hosts.
     if (process.env.CI === 'true' && url.protocol === 'http:' &&
       (url.hostname === '127.0.0.1' || url.hostname === 'localhost')) return url;
     return null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-async function requestCompatible(messages: ModelMessage[], temperature: number): Promise<string | null> {
+function errorKind(error: unknown): ModelTransportReason {
+  const text = String(error);
+  if (/429|too many|rate.limit|quota/i.test(text)) return 'rate_limited';
+  if (/timed?out|timeout|abort/i.test(text)) return 'timeout';
+  return 'provider_error';
+}
+
+async function requestCompatible(messages: ModelMessage[], temperature: number): Promise<ModelCompletion> {
   const endpoint = endpointFromEnvironment();
   const token = process.env.EAINESY_MODEL_API_KEY;
   const model = process.env.EAINESY_MODEL_NAME;
-  if (!endpoint || !token || !model) return null;
-
-  // Original call-site stores the instruction in the first assistant message;
-  // transmit it as system instruction on the standard compatible API.
+  if (!endpoint || !token || !model) return unavailable('invalid_configuration');
   const formatted = messages.map((msg, index) => ({
     role: index === 0 && msg.role === 'assistant' ? 'system' : msg.role,
     content: msg.content,
@@ -65,39 +83,38 @@ async function requestCompatible(messages: ModelMessage[], temperature: number):
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({
-          model,
-          messages: formatted,
-          temperature,
-        }),
+        body: JSON.stringify({ model, messages: formatted, temperature }),
       });
-      if (response.status === 429 || response.status === 502 || response.status === 503 || response.status === 504) {
-        if (attempt === 2) return null;
+      if ([429, 502, 503, 504].includes(response.status)) {
+        if (attempt === 2) return unavailable(response.status === 429 ? 'rate_limited' : 'provider_error');
         await new Promise((done) => setTimeout(done, 250 * (attempt + 1)));
         continue;
       }
-      if (!response.ok) return null;
-      if (Number(response.headers.get('content-length') || 0) > 262_144) return null;
+      if (response.status === 408) return unavailable('timeout');
+      if (!response.ok) return unavailable('provider_error');
+      if (Number(response.headers.get('content-length') || 0) > 262_144) return unavailable('invalid_response');
       const body = await response.text();
-      if (body.length > 262_144) return null;
-      const parsed: unknown = JSON.parse(body);
-      if (!parsed || typeof parsed !== 'object') return null;
+      if (body.length > 262_144) return unavailable('invalid_response');
+      let parsed: unknown;
+      try { parsed = JSON.parse(body); } catch { return unavailable('invalid_response'); }
+      if (!parsed || typeof parsed !== 'object') return unavailable('invalid_response');
       const choices = (parsed as { choices?: Array<{ message?: { content?: unknown } }> }).choices;
-      const content = choices?.[0]?.message?.content;
-      if (typeof content !== 'string' || !content.trim() || content.length > 20_000) return null;
-      return content;
-    } catch {
-      // No request bodies or secrets in diagnostic messages. Aborts and errors
-      // must not silently fall back to another model or transport.
-      return null;
+      const text = choices?.[0]?.message?.content;
+      if (typeof text !== 'string' || !text.trim() || text.length > 20_000)
+        return unavailable('invalid_response');
+      return successful(text);
+    } catch (error) {
+      // Never reveal remote error details (may contain tokens or prompt text).
+      return unavailable(errorKind(error));
     }
   }
-  return null;
+  return unavailable('provider_error');
 }
 
-async function requestSdk(messages: ModelMessage[], temperature: number): Promise<string | null> {
-  const instance = await getSdk();
-  const retries = [1200, 2800];
+async function requestSdk(messages: ModelMessage[], temperature: number): Promise<ModelCompletion> {
+  let instance: Awaited<ReturnType<typeof ZAI.create>>;
+  try { instance = await getSdk(); }
+  catch (error) { return unavailable(errorKind(error)); }
   for (let attempt = 0; ; attempt++) {
     try {
       const completion = await instance.chat.completions.create({
@@ -105,26 +122,36 @@ async function requestSdk(messages: ModelMessage[], temperature: number): Promis
         temperature,
         thinking: { type: 'disabled' },
       } as Parameters<typeof instance.chat.completions.create>[0]);
-      const content = completion.choices[0]?.message?.content;
-      return typeof content === 'string' && content.trim() ? content : null;
-    } catch (err) {
-      // Provider error messages are intentionally not logged or returned.
-      const retriable = attempt < retries.length && /429|Too many|5\d\d/.test(String(err));
-      if (!retriable) return null;
-      await new Promise((done) => setTimeout(done, retries[attempt]));
+      const text = completion.choices[0]?.message?.content;
+      return typeof text === 'string' && text.trim()
+        ? successful(text)
+        : unavailable('invalid_response');
+    } catch (error) {
+      const kind = errorKind(error);
+      const retriable = attempt < SDK_DELAYS.length &&
+        (kind === 'rate_limited' || /5\d\d/.test(String(error)));
+      if (!retriable) return unavailable(kind);
+      await new Promise((done) => setTimeout(done, SDK_DELAYS[attempt]));
     }
   }
 }
 
-export async function completeModel(messages: ModelMessage[], temperature: number): Promise<string | null> {
+/** The detailed result is mandatory for any safety-relevant parsing decision. */
+export async function completeModelWithStatus(messages: ModelMessage[], temperature: number): Promise<ModelCompletion> {
   const backend = configuredBackend();
-  if (!backend) return null; // invalid explicit configuration never falls back
-  if (!messages.length || messages.some(m => m.content.length > 12_000)) return null;
+  if (!backend || !messages.length || messages.some(m => m.content.length > 12_000))
+    return unavailable('invalid_configuration');
   try {
     return backend === 'openai-compatible'
       ? await requestCompatible(messages, temperature)
       : await requestSdk(messages, temperature);
-  } catch {
-    return null;
+  } catch (error) {
+    return unavailable(errorKind(error));
   }
+}
+
+/** Backwards-compatible nullable helper for generation and research fixtures. */
+export async function completeModel(messages: ModelMessage[], temperature: number): Promise<string | null> {
+  const result = await completeModelWithStatus(messages, temperature);
+  return result.status === 'ok' ? result.text : null;
 }

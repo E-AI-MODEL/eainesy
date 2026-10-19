@@ -68,7 +68,7 @@ EAINESY_MODEL_NAME=<jouw-model-id>
 EAINESY_MODEL_API_KEY=<alleen-via-secrets>
 ```
 
-Een ontbrekende sleutel, ongeldig endpoint, onjuiste backend, ongeldige respons of serverfout leidt tot `null`; er volgt **geen stille modelwissel**. De adapter staat alleen HTTPS toe, met een beperkte localhost-HTTP-uitzondering voor `CI=true`. Redirects worden geweigerd. De HTTP-aanroep heeft een timeout van 20 seconden; de bestaande Z.ai-SDK wordt niet door een nieuwe HTTP-timeout afgebroken.
+Een ontbrekende sleutel, ongeldig endpoint, onjuiste backend, ongeldige respons of providerstoring leidt tot een **getypeerde foutstatus**. In echte gesprekken blokkeert EAInesy een automatisch antwoord bij provideruitval, en er volgt **geen stille modelwissel**. De adapter staat alleen HTTPS toe, met een beperkte localhost-HTTP-uitzondering voor `CI=true`. Redirects worden geweigerd. De HTTP-aanroep heeft een timeout van 20 seconden; de bestaande Z.ai-SDK wordt niet door een nieuwe HTTP-timeout afgebroken.
 
 **Getest zonder echte GLM-credentials:**
 - [Transportcontract](https://github.com/E-AI-MODEL/eainesy/actions/runs/39025242061): schemareparatie, retries, antwoordgeneratie, authentificatie en ongeldige configuratie tegen een lokale nep-provider
@@ -78,9 +78,43 @@ Een ontbrekende sleutel, ongeldig endpoint, onjuiste backend, ongeldige respons 
 
 Zie [GLM-transportaudit](docs/GLM-transport-audit-2026-10-17.md).
 
+## Onderzoek met echt GLM — aparte opt-in route
+
+De **regressietests en GitHub Actions gebruiken geen betaalde externe GLM-aanroepen**. Het onafhankelijke onderzoeksprotocol uit de door GLM Agent aangeleverde reconstructie van 17 oktober 2026 is als opt-in hulpmiddel voorbereid. De oorspronkelijke 58 fictieve casussen blijven in de aangeleverde, SHA-256-geverifieerde patch staan; ze zijn **niet** stilzwijgend herschreven of als nieuwe testset geclaimd.
+
+Een lokale onderzoeker heeft de originele patch nodig (SHA-256 `556ce49f9d0b4608afc87e295df3d0027cf28695baa46ab892fe13d42248902a`). De researchomgeving en checkpoints blijven buiten Git:
+
+```bash
+# Stap 1: haal exact de 39 parse-, 13 meerbeurt- en 6 generatiecases uit de patch.
+node scripts/import-live-glm-patch.mjs /pad/naar/eainesy-glm-live-integration.patch
+
+# Stap 2: alleen validatie/inventarisatie; GEEN modelaanroepen.
+node scripts/live-glm-eval.mjs --dry-run
+
+# Stap 3: opt-in test met ECHT taalmodel — externe kosten mogelijk.
+node scripts/live-glm-eval.mjs --live --accept-costs --max=3
+node scripts/live-glm-eval.mjs --live --accept-costs
+
+# Bij nieuwe code, modelinstellingen of onafhankelijke hermeting:
+node scripts/live-glm-eval.mjs --live --accept-costs --fresh
+```
+
+De runner gebruikt de actuele productie-implementatie `glm.ts` en `model-provider.ts`; hij onderscheidt een providerstoring (o.a. 429) van een daadwerkelijk ontvangen maar schema-ongeldig frame. Een `OUTAGE` telt niet als geslaagde of mislukte inhoudsherkenning; `DEVIATION` blijft zichtbaar. Checkpoints zijn gekoppeld aan de hashes van de casusset, parser, provider en runner, evenals de ingestelde backend en modelnaam. Bij `CACHED` zijn er voor die casus **geen nieuwe modelaanroepen** gedaan. Het werkelijke aantal interne SDK-herpogingen wordt niet door deze runner gemeten en dus niet verzonnen.
+
+Voor een losse providerproef en een handmatige vierbeurten-HTTP-test via de echte Z3-worker:
+
+```bash
+node scripts/glm-access-probe.mjs --live --accept-costs
+node scripts/live-http-e2e.mjs --live --accept-costs
+```
+
+De live HTTP-proef gebruikt een **aparte fictieve SQLite-database** onder `.live-eval/`, een lokale Node-server en vier testbeurten. Geef uitsluitend veilig beheerde credentials via de serveromgeving. **Geen van deze drie opt-in scripts draait automatisch in de CI**; alleen de syntaxis wordt daar zonder externe modeltoegang gecontroleerd.
+
+Bron en beperking: [GLM-reconstructie en review](docs/GLM-live-patch-review-2026-10-17.md) en [de afzonderlijke inhoudelijke evaluatienotitie](docs/GLM-live-evaluation-2026-10-17.md). De gemelde `57/58` is een **door GLM Agent aangeleverde uitkomst** en nog niet onafhankelijk door onze GitHub-runner met een echt model gereproduceerd. Zeven inhoudelijke grensgevallen vragen menselijke beoordeling. Dit ondersteunt geen gebruik met echte hulpvragers.
+
 ## Live GLM and build checks
 
-`src/lib/eainesy/glm.ts` currently initializes `z-ai-web-dev-sdk` through `ZAI.create()`. The repository does **not** contain portable credentials or a provider-neutral adapter. Live GLM calls require the compatible hosting environment and its documented SDK authentication. No credentials should be committed. Tests that need a live provider **must be labelled as such** and must not be presented as equivalent to the deterministic suite.
+`src/lib/eainesy/glm.ts` gebruikt de afzonderlijke, getypeerde transportgrens `model-provider.ts`: de oorspronkelijke `z-ai-web-dev-sdk` of een expliciet geconfigureerd OpenAI-compatibel HTTPS-endpoint. Er staan geen portable credentials in Git. Echte providertests zijn opt-in, met gescheiden resultaatrapportage; de deterministische suite gebruikt een stub en bewijst geen live-modelkwaliteit.
 
 ```bash
 bunx tsc --noEmit

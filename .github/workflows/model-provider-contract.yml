@@ -2,10 +2,17 @@ name: EAInesy - GLM provider contract (synthetic)
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
     paths:
       - 'src/lib/eainesy/glm.ts'
       - 'src/lib/eainesy/model-provider.ts'
       - 'scripts/model-provider-contract.mjs'
+      - 'scripts/import-live-glm-patch.mjs'
+      - 'scripts/live-glm-eval.mjs'
+      - 'scripts/live-http-e2e.mjs'
+      - 'scripts/glm-access-probe.mjs'
+      - '.gitignore'
       - '.github/workflows/model-provider-contract.yml'
   workflow_dispatch:
 permissions:
@@ -29,3 +36,9 @@ jobs:
           bun build ./src/lib/eainesy/glm.ts --target=node --format=esm --external z-ai-web-dev-sdk --outfile .provider-ci/glm.mjs
       - name: Run local provider contract without model credentials
         run: node scripts/model-provider-contract.mjs
+      - name: Parse opt-in live research scripts offline (no model calls)
+        run: |
+          node --check scripts/import-live-glm-patch.mjs
+          node --check scripts/live-glm-eval.mjs
+          node --check scripts/live-http-e2e.mjs
+          node --check scripts/glm-access-probe.mjs
