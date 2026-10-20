@@ -54,6 +54,20 @@ describe('actionable helpline referral (not simply digits)', () => {
     expect(failed(t, p)).toEqual([]);
   });
 
+
+  test('calling 112 while advising against 113 must not satisfy the 113 gate', () => {
+    const v = failed('Bel 112, niet 113. Ben je veilig?', plan());
+    expect(v).toContain('OP-3');
+    expect(v).toContain('OP-15');
+  });
+
+  test('an abuse-response fallback offers all required resources', () => {
+    for (const language of ['nl', 'en'] as const) {
+      const p = plan('SAFETY_RESPONSE', language, ['113', '112', '0800-2000']);
+      expect(failed(cannedReplyFor(p), p)).toEqual([]);
+    }
+  });
+
   test('English crisis referral with a closing safety check passes', () => {
     expect(failed('You can call 113 for help. Are you safe right now?', plan('CRISIS_PROTOCOL', 'en'))).toEqual([]);
   });
