@@ -59,7 +59,7 @@ function hasClosingCheckIn(text: string, language: 'nl' | 'en'): boolean {
   if (!trimmed.endsWith('?')) return false;
   const question = trimmed.split(/(?<=[.!?])\s+/).at(-1) ?? '';
   if (language === 'nl') {
-    return /\b(?:hoe\s+(?:gaat|voel|veilig|is)|ben\s+je\s+veilig|heb\s+je\s+(?:(?:op\s+dit\s+moment|nu)\s+)?iemand|is\s+er\s+iemand|kun\s+je\s+iemand|kan\s+je\s+iemand|wil\s+je\s+(?:vertellen|delen|even\s+samen\s+een\s+pauze|in\s+je\s+eigen\s+woorden)|blijf\s+je\s+(?:even\s+)?bij\s+me|wat\s+(?:heb|helpt|zou)|wie\s+kan)\b/i.test(question) &&
+    return /\b(?:hoe\s+(?:gaat|voel|veilig|is)|ben\s+je\s+(?:(?:nu|op\s+dit\s+moment)\s+)?veilig|heb\s+je\s+(?:(?:op\s+dit\s+moment|nu)\s+)?iemand|is\s+er\s+iemand|kun\s+je\s+iemand|kan\s+je\s+iemand|wil\s+je\s+(?:vertellen|delen|even\s+samen\s+een\s+pauze|in\s+je\s+eigen\s+woorden)|blijf\s+je\s+(?:even\s+)?bij\s+me|wat\s+(?:heb|helpt|zou)|wie\s+kan)\b/i.test(question) &&
       /\b(?:je|jou|jij|iemand|steun|veilig|hulp|bij\s+me|nu|moment|voelt|gaat)\b/i.test(question);
   }
   return /\b(?:how\s+(?:are|do|safe|is)|are\s+you\s+safe|do\s+you\s+have\s+someone|is\s+there\s+someone|can\s+you\s+(?:reach|contact|tell)|would\s+you\s+(?:tell|share)|stay\s+with\s+me|who\s+can|what\s+would\s+help)\b/i.test(question) &&
@@ -364,8 +364,8 @@ export const CANNED_REPLIES: Record<string, { nl: string; en: string }> = {
  */
 /** Fail-safe reply for disclosed abuse/violence at home (trauma-informed: believe, not your fault, Veilig Thuis). */
 export const CANNED_ABUSE = {
-  nl: 'Ik geloof je, en het is goed dat je dit vertelt. Wat er met je gebeurt is niet jouw schuld. Veilig Thuis is bereikbaar via 0800-2000, gratis en anoniem, dag en nacht; bij acuut gevaar bel je 112. Als het jou zelf te veel wordt, is 113 er ook (0800-0113). Wil je vertellen hoe veilig je je op dit moment voelt?',
-  en: "I believe you, and it's good that you tell me this. What is happening to you is not your fault. Veilig Thuis (the Dutch domestic-violence line) is reachable at 0800-2000, free and anonymous, day and night; in acute danger call 112. If it gets too much for you, 113 is there too (0800-0113). Would you tell me how safe you feel right now?",
+  nl: 'Ik geloof je, en het is goed dat je dit vertelt. Wat er met je gebeurt is niet jouw schuld. Veilig Thuis is bereikbaar via 0800-2000, gratis en anoniem, dag en nacht; bij acuut gevaar bel je 112. Als het jou zelf te veel wordt, kun je 113 bellen via 0800-0113. Wil je vertellen hoe veilig je je op dit moment voelt?',
+  en: "I believe you, and it's good that you tell me this. What is happening to you is not your fault. Veilig Thuis (the Dutch domestic-violence line) is reachable at 0800-2000, free and anonymous, day and night; in acute danger call 112. If it gets too much for you, you can call 113 (0800-0113). Would you tell me how safe you feel right now?",
 };
 
 export const CANNED_BY_RULE: Record<string, { nl: string; en: string }> = {
@@ -374,8 +374,8 @@ export const CANNED_BY_RULE: Record<string, { nl: string; en: string }> = {
     en: "I'm glad you keep telling me. I'm still thinking of what you said earlier in our conversation, and 113 stays there for you day and night (call 113 or 0800-0113). How are you doing now, compared to earlier?",
   },
   P03: {
-    nl: 'Ik hoor hoeveel woede en spanning er nu in je zit, en het is goed dat je het hier zegt. Is er acuut gevaar voor jou of iemand anders: bel nu 112. De crisisdienst of huisartsenpost van je regio kan ook direct meedenken, en 113 (0800-0113) is er dag en nacht als het jou zelf te veel wordt. Wil je even samen een pauze nemen, hier in de chat?',
-    en: "I can hear how much anger and tension is in you right now, and it's good that you say it here. If there is acute danger for you or someone else: call 112 now. The crisis service or out-of-hours GP in your region can help straight away, and 113 (0800-0113) is there day and night if it gets too much for you. Shall we take a pause together, here in the chat?",
+    nl: 'Ik hoor hoeveel woede en spanning er nu in je zit, en het is goed dat je het hier zegt. Is er acuut gevaar voor jou of iemand anders: bel nu 112. De crisisdienst of huisartsenpost van je regio kan ook direct meedenken, en je kunt 113 bellen via 0800-0113 als het jou zelf te veel wordt. Ben je op dit moment veilig?',
+    en: "I can hear how much anger and tension is in you right now, and it's good that you say it here. If there is acute danger for you or someone else: call 112 now. The crisis service or out-of-hours GP in your region can help straight away, and you can call 113 (0800-0113) if it gets too much for you. Are you safe right now?",
   },
   P67: {
     nl: 'Ik kon je bericht net niet goed genoeg lezen, en ik wil niet gokken bij iets wat belangrijk kan zijn. Als het gaat om je veiligheid of als je niet meer wilt leven: bel 113 of 0800-0113, gratis, dag en nacht. Wil je in je eigen woorden nog eens vertellen wat er speelt?',
