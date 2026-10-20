@@ -33,7 +33,7 @@ function hasActionableContact(text: string, resource: '113' | '112' | '0800-2000
     '0800-2000': /\b0800[\s-]?2000\b/gi,
   };
   const invitation = /\b(?:bel|bellen|telefoneren|contact(?:eer|eren)?|neem contact op|praat met|bereikbaar|hulplijn|call|dial|phone|contact|reach|reachable|talk to|speak to)\b/i;
-  const discouragement = /\b(?:bel|bellen|call|contact|dial)\s+(?:vooral\s+)?(?:niet|nooit|never|not)\b|\b(?:do not|don't|never|niet|nooit)\s+(?:naar\s+)?(?:bel|bellen|call|contact|dial)\b|\b(?:hoef|hoeft|moet|must)\s+(?:je\s+|you\s+)?(?:niet|not)\s+(?:te\s+)?(?:bel|bellen|call|contact)\b|\b(?:bel|call|contact|dial)\s+(?:113|112|0800[\s-]?2000|0800[\s-]?0113)\s+(?:niet|never|not)\b|\b(?:113|112|0800[\s-]?2000|0800[\s-]?0113)\s+(?:niet|never|not)\s+(?:bellen|call|contact)\b/i;
+  const discouragement = /\b(?:bel|bellen|call|contact|dial)\s+(?:vooral\s+)?(?:niet|nooit|never|not)\b|\b(?:do not|don't|never|niet|nooit)\s+(?:naar\s+)?(?:bel|bellen|call|contact|dial)\b|\b(?:hoef|hoeft|moet|must)\s+(?:je\s+|you\s+)?(?:niet|not)\s+(?:te\s+)?(?:bel|bellen|call|contact)\b|\b(?:bel|call|contact|dial)\s+(?:113|112|0800[\s-]?2000|0800[\s-]?0113)\s+(?:niet|never|not)\b|\b(?:113|112|0800[\s-]?2000|0800[\s-]?0113)\s+(?:niet|never|not)\s+(?:bellen|call|contact)\b|\b(?:niet|nooit|never|not)\s+(?:naar\s+|to\s+)?(?:113|112|0800[\s-]?2000|0800[\s-]?0113)\b/i;
   for (const sentence of text.split(/(?<=[.!?])\s+|\n+/)) {
     if (discouragement.test(sentence)) continue;
     for (const match of sentence.matchAll(numbers[resource])) {
