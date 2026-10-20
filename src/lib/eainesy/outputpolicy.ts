@@ -20,6 +20,52 @@ function countMatches(text: string, re: RegExp): number {
   return (text.match(re) ?? []).length;
 }
 
+/**
+ * Check whether a helpline is actually offered as a contact option.
+ * This is deliberately a bounded syntax guard, NOT a semantic guarantee.
+ * Unlike a bare digit check it rejects a number cited as trivia, quoted
+ * as a refusal, or explicitly discouraged in the same sentence.
+ */
+function hasActionableContact(text: string, resource: '113' | '112' | '0800-2000'): boolean {
+  const numbers: Record<typeof resource, RegExp> = {
+    '113': /\b(?:113|0800[\s-]?0113)\b/gi,
+    '112': /\b112\b/gi,
+    '0800-2000': /\b0800[\s-]?2000\b/gi,
+  };
+  const invitation = /\b(?:bel|bellen|telefoneren|contact(?:eer|eren)?|neem contact op|praat met|bereikbaar|hulplijn|call|dial|phone|contact|reach|reachable|talk to|speak to)\b/i;
+  const discouragement = /\b(?:bel|bellen|call|contact|dial)\s+(?:vooral\s+)?(?:niet|nooit|never|not)\b|\b(?:do not|don't|never|niet|nooit)\s+(?:naar\s+)?(?:bel|bellen|call|contact|dial)\b|\b(?:hoef|hoeft|moet|must)\s+(?:je\s+|you\s+)?(?:niet|not)\s+(?:te\s+)?(?:bel|bellen|call|contact)\b/i;
+  for (const sentence of text.split(/(?<=[.!?])\s+|\n+/)) {
+    if (discouragement.test(sentence)) continue;
+    for (const match of sentence.matchAll(numbers[resource])) {
+      const at = match.index ?? 0;
+      const preceding = sentence.slice(Math.max(0, at - 85), at);
+      const following = sentence.slice(at + match[0].length, at + match[0].length + 35);
+      if (invitation.test(preceding) ||
+          /^(?:\s+|[\s,(:;-]+)(?:is\s+)?(?:bereikbaar|reachable|available)\b/i.test(following)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Require the *closing* question to check on immediate wellbeing, support or
+ * continued contact. Not just any '?' in the reply.
+ * Intentionally language-bounded. Human review is still needed for meaning.
+ */
+function hasClosingCheckIn(text: string, language: 'nl' | 'en'): boolean {
+  const trimmed = text.trim();
+  if (!trimmed.endsWith('?')) return false;
+  const question = trimmed.split(/(?<=[.!?])\s+/).at(-1) ?? '';
+  if (language === 'nl') {
+    return /\b(?:hoe\s+(?:gaat|voel|veilig|is)|ben\s+je\s+veilig|heb\s+je\s+iemand|is\s+er\s+iemand|kun\s+je\s+iemand|kan\s+je\s+iemand|wil\s+je\s+(?:vertellen|delen)|blijf\s+je\s+(?:even\s+)?bij\s+me|wat\s+(?:heb|helpt|zou)|wie\s+kan)\b/i.test(question) &&
+      /\b(?:je|jou|jij|iemand|steun|veilig|hulp|bij\s+me|nu|moment|voelt|gaat)\b/i.test(question);
+  }
+  return /\b(?:how\s+(?:are|do|safe|is)|are\s+you\s+safe|do\s+you\s+have\s+someone|is\s+there\s+someone|can\s+you\s+(?:reach|contact|tell)|would\s+you\s+(?:tell|share)|stay\s+with\s+me|who\s+can|what\s+would\s+help)\b/i.test(question) &&
+    /\b(?:you|your|someone|safe|support|help|feel|now|with\s+me)\b/i.test(question);
+}
+
 const RULES: OutputRule[] = [
   {
     id: 'OP-1',
@@ -47,9 +93,9 @@ const RULES: OutputRule[] = [
     description: 'Crisis/safety responses must carry the 113 resource',
     applies: (plan) => plan.action === 'CRISIS_PROTOCOL' || plan.action === 'SAFETY_RESPONSE',
     check: (text) => {
-      return /(113|0800-0113|1813)/.test(text)
+      return hasActionableContact(text, '113')
         ? null
-        : { ruleId: 'OP-3', description: 'crisis resources missing from safety response', excerpt: text.slice(0, 60) };
+        : { ruleId: 'OP-3', description: 'no actionable 113 referral in safety response', excerpt: text.slice(0, 60) };
     },
   },
   {
@@ -162,10 +208,10 @@ const RULES: OutputRule[] = [
     id: 'OP-12',
     description: 'Crisis-family replies must end with an explicit check-in question',
     applies: (plan) => plan.action === 'CRISIS_PROTOCOL' || plan.action === 'SAFETY_RESPONSE',
-    check: (text) => {
-      return /\?/.test(text)
+    check: (text, plan) => {
+      return hasClosingCheckIn(text, plan.language)
         ? null
-        : { ruleId: 'OP-12', description: 'safety reply lacks a check-in question', excerpt: text.slice(0, 60) };
+        : { ruleId: 'OP-12', description: 'safety reply lacks a closing wellbeing/support check-in', excerpt: text.slice(-80) };
     },
   },
   {
@@ -192,8 +238,9 @@ const RULES: OutputRule[] = [
     applies: (plan) => plan.mustInclude.some((m) => /113|112|0800-2000/.test(m)),
     check: (text, plan) => {
       for (const res of requiredResources(plan)) {
-        if (!res.present.test(text)) {
-          return { ruleId: 'OP-15', description: `required help line ${res.label} missing`, excerpt: '' };
+        const resource = res.label === '113' ? '113' : res.label === '112' ? '112' : '0800-2000';
+        if (!hasActionableContact(text, resource)) {
+          return { ruleId: 'OP-15', description: `required help line ${res.label} not offered as a contact option`, excerpt: '' };
         }
       }
       return null;
