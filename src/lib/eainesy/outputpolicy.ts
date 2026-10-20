@@ -33,7 +33,7 @@ function hasActionableContact(text: string, resource: '113' | '112' | '0800-2000
     '0800-2000': /\b0800[\s-]?2000\b/gi,
   };
   const invitation = /\b(?:bel|bellen|telefoneren|contact(?:eer|eren)?|neem contact op|praat met|bereikbaar|hulplijn|call|dial|phone|contact|reach|reachable|talk to|speak to)\b/i;
-  const discouragement = /\b(?:bel|bellen|call|contact|dial)\s+(?:vooral\s+)?(?:niet|nooit|never|not)\b|\b(?:do not|don't|never|niet|nooit)\s+(?:naar\s+)?(?:bel|bellen|call|contact|dial)\b|\b(?:hoef|hoeft|moet|must)\s+(?:je\s+|you\s+)?(?:niet|not)\s+(?:te\s+)?(?:bel|bellen|call|contact)\b/i;
+  const discouragement = /\b(?:bel|bellen|call|contact|dial)\s+(?:vooral\s+)?(?:niet|nooit|never|not)\b|\b(?:do not|don't|never|niet|nooit)\s+(?:naar\s+)?(?:bel|bellen|call|contact|dial)\b|\b(?:hoef|hoeft|moet|must)\s+(?:je\s+|you\s+)?(?:niet|not)\s+(?:te\s+)?(?:bel|bellen|call|contact)\b|\b(?:bel|call|contact|dial)\s+(?:113|112|0800[\s-]?2000|0800[\s-]?0113)\s+(?:niet|never|not)\b|\b(?:113|112|0800[\s-]?2000|0800[\s-]?0113)\s+(?:niet|never|not)\s+(?:bellen|call|contact)\b/i;
   for (const sentence of text.split(/(?<=[.!?])\s+|\n+/)) {
     if (discouragement.test(sentence)) continue;
     for (const match of sentence.matchAll(numbers[resource])) {
@@ -59,7 +59,7 @@ function hasClosingCheckIn(text: string, language: 'nl' | 'en'): boolean {
   if (!trimmed.endsWith('?')) return false;
   const question = trimmed.split(/(?<=[.!?])\s+/).at(-1) ?? '';
   if (language === 'nl') {
-    return /\b(?:hoe\s+(?:gaat|voel|veilig|is)|ben\s+je\s+veilig|heb\s+je\s+iemand|is\s+er\s+iemand|kun\s+je\s+iemand|kan\s+je\s+iemand|wil\s+je\s+(?:vertellen|delen)|blijf\s+je\s+(?:even\s+)?bij\s+me|wat\s+(?:heb|helpt|zou)|wie\s+kan)\b/i.test(question) &&
+    return /\b(?:hoe\s+(?:gaat|voel|veilig|is)|ben\s+je\s+veilig|heb\s+je\s+(?:(?:op\s+dit\s+moment|nu)\s+)?iemand|is\s+er\s+iemand|kun\s+je\s+iemand|kan\s+je\s+iemand|wil\s+je\s+(?:vertellen|delen|even\s+samen\s+een\s+pauze|in\s+je\s+eigen\s+woorden)|blijf\s+je\s+(?:even\s+)?bij\s+me|wat\s+(?:heb|helpt|zou)|wie\s+kan)\b/i.test(question) &&
       /\b(?:je|jou|jij|iemand|steun|veilig|hulp|bij\s+me|nu|moment|voelt|gaat)\b/i.test(question);
   }
   return /\b(?:how\s+(?:are|do|safe|is)|are\s+you\s+safe|do\s+you\s+have\s+someone|is\s+there\s+someone|can\s+you\s+(?:reach|contact|tell)|would\s+you\s+(?:tell|share)|stay\s+with\s+me|who\s+can|what\s+would\s+help)\b/i.test(question) &&
