@@ -87,6 +87,12 @@ describe('closing crisis check-in (not merely a question mark)', () => {
     expect(failed('Bel 113. Hoeveel is twee plus twee?', plan())).toContain('OP-12');
   });
 
+  test('generic questions using what would or how are do not count as safety checks', () => {
+    expect(failed('Bel 113. Wat zou je vandaag willen eten?', plan())).toContain('OP-12');
+    expect(failed('Bel 113. Hoe gaat het met je computer?', plan())).toContain('OP-12');
+    expect(failed('Call 113 for help. How are your shoes?', plan('CRISIS_PROTOCOL', 'en'))).toContain('OP-12');
+  });
+
   test('a closing question about immediate support counts', () => {
     expect(failed('Bel 113. Heb je op dit moment iemand in de buurt?', plan())).toEqual([]);
   });
