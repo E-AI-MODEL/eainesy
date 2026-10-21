@@ -59,10 +59,10 @@ function hasClosingCheckIn(text: string, language: 'nl' | 'en'): boolean {
   if (!trimmed.endsWith('?')) return false;
   const question = trimmed.split(/(?<=[.!?])\s+/).at(-1) ?? '';
   if (language === 'nl') {
-    return /\b(?:hoe\s+gaat\s+het\s+(?:nu\s+)?met\s+(?:je|jou)|hoe\s+voel\s+je\s+je|hoe\s+veilig\s+voel\s+je|ben\s+je\s+(?:(?:nu|op\s+dit\s+moment)\s+)?veilig|heb\s+je\s+(?:(?:op\s+dit\s+moment|nu)\s+)?iemand|is\s+er\s+iemand|kun\s+je\s+iemand|kan\s+je\s+iemand|wil\s+je\s+(?:vertellen\s+hoe\s+(?:veilig|het\s+met\s+je|je\s+je)|in\s+je\s+eigen\s+woorden|even\s+samen\s+een\s+pauze)|blijf\s+je\s+(?:even\s+)?bij\s+me|wat\s+(?:helpt\s+(?:je|jou)|zou\s+je\s+nu\s+helpen)|wie\s+kan\s+je\s+helpen)\b/i.test(question) &&
+    return /\b(?:hoe\s+gaat\s+het\s+(?:nu\s+)?met\s+(?:je|jou)(?=\s*(?:[?,.;]|nu\b|vergeleken\b))|hoe\s+voel\s+je\s+je|hoe\s+veilig\s+voel\s+je|ben\s+je\s+(?:(?:nu|op\s+dit\s+moment)\s+)?veilig|heb\s+je\s+(?:(?:op\s+dit\s+moment|nu)\s+)?iemand|is\s+er\s+iemand|kun\s+je\s+iemand|kan\s+je\s+iemand|wil\s+je\s+(?:vertellen\s+hoe\s+(?:veilig|het\s+met\s+je|je\s+je)|in\s+je\s+eigen\s+woorden|even\s+samen\s+een\s+pauze)|blijf\s+je\s+(?:even\s+)?bij\s+me|wat\s+(?:helpt\s+(?:je|jou)|zou\s+je\s+nu\s+helpen)|wie\s+kan\s+je\s+helpen)\b/i.test(question) &&
       /\b(?:je|jou|jij|iemand|steun|veilig|hulp|bij\s+me|nu|moment|voelt|gaat)\b/i.test(question);
   }
-  return /\b(?:how\s+are\s+you|how\s+do\s+you\s+feel|are\s+you\s+safe|do\s+you\s+have\s+someone|is\s+there\s+someone|can\s+you\s+(?:reach|contact|tell)|would\s+you\s+(?:tell\s+me\s+(?:how|again\s+in\s+your\s+own\s+words)|share\s+how)|stay\s+with\s+me|who\s+can\s+(?:help|support)\s+you|what\s+would\s+help\s+you)\b/i.test(question) &&
+  return /\b(?:how\s+are\s+you|how\s+do\s+you\s+feel|are\s+you\s+safe|do\s+you\s+have\s+someone|is\s+there\s+someone|can\s+you\s+(?:reach|contact|tell)|would\s+you\s+(?:tell\s+me\s+(?:how|again,?\s+in\s+your\s+own\s+words)|share\s+how)|stay\s+with\s+me|who\s+can\s+(?:help|support)\s+you|what\s+would\s+help\s+you)\b/i.test(question) &&
     /\b(?:you|your|someone|safe|support|help|feel|now|with\s+me)\b/i.test(question);
 }
 
