@@ -8,6 +8,8 @@ on:
       - "research/nesy-abc/**"
       - "scripts/validate-nesy-abc-pilot.mjs"
       - "scripts/run-nesy-abc-main-offline.mjs"
+      - "scripts/run-nesy-abc-process-turn-dev.mjs"
+      - "tests/nesy-abc-main-bridge.test.ts"
       - "docs/EAInesy-ABC-main-parallel-isolation.md"
       - ".github/workflows/nesy-abc-parallel-main.yml"
   push:
@@ -18,6 +20,8 @@ on:
       - "research/nesy-abc/**"
       - "scripts/validate-nesy-abc-pilot.mjs"
       - "scripts/run-nesy-abc-main-offline.mjs"
+      - "scripts/run-nesy-abc-process-turn-dev.mjs"
+      - "tests/nesy-abc-main-bridge.test.ts"
       - "docs/EAInesy-ABC-main-parallel-isolation.md"
       - ".github/workflows/nesy-abc-parallel-main.yml"
   workflow_dispatch:
@@ -28,7 +32,7 @@ permissions:
 jobs:
   isolated-abc:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@v4
@@ -40,11 +44,29 @@ jobs:
         run: node --test research/nesy-abc/*.test.mjs
       - name: Run 24-case automatic read-only comparison
         run: node scripts/run-nesy-abc-main-offline.mjs
+      - name: Set up Bun for offline application pipeline tests
+        uses: oven-sh/setup-bun@v2
+      - name: Install locked dependencies without external model access
+        run: bun install --frozen-lockfile
+      - name: Generate Prisma client for application imports
+        env:
+          DATABASE_URL: file:./nesy-abc-ci-only.db
+        run: bun run db:generate
+      - name: Test actual processTurn through read-only A B C bridge (mocked Z3)
+        env:
+          DATABASE_URL: file:./nesy-abc-ci-only.db
+        run: bun test tests/nesy-abc-main-bridge.test.ts
+      - name: Replay 24 synthetic conversations through actual processTurn
+        env:
+          DATABASE_URL: file:./nesy-abc-ci-only.db
+        run: bun --preload ./tests/support/preload.ts scripts/run-nesy-abc-process-turn-dev.mjs
       - name: Upload full offline diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nesy-abc-main-research-only
-          path: .research-output/nesy-abc-main/
+          path: |
+            .research-output/nesy-abc-main/
+            .research-output/nesy-abc/
           if-no-files-found: warn
           retention-days: 30
