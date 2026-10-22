@@ -159,9 +159,22 @@ export const INTENT_LABELS: Record<Intent, { nl: string; en: string }> = {
   META_QUESTION: { nl: 'vraag over het systeem', en: 'meta question' },
 };
 
+/**
+ * Optional semantic scope is a MODEL CLAIM, not a verified attribution.
+ * Missing scope on legacy frames remains valid; unknown is an explicit
+ * abstention. Runtime risk fusion must not use these fields to downgrade.
+ */
+export const RiskMarkerScopeSchema = z.object({
+  experiencer: z.enum(['self', 'other', 'mixed', 'quoted', 'hypothetical', 'unknown']),
+  temporality: z.enum(['current', 'past_resolved', 'past_unresolved', 'mixed', 'unknown']),
+  polarity: z.enum(['affirmed', 'negated', 'mixed', 'uncertain']),
+});
+
 export const RiskMarkerSchema = z.object({
   type: z.enum(['SELF_HARM', 'SUICIDAL_IDEATION', 'HOPELESSNESS', 'ISOLATION', 'SUBSTANCE', 'AGENCY_PLAN', 'HARM_OTHERS', 'ABUSE_MARK', 'BURDENSOMENESS']),
   evidence: z.string().max(200),
+  /** Optional; interpretation cannot by itself alter the safety decision. */
+  scope: RiskMarkerScopeSchema.optional(),
 });
 export type RiskMarker = z.infer<typeof RiskMarkerSchema>;
 
