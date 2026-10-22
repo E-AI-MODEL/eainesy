@@ -1,0 +1,50 @@
+name: NeSy ABC parallel - isolated research
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "research/nesy-abc/**"
+      - "scripts/validate-nesy-abc-pilot.mjs"
+      - "scripts/run-nesy-abc-main-offline.mjs"
+      - "docs/EAInesy-ABC-main-parallel-isolation.md"
+      - ".github/workflows/nesy-abc-parallel-main.yml"
+  push:
+    branches:
+      - main
+      - integrate/nesy-abc-parallel-main-2026-10-23
+    paths:
+      - "research/nesy-abc/**"
+      - "scripts/validate-nesy-abc-pilot.mjs"
+      - "scripts/run-nesy-abc-main-offline.mjs"
+      - "docs/EAInesy-ABC-main-parallel-isolation.md"
+      - ".github/workflows/nesy-abc-parallel-main.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-abc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Show Node runtime
+        run: node --version
+      - name: Validate DEV-only input corpus
+        run: node scripts/validate-nesy-abc-pilot.mjs
+      - name: Test P0 A B C isolated research modules
+        run: node --test research/nesy-abc/*.test.mjs
+      - name: Run 24-case automatic read-only comparison
+        run: node scripts/run-nesy-abc-main-offline.mjs
+      - name: Upload full offline diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesy-abc-main-research-only
+          path: .research-output/nesy-abc-main/
+          if-no-files-found: warn
+          retention-days: 30
