@@ -34,6 +34,10 @@ export function fromVerifiedTurn({turnResult,turnRecord,history=[]}){
     // Do not reinterpret paraphrase as a dialogue act. Forward only explicit
     // parser-provided claims; architecture-lab independently anchors spans.
     dialogueObservation:frame?.dialogueObservation??null,
+    // B is post-concept: its supervisor must inspect the actual P0 draft,
+    // not only the planned move. This is read-only and never delivered.
+    draft:typeof turnRecord?.replyText==="string" ? turnRecord.replyText :
+      (typeof turnResult?.reply==="string" ? turnResult.reply : ""),
     base:{move:STRATEGIES.has(plan?.strategy)?plan.strategy:
       STRATEGIES.has(certificate?.conversation?.strategy)?certificate.conversation.strategy:"CLARIFY"},
     safety,
