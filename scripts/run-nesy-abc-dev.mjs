@@ -11,6 +11,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { processTurn } from '../src/lib/eainesy/orchestrator.ts';
+import { parseDeliveredFrameOffline } from '../src/lib/eainesy/glm.ts';
 import { comparePersistedTurn } from '../research/nesy-abc/kernel-bridge.mjs';
 
 const path = new URL('../research/nesy-abc/dev-pilot-p01.json', import.meta.url);
@@ -34,7 +35,7 @@ function neutralFrame(c) {
   return {intent:'GENERAL_VENT',emotions:[],topics:[],riskMarkers:[],
     language:c.language==='en'?'en':'nl',paraphrase:'',parseConfidence:0.5};
 }
-async function replay(c) {
+async function replay(c, scriptedObservation = null) {
   fake.__reset();
   assert(Array.isArray(c.history) && c.history.length>0 && c.history.length%2===0,
     'invalid dialogue history in ' + c.id);
@@ -48,8 +49,16 @@ async function replay(c) {
       frame:'{}',plan:'{}',trace:'[]',certificate:'{}'
     }});
   }
+  // The second lane simulates a delivered JSON frame with previously frozen
+  // DEV-only parser claims, validated by the SAME checkedFrame as live parsing.
+  // This is scripted fixture testing, NOT an actual model classification.
+  const frame = scriptedObservation == null ? neutralFrame(c)
+    : parseDeliveredFrameOffline(JSON.stringify({
+        ...neutralFrame(c), dialogueObservation:scriptedObservation
+      }), c.userText);
+  assert(frame, 'offline parser rejected scripted frame '+c.id);
   const turn=await processTurn(String(session.id),c.userText,{
-    presetFrame:neutralFrame(c),skipGeneration:true,origin:'scenario'
+    presetFrame:frame,skipGeneration:true,origin:'scenario'
   });
   const stored=await fake.turn.findUnique({where:{id:turn.turnId}});
   assert(stored, 'processTurn failed to persist '+c.id);
@@ -79,7 +88,8 @@ async function replay(c) {
       modelCheck:turn.certificate.modelCheck.pass,
       outputPolicy:turn.certificate.outputPolicy.pass,
       strategy:turn.certificate.conversation?.strategy||'unknown'},
-    arms};
+    arms,
+    fixtureClaimCount:scriptedObservation?.acts?.length ?? 0};
 }
 const rows=[],errors=[];
 for (const c of fixture.cases) {
@@ -137,3 +147,114 @@ const lines=[
 writeFileSync(resolve(out,'dev-report.md'),lines.join('\n'));
 console.log('NeSy ABC automatic DEV: '+rows.length+'/24, '+errors.length+' errors, report dir='+out);
 if(status!=='PASS_DEV_INSTRUMENTATION')process.exitCode=1;
+
+
+// -------------------------------------------------------------
+// DEV-only scripted parser-output comparison lane.
+// -------------------------------------------------------------
+// The snippets below were deliberately prepared from the public DEV cases.
+// They test automatic data flow and steering proposals, NOT LLM accuracy,
+// human judgment, semantic quality, or independent evidence.
+const observationsFile=new URL('../research/nesy-abc/dev-scripted-dialogue-observations.json',import.meta.url);
+const observationBytes=readFileSync(observationsFile);
+const observations=JSON.parse(observationBytes.toString('utf8'));
+assert(observations.protocol===fixture.protocol,'wrong scripted observation protocol');
+assert(observations.status==='DEV_SCRIPTED_MODEL_CLAIMS_NOT_LLM_MEASUREMENTS',
+  'scripted fixture must be explicitly DEV only');
+assert(Object.keys(observations.cases||{}).length===24,'exactly 24 scripted entries required');
+const scriptedRows=[],scriptedErrors=[];
+for (const c of fixture.cases) {
+  const scripted=observations.cases[c.id];
+  try {
+    assert(scripted?.version===1 && scripted?.origin==='model_claim' && Array.isArray(scripted.acts),
+      'invalid scripted dialogue observation '+c.id);
+    for (const act of scripted.acts) {
+      assert(typeof act?.evidence==='string'&&c.userText.includes(act.evidence),
+        'scripted evidence not verbatim '+c.id);
+    }
+    scriptedRows.push(await replay(c,scripted));
+  } catch(error) {
+    scriptedErrors.push({id:c.id,reason:error instanceof Error?error.message:'unknown'});
+  }
+}
+const byId=new Map(rows.map(r=>[r.id,r]));
+const semanticChanges={A:0,B:0,C:0},changedCaseIds=[];
+let claims=0;
+const comparisons=[];
+for(const row of scriptedRows) {
+  const baseline=byId.get(row.id);
+  if(!baseline){
+    scriptedErrors.push({id:row.id,reason:'missing baseline case'});continue;
+  }
+  const changes={};
+  for(const arm of ['A','B','C']){
+    const changed=row.arms[arm].proposed!==baseline.arms[arm].proposed;
+    changes[arm]=changed;
+    if(changed)semanticChanges[arm]++;
+  }
+  if(changes.A||changes.B||changes.C)changedCaseIds.push(row.id);
+  claims+=row.fixtureClaimCount;
+  // The model-shaped optional claim must never alter production safety.
+  if(row.core.action!==baseline.core.action||row.core.risk!==baseline.core.risk||
+     row.core.verification!==baseline.core.verification||
+     row.arms.P0.baseline!==baseline.arms.P0.baseline){
+    scriptedErrors.push({id:row.id,reason:'scripted dialogue metadata influenced baseline safety/decision'});
+  }
+  comparisons.push({
+    id:row.id,suite:row.suite,
+    scriptedClaims:row.fixtureClaimCount,
+    baselineP0:baseline.arms.P0.baseline,
+    neutral:{A:baseline.arms.A.proposed,B:baseline.arms.B.proposed,C:baseline.arms.C.proposed},
+    scripted:{A:row.arms.A.proposed,B:row.arms.B.proposed,C:row.arms.C.proposed},
+    changes,cTriggers:row.arms.C.triggers,
+    accepted:false,verified:false,
+  });
+}
+const scriptedStatus=scriptedErrors.length===0 && scriptedRows.length===24 &&
+  changedCaseIds.length>0 ? 'PASS_DEV_SCRIPTED_OBSERVATION_WIRING'
+  : 'FAIL_DEV_SCRIPTED_OBSERVATION_WIRING';
+const scriptedReport={
+  schema:'eainesy-abc-scripted-parser-output-dev-v1',
+  protocol:fixture.protocol,
+  status:scriptedStatus,gitSha:process.env.GITHUB_SHA||'local',
+  confirmatory:false,realParserModelUsed:false,modelQualityMeasured:false,
+  independentAnnotations:false,semanticAnswerQualityMeasured:false,
+  clinicalSafetyValidated:false,realZ3Verified:false,
+  externalCalls:0,
+  fixtureSha256:createHash('sha256').update(observationBytes).digest('hex'),
+  originalDevCorpusSha256:sourceHash,
+  counts:{processed:scriptedRows.length,claims,positiveCases:scriptedRows.filter(x=>x.fixtureClaimCount>0).length,
+    changedVsNeutral:semanticChanges,changedCaseIds},
+  comparisons,errors:scriptedErrors,
+};
+writeFileSync(resolve(out,'scripted-semantic-report.json'),JSON.stringify(scriptedReport,null,2)+'\n');
+const detailed=[
+  '# NeSy ABC — semantische testkoppeling met vooraf geschreven parserclaims','',
+  'Status: '+scriptedStatus,
+  'Broncommit: '+scriptedReport.gitSha,
+  'DEV-observaties SHA-256: '+scriptedReport.fixtureSha256,'',
+  '**Geen meting van parserkwaliteit, begrip of betere antwoorden.**',
+  'Alle claims zijn vooraf geschreven voor de 24 bekende DEV-gevallen en worden offline als modelvormig frame ingevoerd.',
+  'Alle voorstellen blijven geblokkeerd (Z3 = SKIPPED); B heeft nog geen echte supervisor.',
+  '',
+  '| Controle | Resultaat |','| --- | ---: |',
+  '| DEV-casussen | '+scriptedRows.length+'/24 |',
+  '| Scripted bronclaims | '+claims+' |',
+  '| Casussen met scripted claims | '+scriptedReport.counts.positiveCases+' |',
+  '| Andere ruwe A/B/C-voorstellen dan neutrale replay | '+semanticChanges.A+'/'+semanticChanges.B+'/'+semanticChanges.C+' |',
+  '| Onterechte wijzigingen kernactie/risico/Z3 | '+scriptedErrors.length+' |','',
+  '| Casus | A neutraal | A met claim | C neutraal | C met claim | Trigger C |',
+  '| --- | --- | --- | --- | --- | --- |',
+  ...comparisons.map(r=>'| '+r.id+' | '+r.neutral.A+' | '+r.scripted.A+' | '+r.neutral.C+
+    ' | '+r.scripted.C+' | '+(r.cTriggers.join(',')||'-')+' |'),
+  '',
+  '**Interpretatie:** de tabel meet of een vooraf geschreven, exact verankerde claim technisch door de parser/bridge/mixer loopt.',
+  'Een broncitaat valideert niet de betekenis en een veranderd voorstel is geen betere respons.',
+  ...scriptedErrors.map(x=>'ERROR '+x.id+': '+x.reason),
+  ''
+];
+writeFileSync(resolve(out,'scripted-semantic-report.md'),detailed.join('\n'));
+console.log('NeSy ABC scripted semantic DEV: '+scriptedRows.length+'/24, claims='+claims+
+  ', A/B/C proposal changes '+semanticChanges.A+'/'+semanticChanges.B+'/'+semanticChanges.C+
+  ', errors='+scriptedErrors.length);
+if(scriptedStatus!=='PASS_DEV_SCRIPTED_OBSERVATION_WIRING')process.exitCode=1;
