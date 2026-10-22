@@ -178,6 +178,31 @@ export const RiskMarkerSchema = z.object({
 });
 export type RiskMarker = z.infer<typeof RiskMarkerSchema>;
 
+/**
+ * Optional dialogue observations from the same LLM parse request.
+ *
+ * These are source-attributed MODEL CLAIMS, not verified facts. They may
+ * inform the read-only A/B/C research workspace, but are not inputs to the
+ * risk fusion, controller, Z3 certificate, or output policy.
+ *
+ * Important: an invalid optional observation MUST NOT invalidate an
+ * otherwise valid safety frame. Zod catch(undefined) discards that optional
+ * subfield without lowering or changing any risk markers.
+ */
+export const DialogueActSchema = z.object({
+  type: z.enum([
+    'CORRECT_ASSUMPTION', 'DECLINE_ADVICE', 'REQUEST_ANSWER',
+    'END_CONVERSATION', 'REOPEN_CONVERSATION', 'UNCERTAIN_ATTRIBUTION',
+  ]),
+  evidence: z.string().min(1).max(200),
+});
+export const DialogueObservationSchema = z.object({
+  version: z.literal(1),
+  origin: z.literal('model_claim'),
+  acts: z.array(DialogueActSchema).max(8),
+});
+export type DialogueObservation = z.infer<typeof DialogueObservationSchema>;
+
 export const FrameSchema = z.object({
   intent: z.enum(INTENTS),
   emotions: z.array(z.string().max(40)).max(8),
@@ -190,6 +215,8 @@ export const FrameSchema = z.object({
   changeTalk: z.boolean().optional(),
   /** The person explicitly asks what to do / for suggestions. Optional. */
   asksForHelp: z.boolean().optional(),
+  /** Optional, non-authoritative dialogue-act claims; invalid data is dropped. */
+  dialogueObservation: DialogueObservationSchema.optional().catch(undefined),
 });
 export type Frame = z.infer<typeof FrameSchema>;
 
