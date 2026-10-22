@@ -6,6 +6,10 @@ on:
       - research/nesy-abc-prereg-2026-10-23
     paths:
       - "research/nesy-abc/**"
+      - "src/lib/eainesy/**"
+      - "tests/support/**"
+      - "package.json"
+      - "bun.lock"
       - "tests/nesy-abc-real-turn.test.ts"
       - "scripts/validate-nesy-abc-pilot.mjs"
       - "scripts/run-nesy-abc-dev.mjs"
@@ -15,6 +19,10 @@ on:
       - sync/glm-research-2026-10-19
     paths:
       - "research/nesy-abc/**"
+      - "src/lib/eainesy/**"
+      - "tests/support/**"
+      - "package.json"
+      - "bun.lock"
       - "tests/nesy-abc-real-turn.test.ts"
       - "scripts/validate-nesy-abc-pilot.mjs"
       - ".github/workflows/nesy-abc-dev-lab.yml"
@@ -47,6 +55,8 @@ jobs:
         env:
           DATABASE_URL: file:./abc-offline-test.db
         run: bun run db:generate
+      - name: TypeScript consistency for architecture integration
+        run: bunx tsc --noEmit --pretty false
       - name: Execute real NeSy pipeline and read-only research bridge
         env:
           DATABASE_URL: file:./abc-offline-test.db
