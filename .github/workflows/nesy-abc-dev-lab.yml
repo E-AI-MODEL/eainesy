@@ -42,5 +42,11 @@ jobs:
         uses: oven-sh/setup-bun@v2
       - name: Install project dependencies (no external models)
         run: bun install --frozen-lockfile
+      - name: Generate Prisma client for application module imports
+        env:
+          DATABASE_URL: file:./abc-offline-test.db
+        run: bun run db:generate
       - name: Execute real NeSy pipeline and read-only research bridge
+        env:
+          DATABASE_URL: file:./abc-offline-test.db
         run: bun test tests/nesy-abc-real-turn.test.ts
