@@ -88,6 +88,7 @@ export function evidenceWorkspace(input) {
     flags:{explicitCorrections,breakdown,reopened,requestDirect,noAdvice,termination,mismatchedScope,questionableEvidence},
     triggerCodes:reasons,
     userText:raw,
+    history:list(input.history).filter(x=>x && (x.role==="user"||x.role==="assistant") && typeof x.content==="string").slice(-6).map(x=>({role:x.role,content:x.content})),
     paraphrase:currentNeed,
     baseMove:input.base.move,
     safety:clone(input.safety)
@@ -121,8 +122,14 @@ function guard(input,workspace,proposal) {
 }
 function normalizeSupervisorReply(value) {
   if(!value || typeof value!=="object") return {kind:"keep",reason:"no supervisor result"};
-  if(value.kind==="veto")return {kind:"veto",reason:text(value.reason)};
-  if(value.kind==="revise" && VALID_MOVES.includes(value.move))return {kind:"revise",move:value.move,reason:text(value.reason)};
+  if(value.kind==="veto")return {kind:"veto",reason:text(value.reason),status:text(value.status),issue:text(value.issue)};
+  if(value.kind==="revise" && VALID_MOVES.includes(value.move)){
+    const candidateDraft = typeof value.candidateDraft==="string" && value.candidateDraft.length<=1400
+      ? value.candidateDraft : null;
+    return {kind:"revise",move:value.move,reason:text(value.reason),
+      status:text(value.status),issue:text(value.issue),candidateDraft,
+      candidateRequiresOutputPolicy:value.candidateRequiresOutputPolicy===true};
+  }
   return {kind:"keep",reason:text(value.reason)||"unchanged"};
 }
 
@@ -133,7 +140,7 @@ export async function selectArchitecture(input,arm,options={}) {
   const locked=safetyLocked(input);
   let proposal={move:input.base.move,reason:"P0 unchanged"},triggered=false,extraCalls=0,supervisorOutcome=null;
   if(arm==="A"||arm==="C") proposal=proposeMixer(workspace);
-  if(arm==="B" && !locked && typeof options.supervisor==="function"){
+  if(arm==="B" && !locked && typeof options.supervisor==="function" && has(input.draft)){
     triggered=true;extraCalls=1;
     try {
       supervisorOutcome=normalizeSupervisorReply(await options.supervisor({
@@ -161,6 +168,10 @@ export async function selectArchitecture(input,arm,options={}) {
     triggers:arm==="C"?workspace.triggerCodes:[],
     triggered,extraCalls,
     supervisorOutcome,
+    // B's in-call replacement remains a proposal ONLY; never silently send
+    // this text without independent output policy and fresh safety checks.
+    candidateDraft:arm==="B" ? (supervisorOutcome?.candidateDraft ?? null) : null,
+    candidateDraftCertified:false,
     safetyUnchanged:clone(input.safety),
     researchOnly:true
   });
