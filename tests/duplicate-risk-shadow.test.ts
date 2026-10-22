@@ -1,10 +1,10 @@
 /**
- * Research-only counterfactual: compare the existing per-pattern risk score
- * with a hypothetical once-per-type score. DO NOT use the counterfactual
+ * Regression observation: contrast the former per-pattern risk score
+ * with the repaired once-per-type production score. DO NOT use the counterfactual
  * to decide any response, adjust any patient risk or pass a safety gate.
  */
 import { describe, expect, test } from 'bun:test';
-import { collectLexicalMarkers, lexicalRiskScore, scoreToRiskLevel } from '../src/lib/eainesy/lexicon';
+import { collectLexicalMarkers, lexicalRiskScore, scoreToRiskLevel, MARKER_WEIGHTS } from '../src/lib/eainesy/lexicon';
 
 const CASES = [
   { id: 'D01', text: 'Fictieve zin: ik heb geen zin meer. Het voelt hopeloos.' },
@@ -20,16 +20,19 @@ describe('shadow-only duplicate marker sensitivity', () => {
       const { markers } = collectLexicalMarkers(c.text);
       const types = markers.map(x => x.type);
       const firstPerType = markers.filter((x, i) => types.indexOf(x.type) === i);
-      const raw = lexicalRiskScore(markers, 0);
+      const legacyRaw = markers.reduce((sum, marker) => sum + MARKER_WEIGHTS[marker.type], 0);
+      const current = lexicalRiskScore(markers, 0);
       const unique = lexicalRiskScore(firstPerType, 0);
       return {
-        id: c.id, types, rawScore: raw, rawLevel: scoreToRiskLevel(raw),
+        id: c.id, types, legacyScore: legacyRaw, legacyLevel: scoreToRiskLevel(legacyRaw),
+        currentScore: current, currentLevel: scoreToRiskLevel(current),
         oncePerTypeScore: unique, oncePerTypeLevel: scoreToRiskLevel(unique),
         duplicateTypes: [...new Set(types.filter((x,i)=>types.indexOf(x)!==i))],
       };
     });
     expect(out).toHaveLength(CASES.length);
-    expect(out.every(x => x.oncePerTypeScore <= x.rawScore)).toBe(true);
+    expect(out.every(x => x.currentScore === x.oncePerTypeScore)).toBe(true);
+    expect(out.some(x => x.legacyLevel === 'CRISIS' && x.currentLevel === 'ELEVATED')).toBe(true);
     // Printed only as an *unscored* shadow observation. Not a clinical target.
     console.log('EAINESY_DUPLICATE_SHADOW_V1=' + JSON.stringify(out));
   });
