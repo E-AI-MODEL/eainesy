@@ -8,7 +8,7 @@ const make=(message="Ik wil even praten.",overrides={})=>({
   frame:{intent:"GENERAL_VENT",paraphrase:"Gebruiker wil praten.",riskMarkers:[],...overrides.frame},
   lexicalMarkers:overrides.lexicalMarkers??[],
   base:{move:overrides.move??"QUESTION"},
-  safety:{action:"THERAPEUTIC_DIALOG",riskAssessment:"NONE",verification:"sat",outputPolicyAllowed:true,...overrides.safety}
+  safety:{action:"THERAPEUTIC_DIALOG",riskAssessment:"NONE",verification:"sat",modelCheckPass:true,outputPolicyAllowed:true,riskMemory:"NONE",...overrides.safety}
 });
 
 test("four arms exist and P0 retains P0 decision",async()=>{
