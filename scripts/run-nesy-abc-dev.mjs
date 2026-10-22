@@ -258,3 +258,34 @@ console.log('NeSy ABC scripted semantic DEV: '+scriptedRows.length+'/24, claims=
   ', A/B/C proposal changes '+semanticChanges.A+'/'+semanticChanges.B+'/'+semanticChanges.C+
   ', errors='+scriptedErrors.length);
 if(scriptedStatus!=='PASS_DEV_SCRIPTED_OBSERVATION_WIRING')process.exitCode=1;
+
+
+// The GitHub Actions job summary saves reviewers from downloading the ZIP for
+// a first-pass overview. Keep it short, truthful and free of raw dialogue.
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const summary = [
+    '## NeSy A/B/C — automatische DEV-controles',
+    '',
+    '| Controle | Resultaat |',
+    '| --- | ---: |',
+    '| Offline ontwikkelgesprekken | ' + rows.length + '/24 |',
+    '| Scripted parserclaim-replays | ' + scriptedRows.length + '/24 |',
+    '| Vooraf geschreven gespreksclaims | ' + claims + ' |',
+    '| Gewijzigde A/B/C-voorstellen | ' + semanticChanges.A + '/' +
+      semanticChanges.B + '/' + semanticChanges.C + ' |',
+    '| Fouten | ' + (errors.length + scriptedErrors.length) + ' |',
+    '',
+    'Cases met gewijzigde voorstellen: ' + (changedCaseIds.join(', ') || 'geen'),
+    '',
+    '**Uitsluitend ontwikkelonderzoek.** Scripted parserclaims zijn geen'
+      + ' gemeten LLM-output. Alle voorstellen zijn read-only en Z3 is gesimuleerd.',
+    'Geen onafhankelijk gemeten gesprekskwaliteit, veiligheid of modelkosten.',
+    'B heeft nog geen inhoudelijke supervisor; B-verschillen worden hier niet verwacht.',
+    '',
+    'Download de automatisch geüploade artifactbestanden voor de volledige'
+      + ' casustabellen en machineleesbare JSON.',
+    '',
+  ];
+  writeFileSync(process.env.GITHUB_STEP_SUMMARY, summary.join('\n'), {flag:'a'});
+}
+console.log('NeSy ABC scripted changed DEV IDs: '+changedCaseIds.join(', '));
