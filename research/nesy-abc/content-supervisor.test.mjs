@@ -241,3 +241,38 @@ test("mock post-draft replacement is retained only as unverified candidate",asyn
   // This is a deliberately malicious candidate. A/B/C research never
   // delivers it; actual policy and clinical safety remain unproven.
 });
+
+test("C avoids extra calls for ordinary advice refusal and ordinary closure",async()=>{
+  let calls=0;
+  const reviewers=createContentReviewers({complete:async()=>{calls++;return JSON.stringify({
+    decision:"KEEP",issue:"NONE",reason:"No change needed."
+  });}});
+  const noAdvice=input("Ik wil geen tips. Ik wil alleen vertellen.","SUGGESTION","Wat dacht je van een lijstje?");
+  noAdvice.dialogueObservation={version:1,origin:"model_claim",acts:[
+    {type:"DECLINE_ADVICE",evidence:"Ik wil geen tips"}
+  ]};
+  const close=input("Ik wil stoppen.","QUESTION","Kun je meer vertellen?");
+  close.dialogueObservation={version:1,origin:"model_claim",acts:[
+    {type:"END_CONVERSATION",evidence:"Ik wil stoppen"}
+  ]};
+  for(const item of [noAdvice,close]){
+    const r=await selectArchitecture(item,"C",{orchestrator:reviewers.orchestrator});
+    assert.deepEqual(r.triggers,[]);
+    assert.equal(r.extraCalls,0);
+  }
+  assert.equal(calls,0);
+});
+test("C does invoke one review for a grounded reopening",async()=>{
+  let calls=0;
+  const i=input("Toch nog iets: ik wil dit bespreken.");
+  i.dialogueObservation={version:1,origin:"model_claim",acts:[
+    {type:"REOPEN_CONVERSATION",evidence:"Toch nog iets"}
+  ]};
+  const reviewers=createContentReviewers({complete:async()=>{calls++;return JSON.stringify({
+    decision:"KEEP",issue:"NONE",reason:"A's reopening move is appropriate."
+  });}});
+  const r=await selectArchitecture(i,"C",{orchestrator:reviewers.orchestrator});
+  assert.deepEqual(r.triggers,["T4"]);
+  assert.equal(r.extraCalls,1);
+  assert.equal(calls,1);
+});
