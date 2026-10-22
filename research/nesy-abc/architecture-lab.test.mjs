@@ -4,6 +4,7 @@ import { selectArchitecture, evidenceWorkspace, ARMS } from "./architecture-lab.
 
 const make=(message="Ik wil even praten.",overrides={})=>({
   userText:message,
+  draft:overrides.draft ?? "Ik hoor je. Vertel maar.",
   history:[{role:"user",content:"Ik zit met iets."},{role:"assistant",content:"Wil je vertellen wat er speelt?"}],
   frame:{intent:"GENERAL_VENT",paraphrase:"Gebruiker wil praten.",riskMarkers:[],...overrides.frame},
   lexicalMarkers:overrides.lexicalMarkers??[],
@@ -113,4 +114,14 @@ test("grounded semantic claim still cannot override safety",async()=>{
   assert.equal(result.selectedMove,"SAFETY");
   assert.equal(result.accepted,false);
   assert.equal(result.extraCalls,0);
+});
+
+test("B requires a concrete P0 draft and does not invoke callback when missing",async()=>{
+  let calls=0;
+  const input=make("Kun je dat uitleggen?",{draft:"",move:"QUESTION"});
+  const r=await selectArchitecture(input,"B",{supervisor:async()=>{calls++;return {kind:"revise",move:"INFORMATION"};}});
+  assert.equal(calls,0);
+  assert.equal(r.extraCalls,0);
+  assert.equal(r.candidateDraft,null);
+  assert.equal(r.selectedMove,"QUESTION");
 });
