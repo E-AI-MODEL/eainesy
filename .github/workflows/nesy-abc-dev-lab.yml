@@ -28,4 +28,4 @@ jobs:
       - name: Validate pilot fixture structure (offline)
         run: node scripts/validate-nesy-abc-pilot.mjs
       - name: Test P0 A B C research module (offline)
-        run: node --test research/nesy-abc/architecture-lab.test.mjs
+        run: node --test research/nesy-abc/*.test.mjs
