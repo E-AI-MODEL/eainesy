@@ -59,7 +59,7 @@ export function evidenceWorkspace(input) {
     item.provenance = item.source && raw.includes(item.source) ? "latest_exact" :
       item.source && past.some(t=>t.includes(item.source)) ? "prior_exact" : "unanchored";
   }
-  const explicitCorrections = /\b(nee|niet wat ik bedoel|dat klopt niet|je begrijpt|ik bedoel|geen tips|no[,]?\s+i|that's not|you misunderstood|not what i)\b/i.test(raw);
+  const explicitCorrections = /\b(nee|niet wat ik bedoel|dat klopt niet|je begrijpt|ik bedoel|no[,]?\s+i|that's not|you misunderstood|not what i)\b/i.test(raw);
   const currentNeed = text(frame.paraphrase);
   const mismatchedScope = evidence.some(e=>e.scope && (e.scope.experiencer==="other" || e.scope.experiencer==="quoted" || e.scope.temporality==="past_resolved" || e.scope.polarity==="negated"));
   const questionableEvidence = evidence.some(e=>e.provenance==="unanchored");
