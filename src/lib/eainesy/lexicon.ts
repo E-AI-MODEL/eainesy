@@ -427,7 +427,9 @@ export function collectLexicalMarkers(text: string): { markers: RiskMarker[]; ne
           continue;
         }
         markers.push({ type: rule.type, evidence: m[0].slice(0, 120) });
-        break; // one marker per rule type is enough
+        // One match per *pattern*. Keep distinct evidence fragments, even
+        // when they share a type; scoring below counts each type only once.
+        break;
       }
     }
   }
@@ -450,13 +452,25 @@ export function detectPii(text: string): PiiState {
   return 'CLEAN';
 }
 
+/**
+ * Calculate risk from DISTINCT marker categories, never regex-match counts.
+ *
+ * The lexical scanner intentionally retains multiple evidence fragments of
+ * one type for research/review. Counting those fragments as independent
+ * categories could turn two HOPELESSNESS phrases (2 × 2.5) into CRISIS.
+ * The neural path in orchestrator.ts already uses one weight per type.
+ *
+ * This removes accidental same-type inflation, NOT genuine context errors:
+ * source speaker, time and polarity still require review.
+ */
 export function lexicalRiskScore(markers: RiskMarker[], protectiveCount: number): number {
-  const raw = markers.reduce((sum, m) => sum + MARKER_WEIGHTS[m.type], 0);
+  const types = [...new Set(markers.map((m) => m.type))];
+  const raw = types.reduce((sum, type) => sum + MARKER_WEIGHTS[type], 0);
   // Protective factors lower accumulated low-level signals only — never
   // below the strongest acute marker (ideation, plan, self-harm, harm to
   // others, burdensomeness). See ACUTE_MARKER_TYPES.
-  const acuteFloor = markers
-    .filter((m) => ACUTE_MARKER_TYPES.includes(m.type))
-    .reduce((mx, m) => Math.max(mx, MARKER_WEIGHTS[m.type]), 0);
+  const acuteFloor = types
+    .filter((type) => ACUTE_MARKER_TYPES.includes(type))
+    .reduce((mx, type) => Math.max(mx, MARKER_WEIGHTS[type]), 0);
   return Math.max(acuteFloor, raw - Math.min(2, protectiveCount), 0);
 }
