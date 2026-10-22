@@ -377,12 +377,18 @@ export interface OutputViolation {
   excerpt: string;
 }
 
+// Provider IDs are accepted from clients only if enabled by server policy.
+export const MODEL_PROVIDER_IDS = ['zai','openai','gemini','claude','ollama','custom'] as const;
+export type ModelProviderId = typeof MODEL_PROVIDER_IDS[number];
+
 // Chat API contracts
 export const ChatRequestSchema = z.object({
   sessionId: z.string().min(1).optional(),
   message: z.string().min(1).max(2000),
   /** UI language — used only for the fail-closed fallback reply. */
   uiLang: z.enum(['nl', 'en']).optional(),
+  /** Optional per-session provider selection: IDs only, never endpoints or keys. */
+  modelRoute: z.object({parser:z.enum(MODEL_PROVIDER_IDS),generator:z.enum(MODEL_PROVIDER_IDS)}).optional(),
   /** User steering ("bijsturing"): strictness / reply style / reply language.
    *  Validated + normalised server-side (see lib/eainesy/steer.ts). */
   steer: z
