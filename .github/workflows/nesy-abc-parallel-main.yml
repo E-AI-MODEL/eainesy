@@ -8,6 +8,7 @@ on:
       - "research/nesy-abc/**"
       - "scripts/validate-nesy-abc-pilot.mjs"
       - "scripts/run-nesy-abc-main-offline.mjs"
+      - "scripts/run-nesy-abc-review-lab.mjs"
       - "scripts/run-nesy-abc-process-turn-dev.mjs"
       - "tests/nesy-abc-main-bridge.test.ts"
       - "src/lib/eainesy/abc-shadow.ts"
@@ -23,6 +24,7 @@ on:
       - "research/nesy-abc/**"
       - "scripts/validate-nesy-abc-pilot.mjs"
       - "scripts/run-nesy-abc-main-offline.mjs"
+      - "scripts/run-nesy-abc-review-lab.mjs"
       - "scripts/run-nesy-abc-process-turn-dev.mjs"
       - "tests/nesy-abc-main-bridge.test.ts"
       - "src/lib/eainesy/abc-shadow.ts"
@@ -50,6 +52,8 @@ jobs:
         run: node --test research/nesy-abc/*.test.mjs
       - name: Run 24-case automatic read-only comparison
         run: node scripts/run-nesy-abc-main-offline.mjs
+      - name: Test B/C reviewer callbacks through local-only HTTP (scripted fixture, not an LLM)
+        run: node scripts/run-nesy-abc-review-lab.mjs --ci-stub
       - name: Set up Bun for offline application pipeline tests
         uses: oven-sh/setup-bun@v2
       - name: Install locked dependencies without external model access
@@ -78,5 +82,6 @@ jobs:
           path: |
             .research-output/nesy-abc-main/
             .research-output/nesy-abc/
+            .research-output/nesy-abc-review-lab/
           if-no-files-found: warn
           retention-days: 30
