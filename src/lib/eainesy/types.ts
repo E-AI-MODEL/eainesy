@@ -305,6 +305,8 @@ export type RuptureState = (typeof RUPTURE_STATES)[number];
 // Certificate — proof-carrying response metadata.
 // ---------------------------------------------------------------------------
 export interface Certificate {
+  /** Server-validated provider choices for this turn (no credentials). */
+  modelRoute?: { parser: ModelProviderId; generator: ModelProviderId };
   action: Action;
   riskLevel: RiskAssessment;
   /** Present when riskLevel is UNKNOWN: canonical reason + runtime cause. */
