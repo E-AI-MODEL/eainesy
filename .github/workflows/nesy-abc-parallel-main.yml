@@ -10,6 +10,9 @@ on:
       - "scripts/run-nesy-abc-main-offline.mjs"
       - "scripts/run-nesy-abc-process-turn-dev.mjs"
       - "tests/nesy-abc-main-bridge.test.ts"
+      - "src/lib/eainesy/abc-shadow.ts"
+      - "src/lib/eainesy/orchestrator.ts"
+      - "tests/nesy-abc-shadow.test.ts"
       - "docs/EAInesy-ABC-main-parallel-isolation.md"
       - ".github/workflows/nesy-abc-parallel-main.yml"
   push:
@@ -22,6 +25,9 @@ on:
       - "scripts/run-nesy-abc-main-offline.mjs"
       - "scripts/run-nesy-abc-process-turn-dev.mjs"
       - "tests/nesy-abc-main-bridge.test.ts"
+      - "src/lib/eainesy/abc-shadow.ts"
+      - "src/lib/eainesy/orchestrator.ts"
+      - "tests/nesy-abc-shadow.test.ts"
       - "docs/EAInesy-ABC-main-parallel-isolation.md"
       - ".github/workflows/nesy-abc-parallel-main.yml"
   workflow_dispatch:
@@ -56,6 +62,10 @@ jobs:
         env:
           DATABASE_URL: file:./nesy-abc-ci-only.db
         run: bun test tests/nesy-abc-main-bridge.test.ts
+      - name: Verify opt-in shadow cannot change P0 or leak user text
+        env:
+          DATABASE_URL: file:./nesy-abc-ci-only.db
+        run: bun test tests/nesy-abc-shadow.test.ts
       - name: Replay 24 synthetic conversations through actual processTurn
         env:
           DATABASE_URL: file:./nesy-abc-ci-only.db

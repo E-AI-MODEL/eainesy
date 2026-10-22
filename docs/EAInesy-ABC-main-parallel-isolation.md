@@ -1,69 +1,105 @@
-# NeSy P0/A/B/C: parallel research modules on main
+# NeSy P0 / A / B / C: parallel architectures with opt-in shadow observation
 
-**Date:** 2026-10-23
-**Purpose:** Keep architecture A intact and add B and C alongside it on main,
-without replacing the existing NeSy chat pipeline or merging the unrelated
-live model-provider changes still open in PR #5.
+**Updated:** 2026-10-23
+**Operating principle:** Keep A intact, retain independent B and C,
+and do not replace the current production P0 response pipeline.
 
-## Parallel architecture
+## Four parallel routes
 
-| Arm | Research implementation | Authority over live response |
+| Arm | Role | Shipped reply authority |
 | --- | --- | --- |
-| P0 | Existing production NeSy, unchanged | Existing controller / model checker / Z3 / output policy |
-| A | Shared evidence and deterministic content mixer, architecture-lab.mjs | None |
-| B | One-call post-draft content supervisor, content-supervisor.mjs | None |
-| C | Triggered pre-answer orchestrator on A evidence, reusing B review interface | None |
+| P0 | Existing NeSy controller, model checker, real isolated Z3, output policy | Existing runtime only |
+| A | Evidence workspace and deterministic mixer | None: research proposal |
+| B | Separate one-call post-draft content supervisor (injected callback tests) | None: research proposal |
+| C | Conditional pre-answer orchestrator built on A evidence and B-style reviewer interface | None: research proposal |
 
-The selector takes an explicit arm identifier: P0, A, B, or C.
-A remains available and is NOT replaced by B or C. The current production
-path continues using P0 with no new import, feature toggle or route.
+The research selector takes an explicit P0/A/B/C arm argument.
+A remains available; B and C do not replace it.
+The live response continues to be constructed by P0.
 
-## Contents permitted on main
+## Opt-in read-only shadow mode
 
-- Independent modules under research/nesy-abc and their Node tests.
-- Pre-registered protocol, dated DEV-only amendment, fictional cases.
-- A new self-contained Node-only CI workflow and reports.
-- No modifications to src/, production API routes, Prisma, live prompts,
-  provider wiring, credentials, output policy or stored conversation state.
+The runtime includes a **disabled-by-default** observer at
+src/lib/eainesy/abc-shadow.ts.
 
-## Dependency separation
+Activate it only through explicit **server-side** configuration:
 
-Research PR #6 is based on PR #5 and contains further parser-related
-changes and a Bun processTurn test runner. Those are not included here.
-The main workflow tests the independent A/B/C modules and also
-performs two DEVELOPMENT-ONLY modes:
-1. A separate 24-case Node-only neutral/scripted research replay without
-   importing the app.
-2. Offline Bun tests and a 24-case replay through the REAL NeSy processTurn,
-   loading actual stored plan, certificate and history with the read-only
-   A/B/C bridge. The Bun test preload mocks Z3 and all model calls and
-   marks verification SKIPPED, which blocks every architecture proposal.
+    EAINESY_ABC_SHADOW_ENABLED=true
 
-The scripted claims are authored fixtures, not measured LLM judgments.
-These tests do not use a real Z3 solver, live model providers, independent
-expert raters or a clinical safety assessment. They do not demonstrate
-better answer quality. The existing response is never replaced.
+Every other value, including the absence of the setting, disables it.
 
-The PR #6 branch also contains an OPTIONAL dialogue-observation addition
-to the live parser prompt and Frame schema. This is NOT in this main
-integration: changing the production parser needs its own targeted
-safety evaluation. Closing PR #6 as superseded leaves that code as
-historical source, with its status recorded in issue #8.
+With the setting enabled, *after* a turn's reply and safety certificate have
+already been finalized and persisted, NeSy computes **read-only** comparisons
+against A, B and C. No proposal is used to change the reply, risk assessment,
+plan, Z3 certificate, conversation state or output policy. The A/B/C code
+receives the existing frame, lexical evidence, plan, source certificate and
+up to three previous turns already loaded by the original pipeline.
 
+This shadow mode **does not call an LLM reviewer**. B's post-draft reviewer
+and C's conditional external reviewer are not invoked; their standalone
+behavior remains covered by dependency-injected, offline tests. Therefore
+B/C shadow observations are *not evidence of superior model reasoning*.
 
-## Preconditions before production activation
+If enabled, a small local computation and ONE metadata-only audit event
+(turn.abc_shadow) are added for a successfully observed turn. The audit
+records fixed arm labels, proposed move categories, whether they differ
+from P0, C trigger codes, verifier statuses and local observer latency.
+**No raw user utterance, conversation history, quotations, draft replies,
+session identifiers or API secrets are added to the shadow audit payload.**
+The existing turn record and its original audit data remain unchanged.
+When shadow observation fails, the response is still returned as originally
+approved and a generic turn.abc_shadow_error audit event is attempted.
 
-A separate PR must add the app-level integration with review and real
-safety regression. A B-produced replacement must pass the real output
-policy and safety checks before delivery; C must respect the one-call
-limit and trigger restrictions. Production remains P0 until explicit
-approval, irrespective of these research modules existing on main.
+The eval origin deliberately skips shadow audit entirely to preserve
+historical evaluation behavior. Synthetic scenario tests may opt in via
+their controlled test process. There is no user-facing toggle and no
+background polling.
 
-## PR housekeeping (23 October 2026)
+### How to turn the observer off again
 
-- PR #7: merged to main; A, B and C research modules preserved.
-- PR #5: closed without merge; model routing and other independent changes inventoried in issue #8.
-- PR #6: superseded by this safe isolated integration of the remaining processTurn tests;
-  no live parser/schema change, production routing or altered risk scoring is included.
-- Ending with zero open PRs is an administrative state, not a claim that every
-  planned or experimental feature is ready for actual users.
+Remove the server-side environment variable or set
+EAINESY_ABC_SHADOW_ENABLED=false, then apply the standard server
+configuration/restart procedure. This does not alter stored user turns.
+
+## What the CI verifies
+
+- The independent P0/A/B/C modules: Node tests and 24 known fictional DEV cases.
+- The REAL processTurn path with preset frames, an in-memory fake database
+  and **mocked Z3 (SKIPPED)**: integration checks and two 24-case replays.
+- The disabled default and opt-in observer: P0 reply unchanged, no extra
+  LLM calls, separate metadata-only audit, prior-turn correction trigger,
+  no extra work for the eval origin, failure without blocking response.
+- The existing production safety and formal verification suite, including
+  a separate **real isolated Z3** test, and the production build.
+
+These are DEV and engineering checks, NOT independent evidence for better
+conversation understanding, clinical safety, answer quality or costs from
+live LLM providers. The synthetic parser-claim fixtures are deliberately
+authored from the visible DEV set, not genuine model observations.
+
+## Historical PR boundaries
+
+- PR #7: merged isolated A/B/C research modules into main.
+- PR #9: merged offline processTurn integration and automatic reports.
+- PR #5: closed without merge; unique provider and safety modifications
+  inventoried in issue #8.
+- PR #6: closed without merge; original live parser-extension proposal
+  remains historical research. The live parser prompt and core Frame schema
+  remain unchanged in this integration.
+- This opt-in observer is a distinct engineering step and **does not**
+  authorize activation of a new response-making architecture.
+
+## Activation requires separate evidence
+
+Before letting A, B or C alter a response:
+1. Independently validate each candidate under real controller, output
+   policy, Z3 and risk-memory checks (including dangerous near misses).
+2. Recheck all B replacement text against the binding plan and output
+   policy; the reviewer cannot self-certify.
+3. Measure latency/tokens and content quality under frozen provider
+   configurations and blinded assessments.
+4. Keep P0 and A available as independent controls and preserve the
+   preregistered P01 safety admission gate.
+
+Merely including code in main or observing it in shadow mode is not
+permission to change production answers.
