@@ -31,6 +31,7 @@ import {
   collectLexicalMarkers, collectProtective, estimateDistress, detectPii,
   lexicalRiskScore, scoreToRiskLevel, MARKER_WEIGHTS,
 } from './lexicon';
+import { observeMarkerSourceContext } from './context-evidence-shadow';
 import { groundFrame } from './kg';
 import { conformalCheck, totalCalibrationSize } from './conformal';
 import { CONFIDENCE_BAND_THRESHOLDS } from './z3cert';
@@ -214,6 +215,25 @@ export async function processTurn(
     }
     throw error;
   }
+  // Non-authoritative per-marker context inspection. Do not pass this signal
+  // into risk fusion/controller/Z3. Preserve unknown and ambiguous provenance.
+  // Expose categories/counts only; raw evidence stays out of this trace.
+  const evidenceContext = observeMarkerSourceContext(userText, frame?.riskMarkers ?? []);
+  const scopeCounts = { self: 0, other: 0, mixed: 0, quoted: 0, hypothetical: 0, unknown: 0, missing: 0 };
+  for (const marker of frame?.riskMarkers ?? []) {
+    if (marker.scope) scopeCounts[marker.scope.experiencer]++;
+    else scopeCounts.missing++;
+  }
+  mark('evidence-context', {
+    stage: 'evidence-context', label: 'Context risicosignalen (onbevestigd)',
+    labelKey: 'evidence-context', kind: 'verify', ms: 0,
+    status: evidenceContext.hasUnanchoredEvidence || evidenceContext.hasMultipleCandidateLocations ? 'degraded' : 'ok',
+    summary: `source positions: ${evidenceContext.markers.length}; absent=${evidenceContext.markers.filter(x => x.occurrenceStatus === 'absent').length}; ambiguous=${evidenceContext.markers.filter(x => x.occurrenceStatus === 'repeated').length}; scope remains unverified`,
+    detail: {
+      provenance: evidenceContext.markers.map(x => ({ type: x.type, occurrenceStatus: x.occurrenceStatus })),
+      scopeCounts, sourceScope: 'unverified', decisionInfluence: false,
+    },
+  });
   const frameValidity: FrameValidity = frame ? 'VALID' : 'INVALID';
   // Reply language: follow the user (frame language) unless steered.
   const language: 'nl' | 'en' = steer.replyLang !== 'auto' ? steer.replyLang : (frame?.language ?? fallbackLanguage);
