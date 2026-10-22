@@ -84,6 +84,8 @@ export function evidenceWorkspace(input) {
     protocol:PROTOCOL_ID,
     evidence,
     dialogueObservation: observed,
+    bindingPlan:input.bindingPlan && typeof input.bindingPlan==='object' ? clone(input.bindingPlan) : null,
+    grounding:input.grounding && typeof input.grounding==='object' ? clone(input.grounding) : null,
     conflictingMarkers,
     flags:{explicitCorrections,breakdown,reopened,requestDirect,noAdvice,termination,mismatchedScope,questionableEvidence},
     triggerCodes:reasons,
@@ -170,7 +172,7 @@ export async function selectArchitecture(input,arm,options={}) {
     supervisorOutcome,
     // B's in-call replacement remains a proposal ONLY; never silently send
     // this text without independent output policy and fresh safety checks.
-    candidateDraft:arm==="B" ? (supervisorOutcome?.candidateDraft ?? null) : null,
+    candidateDraft:arm==="B" && decision.allowed ? (supervisorOutcome?.candidateDraft ?? null) : null,
     candidateDraftCertified:false,
     safetyUnchanged:clone(input.safety),
     researchOnly:true
