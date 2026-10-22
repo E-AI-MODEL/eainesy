@@ -67,6 +67,21 @@ export function buildReviewRequest(phase,payload) {
       .slice(0,8)
       .map(e=>({type:e.type,source:e.source,origin:e.origin,
         provenance:e.provenance,scope:e.scope,status:e.status})),
+    // This plan may be READ but never edited; outputpolicy is still binding.
+    bindingPlan:workspace.bindingPlan && typeof workspace.bindingPlan==="object" ? {
+      action:workspace.bindingPlan.action,
+      phase:workspace.bindingPlan.phase,
+      strategy:workspace.bindingPlan.strategy,
+      allowedMoves:(workspace.bindingPlan.allowedMoves||[]).slice(0,12),
+      forbiddenMoves:(workspace.bindingPlan.forbiddenMoves||[]).slice(0,12),
+      mustInclude:(workspace.bindingPlan.mustInclude||[]).slice(0,12),
+      maxSentences:workspace.bindingPlan.maxSentences,
+    }:null,
+    groundedTerms:workspace.grounding && typeof workspace.grounding==="object" ? {
+      emotions:(workspace.grounding.emotionKeys||[]).slice(0,8),
+      topics:(workspace.grounding.topicKeys||[]).slice(0,8),
+      techniques:(workspace.grounding.techniqueKeys||[]).slice(0,8),
+    }:null,
     safetySnapshot:workspace.safety,
   });
 }
@@ -75,7 +90,7 @@ function parseStrictJson(raw) {
   try{const r=JSON.parse(raw);return r&&typeof r==="object"&&!Array.isArray(r)?r:null;}
   catch{return null;}
 }
-export function validateContentReview(raw,{phase,userText,draftText,baseMove}) {
+export function validateContentReview(raw,{phase,userText,draftText,baseMove,bindingPlan}) {
   const data=parseStrictJson(raw);
   const keep=(reason)=>({kind:"keep",reason,status:"rejected",rejection:reason});
   if(!data||!["KEEP","REVISE","VETO"].includes(data.decision))return keep("invalid_json_or_decision");
@@ -93,6 +108,11 @@ export function validateContentReview(raw,{phase,userText,draftText,baseMove}) {
     if(!valid(data.draftEvidence,200)||!draftText.includes(data.draftEvidence))
       return keep("unanchored_draft_evidence");
     if(!valid(data.revisedDraft,1400))return keep("missing_one_call_revision");
+    // A cheap additional check, NOT a replacement for outputpolicy: model
+    // revisions cannot simply delete explicit mustInclude strings.
+    if(Array.isArray(bindingPlan?.mustInclude) &&
+      bindingPlan.mustInclude.some(x=>typeof x==="string" && x && !data.revisedDraft.includes(x)))
+      return keep("mandatory_plan_content_omitted");
     // A revised draft is an unverified candidate, not a delivered response.
     return {kind:"revise",move:data.move,reason:data.reason,status:"reviewed",
       issue:data.issue,userEvidence:data.userEvidence,draftEvidence:data.draftEvidence,
@@ -118,7 +138,8 @@ export function createContentReviewers({complete}={}) {
     const raw=await complete({system:RESEARCH_INSTRUCTION,
       user:JSON.stringify(request),temperature:0,maxOutputTokens:650});
     return validateContentReview(raw,{phase,userText:request.userText,
-      draftText:request.draftText,baseMove:request.baseMove});
+      draftText:request.draftText,baseMove:request.baseMove,
+      bindingPlan:request.bindingPlan});
   };
   return Object.freeze({
     supervisor:async(payload)=>{
