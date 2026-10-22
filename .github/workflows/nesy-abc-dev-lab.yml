@@ -6,6 +6,8 @@ on:
       - research/nesy-abc-prereg-2026-10-23
     paths:
       - "research/nesy-abc/**"
+      - "tests/nesy-abc-real-turn.test.ts"
+      - "tests/nesy-abc-real-turn.test.ts"
       - "scripts/validate-nesy-abc-pilot.mjs"
       - ".github/workflows/nesy-abc-dev-lab.yml"
   pull_request:
@@ -36,3 +38,9 @@ jobs:
         run: node scripts/validate-nesy-abc-pilot.mjs
       - name: Test P0 A B C research module (offline)
         run: node --test research/nesy-abc/*.test.mjs
+      - name: Setup Bun for actual processTurn integration
+        uses: oven-sh/setup-bun@v2
+      - name: Install project dependencies (no external models)
+        run: bun install --frozen-lockfile
+      - name: Execute real NeSy pipeline and read-only research bridge
+        run: bun test tests/nesy-abc-real-turn.test.ts
