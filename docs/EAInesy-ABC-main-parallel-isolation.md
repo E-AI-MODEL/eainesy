@@ -77,6 +77,44 @@ conversation understanding, clinical safety, answer quality or costs from
 live LLM providers. The synthetic parser-claim fixtures are deliberately
 authored from the visible DEV set, not genuine model observations.
 
+## Next laboratory: real reviewer calls, still read-only (P02 DEV)
+
+The main CI now automatically invokes actual source-aware B and C reviewer
+**callbacks** through a localhost HTTP transport on all 24 public DEV cases.
+The default CI provider is a deterministic rule-based **stub, not an LLM**.
+B checks an **artificial** draft on every turn, C performs one review only
+where the shared evidence workspace triggers it, and P0/A use no reviews.
+The report exposes B/C calls, skipped C calls, candidate creation, response
+validation, HTTP errors, measured HTTP latency and optional provider-reported
+token counts. It is uploaded to the CI artifact folder
+.research-output/nesy-abc-review-lab/ and the Actions job summary.
+
+**Important controls:** the research process creates a deliberately *virtual*
+SAT verification snapshot only to exercise B/C callbacks offline. It is
+never accepted as a real Z3 certificate, passed to processTurn, or reused
+for production. Baseline drafts and parser claims are hand-written. The
+CI results establish engineering/call-budget behavior only; they **do not**
+establish that A, B or C understands conversations, is clinically safe,
+or generates better answers.
+
+An actual local model can be tried **only by an explicit manual command**
+on a machine where that model is already available. For example, with
+an Ollama OpenAI-compatible local endpoint:
+
+    node scripts/run-nesy-abc-review-lab.mjs --endpoint http://127.0.0.1:11434/v1/chat/completions --model llama3.2:3b
+
+The adapter accepts **only literal 127.0.0.1 / ::1 HTTP endpoints**,
+blocks all redirects, requires a model identifier, limits each request
+to one call with bounded size and timeout, and reads **no API keys** or
+production data. The default command does NOT call a model; it requires
+an explicit --ci-stub or --endpoint ... --model ... choice. No
+cloud-provider or paid LLM route is configured here.
+
+A real local model's results still require frozen evidence snapshots,
+an explicit sample/provider record, and independent blinded judgment
+before they can count toward the P01 confirmatory research. A model
+replacement candidate is **never sent to a user** by this lab.
+
 ## Historical PR boundaries
 
 - PR #7: merged isolated A/B/C research modules into main.
