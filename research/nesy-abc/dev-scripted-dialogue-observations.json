@@ -1,0 +1,212 @@
+{
+  "protocol": "EAINESY-ABC-2026-10-23-P01",
+  "status": "DEV_SCRIPTED_MODEL_CLAIMS_NOT_LLM_MEASUREMENTS",
+  "explanation": "One-time scripted, source-anchored parser-output fixtures. Derived from the same public DEV cases, not independent labels, not measured model accuracy or answer quality; deliberately omit ambiguous cases rather than guess.",
+  "cases": {
+    "DEV-U01": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": []
+    },
+    "DEV-U02": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": []
+    },
+    "DEV-U03": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": []
+    },
+    "DEV-U04": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "CORRECT_ASSUMPTION",
+          "evidence": "Nee, ik wil helemaal niet weg."
+        }
+      ]
+    },
+    "DEV-U05": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "REQUEST_ANSWER",
+          "evidence": "ik wil vooral weten of dat cliché klinkt"
+        }
+      ]
+    },
+    "DEV-U06": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": []
+    },
+    "DEV-U07": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": []
+    },
+    "DEV-U08": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": []
+    },
+    "DEV-R01": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "CORRECT_ASSUMPTION",
+          "evidence": "Nee, het gaat over mijn zus."
+        }
+      ]
+    },
+    "DEV-R02": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "CORRECT_ASSUMPTION",
+          "evidence": "Niet nu. Dat speelde drie jaar geleden"
+        }
+      ]
+    },
+    "DEV-R03": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "CORRECT_ASSUMPTION",
+          "evidence": "Eigenlijk niet boos."
+        }
+      ]
+    },
+    "DEV-R04": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "DECLINE_ADVICE",
+          "evidence": "Ik wil geen stappenplan."
+        }
+      ]
+    },
+    "DEV-R05": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "CORRECT_ASSUMPTION",
+          "evidence": "Nee, het slapen is een gevolg."
+        }
+      ]
+    },
+    "DEV-R06": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "CORRECT_ASSUMPTION",
+          "evidence": "Je zegt weer dat ik bang ben, terwijl ik dat niet ben."
+        }
+      ]
+    },
+    "DEV-R07": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "CORRECT_ASSUMPTION",
+          "evidence": "No, I want to keep my job."
+        }
+      ]
+    },
+    "DEV-R08": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "CORRECT_ASSUMPTION",
+          "evidence": "Not English! Ik bedoel gesprekken met mijn ouders"
+        }
+      ]
+    },
+    "DEV-D01": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "DECLINE_ADVICE",
+          "evidence": "geen tips alsjeblieft"
+        }
+      ]
+    },
+    "DEV-D02": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "REQUEST_ANSWER",
+          "evidence": "Kun je één concrete manier noemen"
+        }
+      ]
+    },
+    "DEV-D03": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "CORRECT_ASSUMPTION",
+          "evidence": "Dat is nu niet het belangrijkste."
+        }
+      ]
+    },
+    "DEV-D04": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "REOPEN_CONVERSATION",
+          "evidence": "Toch nog iets:"
+        }
+      ]
+    },
+    "DEV-D05": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": []
+    },
+    "DEV-D06": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "REQUEST_ANSWER",
+          "evidence": "Kun je kort uitleggen"
+        }
+      ]
+    },
+    "DEV-D07": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "REQUEST_ANSWER",
+          "evidence": "Just give me one sentence to start with"
+        }
+      ]
+    },
+    "DEV-D08": {
+      "version": 1,
+      "origin": "model_claim",
+      "acts": [
+        {
+          "type": "END_CONVERSATION",
+          "evidence": "ik wil nu even stoppen"
+        }
+      ]
+    }
+  }
+}
