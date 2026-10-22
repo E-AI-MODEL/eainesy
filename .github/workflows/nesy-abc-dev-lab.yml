@@ -8,6 +8,13 @@ on:
       - "research/nesy-abc/**"
       - "scripts/validate-nesy-abc-pilot.mjs"
       - ".github/workflows/nesy-abc-dev-lab.yml"
+  pull_request:
+    branches:
+      - sync/glm-research-2026-10-19
+    paths:
+      - "research/nesy-abc/**"
+      - "scripts/validate-nesy-abc-pilot.mjs"
+      - ".github/workflows/nesy-abc-dev-lab.yml"
   workflow_dispatch:
 
 permissions:
