@@ -5,6 +5,8 @@
  * The legacy nullable helper remains for existing callers and evaluations.
  */
 import ZAI from 'z-ai-web-dev-sdk';
+import type { ModelProviderId } from './types';
+import { configuredHttpModel, resolveModelRoute } from './model-routing';
 
 export type ModelMessage = { role: 'assistant' | 'user'; content: string };
 export type ModelBackend = 'zai-sdk' | 'openai-compatible';
@@ -63,11 +65,10 @@ function errorKind(error: unknown): ModelTransportReason {
   return 'provider_error';
 }
 
-async function requestCompatible(messages: ModelMessage[], temperature: number): Promise<ModelCompletion> {
-  const endpoint = endpointFromEnvironment();
-  const token = process.env.EAINESY_MODEL_API_KEY;
-  const model = process.env.EAINESY_MODEL_NAME;
-  if (!endpoint || !token || !model) return unavailable('invalid_configuration');
+async function requestCompatible(messages: ModelMessage[], temperature: number, provider: Exclude<ModelProviderId, 'zai'>): Promise<ModelCompletion> {
+  const config = configuredHttpModel(provider);
+  if (!config) return unavailable('invalid_configuration');
+  const {endpoint, apiKey:token, model} = config;
   const formatted = messages.map((msg, index) => ({
     role: index === 0 && msg.role === 'assistant' ? 'system' : msg.role,
     content: msg.content,
@@ -79,11 +80,11 @@ async function requestCompatible(messages: ModelMessage[], temperature: number):
         redirect: 'error',
         signal: AbortSignal.timeout(MODEL_REQUEST_TIMEOUT_MS),
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({ model, messages: formatted, temperature }),
+        body: JSON.stringify({ model, messages: formatted, ...(config.sendTemperature ? {temperature} : {}) }),
       });
       if ([429, 502, 503, 504].includes(response.status)) {
         if (attempt === 2) return unavailable(response.status === 429 ? 'rate_limited' : 'provider_error');
@@ -136,22 +137,20 @@ async function requestSdk(messages: ModelMessage[], temperature: number): Promis
   }
 }
 
-/** The detailed result is mandatory for any safety-relevant parsing decision. */
-export async function completeModelWithStatus(messages: ModelMessage[], temperature: number): Promise<ModelCompletion> {
-  const backend = configuredBackend();
-  if (!backend || !messages.length || messages.some(m => m.content.length > 12_000))
-    return unavailable('invalid_configuration');
+/** A transport request never silently falls back to another provider. */
+export async function completeModelWithStatus(messages: ModelMessage[], temperature: number, provider?: ModelProviderId): Promise<ModelCompletion> {
+  const route = resolveModelRoute(provider ? {parser:provider,generator:provider} : undefined);
+  if (!route || !messages.length || messages.some(m=>m.content.length>12_000)) return unavailable('invalid_configuration');
   try {
-    return backend === 'openai-compatible'
-      ? await requestCompatible(messages, temperature)
-      : await requestSdk(messages, temperature);
+    return route.parser === 'zai' ? await requestSdk(messages, temperature)
+      : await requestCompatible(messages, temperature, route.parser);
   } catch (error) {
     return unavailable(errorKind(error));
   }
 }
 
-/** Backwards-compatible nullable helper for generation and research fixtures. */
-export async function completeModel(messages: ModelMessage[], temperature: number): Promise<string | null> {
-  const result = await completeModelWithStatus(messages, temperature);
+/** Backwards-compatible nullable helper for deterministic fixtures. */
+export async function completeModel(messages: ModelMessage[], temperature: number, provider?: ModelProviderId): Promise<string | null> {
+  const result = await completeModelWithStatus(messages,temperature,provider);
   return result.status === 'ok' ? result.text : null;
 }
