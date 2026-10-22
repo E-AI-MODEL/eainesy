@@ -38,7 +38,9 @@ test("workspace preserves evidence and distinguishes unverified model scope",()=
   const w=evidenceWorkspace(q);
   assert.equal(w.evidence.length,2);
   assert.equal(w.evidence[1].status,"model_claim");
-  assert.deepEqual(w.triggerCodes,["T3"]);
+  assert.deepEqual(w.triggerCodes,[]);
+  assert.equal(w.flags.contextualScope,true);
+  assert.equal(w.flags.uncertainScope,false);
 });
 test("C never calls orchestrator for ordinary, untriggered message",async()=>{
   let calls=0;
@@ -124,4 +126,23 @@ test("B requires a concrete P0 draft and does not invoke callback when missing",
   assert.equal(r.extraCalls,0);
   assert.equal(r.candidateDraft,null);
   assert.equal(r.selectedMove,"QUESTION");
+});
+
+test("real scope uncertainty triggers T3; correctly known other/past does not",async()=>{
+  const input=make("Mijn moeder was vroeger ziek.",{
+    frame:{riskMarkers:[{type:"ISOLATION",evidence:"Mijn moeder was vroeger ziek",
+      scope:{experiencer:"other",temporality:"past_resolved",polarity:"affirmed"}}]},
+    lexicalMarkers:[{type:"ISOLATION",evidence:"Mijn moeder was vroeger ziek"}]
+  });
+  const r=await selectArchitecture(input,"C",{orchestrator:async()=>{throw Error("unnecessary C call");}});
+  assert.deepEqual(r.triggers,[]);
+  assert.equal(r.extraCalls,0);
+  const uncertain=make("We weten niet van wie dit verslag is.",{
+    frame:{riskMarkers:[{type:"ISOLATION",evidence:"dit verslag",
+      scope:{experiencer:"unknown",temporality:"unknown",polarity:"uncertain"}}]},
+    lexicalMarkers:[{type:"ISOLATION",evidence:"dit verslag"}]
+  });
+  const workspace=evidenceWorkspace(uncertain);
+  assert.deepEqual(workspace.triggerCodes,["T3"]);
+  assert.equal(workspace.flags.uncertainScope,true);
 });
