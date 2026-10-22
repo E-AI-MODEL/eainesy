@@ -1,3 +1,4 @@
+import { normalizeDialogueObservation } from "./dialogue-observation.mjs";
 /**
  * NeSy A/B/C experimental, offline-only decision architecture laboratory.
  *
@@ -59,6 +60,8 @@ export function evidenceWorkspace(input) {
     item.provenance = item.source && raw.includes(item.source) ? "latest_exact" :
       item.source && past.some(t=>t.includes(item.source)) ? "prior_exact" : "unanchored";
   }
+  const observed = normalizeDialogueObservation(input.dialogueObservation,raw);
+  const acts = new Set(observed.anchored.map(x=>x.type));
   const explicitCorrections = /\b(nee|niet wat ik bedoel|dat klopt niet|je begrijpt|ik bedoel|no[,]?\s+i|that's not|you misunderstood|not what i)\b/i.test(raw);
   const currentNeed = text(frame.paraphrase);
   const mismatchedScope = evidence.some(e=>e.scope && (e.scope.experiencer==="other" || e.scope.experiencer==="quoted" || e.scope.temporality==="past_resolved" || e.scope.polarity==="negated"));
@@ -70,6 +73,9 @@ export function evidenceWorkspace(input) {
   const termination = /\b(ik wil stoppen|laat maar|genoeg voor vandaag|we kunnen stoppen|that's enough|i want to stop)\b/i.test(raw);
   const reasons=unique([
     ...((conflictingMarkers.length>0)?["T1"]:[]),
+    ...(acts.has("CORRECT_ASSUMPTION")?["T2"]:[]),
+    ...(acts.has("UNCERTAIN_ATTRIBUTION")?["T3"]:[]),
+    ...((acts.has("REOPEN_CONVERSATION")||acts.has("END_CONVERSATION")||acts.has("DECLINE_ADVICE"))?["T4"]:[]),
     ...(breakdown?["T2"]:[]),
     ...((mismatchedScope||questionableEvidence)?["T3"]:[]),
     ...((reopened||noAdvice||termination)?["T4"]:[])
@@ -77,6 +83,7 @@ export function evidenceWorkspace(input) {
   return Object.freeze({
     protocol:PROTOCOL_ID,
     evidence,
+    dialogueObservation: observed,
     conflictingMarkers,
     flags:{explicitCorrections,breakdown,reopened,requestDirect,noAdvice,termination,mismatchedScope,questionableEvidence},
     triggerCodes:reasons,
@@ -90,7 +97,13 @@ export function evidenceWorkspace(input) {
 function proposeMixer(workspace) {
   const f=workspace.flags;
   let move=workspace.baseMove,reason="retain P0 proposal";
-  if(f.explicitCorrections && f.breakdown){move="REPAIR";reason="explicit correction: repair before technique";}
+  const acts=new Set(workspace.dialogueObservation.anchored.map(x=>x.type));
+  if(acts.has("CORRECT_ASSUMPTION")){move="REPAIR";reason="explicit grounded semantic correction claim";}
+  else if(acts.has("DECLINE_ADVICE")){move="REFLECTION";reason="grounded preference to avoid advice";}
+  else if(acts.has("END_CONVERSATION")){move="AFFIRMATION";reason="grounded request to close";}
+  else if(acts.has("REQUEST_ANSWER")){move="INFORMATION";reason="grounded request for direct answer";}
+  else if(acts.has("REOPEN_CONVERSATION")){move="QUESTION";reason="grounded reopening";}
+  else if(f.explicitCorrections && f.breakdown){move="REPAIR";reason="explicit correction: repair before technique";}
   else if(f.noAdvice){move="REFLECTION";reason="explicit preference not to receive advice";}
   else if(f.termination){move="AFFIRMATION";reason="respect stated closure";}
   else if(f.requestDirect){move="INFORMATION";reason="respond directly to explicit request";}
