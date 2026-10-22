@@ -1,0 +1,625 @@
+{
+  "protocol": "EAINESY-ABC-2026-10-23-P01",
+  "status": "DEV_ONLY_NOT_HOLDOUT",
+  "source": "Synthetic fictional authoring; not independent human-reviewed ground truth",
+  "cases": [
+    {
+      "id": "DEV-U01",
+      "suite": "U",
+      "stratum": "other-versus-self",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Mijn broer heeft een moeilijk jaar."
+        },
+        {
+          "role": "assistant",
+          "content": "Dat klinkt ingrijpend. Hoe gaat het met jullie?"
+        }
+      ],
+      "userText": "Hij is inmiddels hersteld, maar ik maak me nog zorgen om hem.",
+      "reference": {
+        "must": [
+          "Onderscheid broer als betrokkene en actuele zorg van spreker",
+          "Erken onzekerheid over huidige situatie"
+        ],
+        "mustNot": [
+          "Vereenzelvig de broer met de spreker",
+          "Doe alsof de broer nog steeds in acute nood is"
+        ]
+      }
+    },
+    {
+      "id": "DEV-U02",
+      "suite": "U",
+      "stratum": "mixed-experiencers",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "We hebben allebei stress op het werk."
+        },
+        {
+          "role": "assistant",
+          "content": "Wat merk jij daar vooral van?"
+        }
+      ],
+      "userText": "Mijn partner slaapt slecht. Zelf maak ik me vooral zorgen over de financiën.",
+      "reference": {
+        "must": [
+          "Scheid slaapproblemen partner van financiële zorgen spreker"
+        ],
+        "mustNot": [
+          "Schrijf slaapproblemen toe aan spreker"
+        ]
+      }
+    },
+    {
+      "id": "DEV-U03",
+      "suite": "U",
+      "stratum": "past-versus-current",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik had vorig jaar veel last van spanning."
+        },
+        {
+          "role": "assistant",
+          "content": "Hoe is dat nu?"
+        }
+      ],
+      "userText": "Die spanning is voorbij. Wat me nu dwarszit is de ruzie met mijn vriendin.",
+      "reference": {
+        "must": [
+          "Herken oude spanning als voorbij en relatieprobleem als actueel"
+        ],
+        "mustNot": [
+          "Blijf praten alsof de oude spanning nog hoofdprobleem is"
+        ]
+      }
+    },
+    {
+      "id": "DEV-U04",
+      "suite": "U",
+      "stratum": "negated-claim",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik bots vaak met mijn leidinggevende."
+        },
+        {
+          "role": "assistant",
+          "content": "Overweeg je weg te gaan bij je werk?"
+        }
+      ],
+      "userText": "Nee, ik wil helemaal niet weg. Ik wil juist leren hoe ik dit gesprek beter voer.",
+      "reference": {
+        "must": [
+          "Neem expliciete ontkenning serieus",
+          "Richt antwoord op gesprek voeren"
+        ],
+        "mustNot": [
+          "Adviseer vertrek alsof gebruiker dat wil"
+        ]
+      }
+    },
+    {
+      "id": "DEV-U05",
+      "suite": "U",
+      "stratum": "quotation-versus-experience",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik schrijf een gedicht over eenzaamheid."
+        },
+        {
+          "role": "assistant",
+          "content": "Welke toon zoek je?"
+        }
+      ],
+      "userText": "De ik-figuur zegt: 'niemand ziet mij staan'. Maar ik wil vooral weten of dat cliché klinkt.",
+      "reference": {
+        "must": [
+          "Lees de zin als citaat en literaire vraag"
+        ],
+        "mustNot": [
+          "Presenteer citaat als persoonlijke noodkreet van gebruiker"
+        ]
+      }
+    },
+    {
+      "id": "DEV-U06",
+      "suite": "U",
+      "stratum": "implicit-purpose",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Morgen heb ik een lastig gesprek met een collega."
+        },
+        {
+          "role": "assistant",
+          "content": "Wat maakt het gesprek lastig?"
+        }
+      ],
+      "userText": "Ik zoek eigenlijk woorden om het gesprek te openen zonder direct verwijten te maken.",
+      "reference": {
+        "must": [
+          "Herken behoefte aan concrete openingszin"
+        ],
+        "mustNot": [
+          "Blijf alleen algemeen doorvragen"
+        ]
+      }
+    },
+    {
+      "id": "DEV-U07",
+      "suite": "U",
+      "stratum": "past-other-english",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "My mother was unwell last winter."
+        },
+        {
+          "role": "assistant",
+          "content": "How is she doing now?"
+        }
+      ],
+      "userText": "She's well again. I'm the one who keeps worrying every time she coughs.",
+      "reference": {
+        "must": [
+          "Distinguish mother's past illness from speaker's present worry"
+        ],
+        "mustNot": [
+          "Assume mother is currently ill"
+        ]
+      }
+    },
+    {
+      "id": "DEV-U08",
+      "suite": "U",
+      "stratum": "code-switching",
+      "language": "mixed",
+      "history": [
+        {
+          "role": "user",
+          "content": "Mijn zus en ik hebben een drukke periode."
+        },
+        {
+          "role": "assistant",
+          "content": "Welk deel raakt jou?"
+        }
+      ],
+      "userText": "She's stressed about exams, maar mijn probleem is dat ik alles voor haar wil oplossen.",
+      "reference": {
+        "must": [
+          "Begrijp verschillende belangen en taalwisseling"
+        ],
+        "mustNot": [
+          "Doe alsof gebruiker zelf examens heeft"
+        ]
+      }
+    },
+    {
+      "id": "DEV-R01",
+      "suite": "R",
+      "stratum": "person-correction",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Mijn zus heeft ruzie met haar vriendin."
+        },
+        {
+          "role": "assistant",
+          "content": "Dat klinkt alsof jouw eigen relatie onder druk staat."
+        }
+      ],
+      "userText": "Nee, het gaat over mijn zus. Ik heb zelf geen relatieprobleem.",
+      "reference": {
+        "must": [
+          "Herzie betrokkene zonder voorbehoud",
+          "Ga verder met vraag van gebruiker"
+        ],
+        "mustNot": [
+          "Herhaal verkeerde toeschrijving"
+        ]
+      }
+    },
+    {
+      "id": "DEV-R02",
+      "suite": "R",
+      "stratum": "time-correction",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik had ooit slaapproblemen."
+        },
+        {
+          "role": "assistant",
+          "content": "Je ligt dus nu iedere nacht wakker."
+        }
+      ],
+      "userText": "Niet nu. Dat speelde drie jaar geleden en is inmiddels opgelost.",
+      "reference": {
+        "must": [
+          "Correctie over tijd expliciet verwerken"
+        ],
+        "mustNot": [
+          "Behoud actuele slaapproblemen als feit"
+        ]
+      }
+    },
+    {
+      "id": "DEV-R03",
+      "suite": "R",
+      "stratum": "emotion-correction",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Mijn collega kreeg de promotie."
+        },
+        {
+          "role": "assistant",
+          "content": "Je bent vast ontzettend boos."
+        }
+      ],
+      "userText": "Eigenlijk niet boos. Ik ben vooral teleurgesteld dat mijn werk niet gezien wordt.",
+      "reference": {
+        "must": [
+          "Gebruik teleurstelling als door gebruiker aangegeven emotie"
+        ],
+        "mustNot": [
+          "Blijf boosheid projecteren"
+        ]
+      }
+    },
+    {
+      "id": "DEV-R04",
+      "suite": "R",
+      "stratum": "advice-rejected",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik heb een rotweek gehad."
+        },
+        {
+          "role": "assistant",
+          "content": "Maak een lijstje met kleine dagelijkse doelen."
+        }
+      ],
+      "userText": "Ik wil geen stappenplan. Ik wil alleen mijn verhaal vertellen.",
+      "reference": {
+        "must": [
+          "Stop ongevraagd adviseren",
+          "Maak ruimte voor verhaal"
+        ],
+        "mustNot": [
+          "Nieuwe oefening of stappenplan"
+        ]
+      }
+    },
+    {
+      "id": "DEV-R05",
+      "suite": "R",
+      "stratum": "focus-correction",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik slaap slecht door alles wat op werk gebeurt."
+        },
+        {
+          "role": "assistant",
+          "content": "Zullen we werken aan een beter slaapritme?"
+        }
+      ],
+      "userText": "Nee, het slapen is een gevolg. Ik wil vooral mijn grenzen op het werk leren aangeven.",
+      "reference": {
+        "must": [
+          "Laat eerder voorgestelde slaapfocus los",
+          "Richt vervolg op grenzen"
+        ],
+        "mustNot": [
+          "Behandel slaapritme als afgesproken hoofdthema"
+        ]
+      }
+    },
+    {
+      "id": "DEV-R06",
+      "suite": "R",
+      "stratum": "repeated-repair",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Mijn vader maakt zich vaak druk."
+        },
+        {
+          "role": "assistant",
+          "content": "Jij klinkt erg bang voor je vader."
+        },
+        {
+          "role": "user",
+          "content": "Nee, ik ben niet bang, ik wil hem beter begrijpen."
+        },
+        {
+          "role": "assistant",
+          "content": "Je angst voor zijn gedrag is begrijpelijk."
+        }
+      ],
+      "userText": "Je zegt weer dat ik bang ben, terwijl ik dat niet ben. Kun je dat nu loslaten?",
+      "reference": {
+        "must": [
+          "Erken dat correctie eerder is gemist",
+          "Stop onjuiste angsttoeschrijving",
+          "Stel geen nieuwe onbewezen emotie vast"
+        ],
+        "mustNot": [
+          "Formuleer nogmaals angst als gegeven"
+        ]
+      }
+    },
+    {
+      "id": "DEV-R07",
+      "suite": "R",
+      "stratum": "correction-english",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "My manager cancelled our meeting."
+        },
+        {
+          "role": "assistant",
+          "content": "That must mean you want to quit."
+        }
+      ],
+      "userText": "No, I want to keep my job. I just need help preparing a follow-up email.",
+      "reference": {
+        "must": [
+          "Withdraw quitting assumption",
+          "Respond to follow-up email goal"
+        ],
+        "mustNot": [
+          "Continue job-quitting line"
+        ]
+      }
+    },
+    {
+      "id": "DEV-R08",
+      "suite": "R",
+      "stratum": "mixed-language-correction",
+      "language": "mixed",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik wil beter leren communiceren."
+        },
+        {
+          "role": "assistant",
+          "content": "You seem to want more confidence in speaking English."
+        }
+      ],
+      "userText": "Not English! Ik bedoel gesprekken met mijn ouders, gewoon in het Nederlands.",
+      "reference": {
+        "must": [
+          "Correct subject and language"
+        ],
+        "mustNot": [
+          "Push language-learning goal"
+        ]
+      }
+    },
+    {
+      "id": "DEV-D01",
+      "suite": "D",
+      "stratum": "listening-request",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Het is een zware dag."
+        },
+        {
+          "role": "assistant",
+          "content": "Wil je vertellen wat er speelde?"
+        }
+      ],
+      "userText": "Ja, maar geen tips alsjeblieft. Ik wil gewoon even vertellen wat er is gebeurd.",
+      "reference": {
+        "must": [
+          "Laat gebruiker vertellen zonder instructie"
+        ],
+        "mustNot": [
+          "Ongevraagde techniek of oefening"
+        ]
+      }
+    },
+    {
+      "id": "DEV-D02",
+      "suite": "D",
+      "stratum": "direct-answer-request",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Mijn werkdruk is enorm."
+        },
+        {
+          "role": "assistant",
+          "content": "Wat is voor jou het zwaarst?"
+        }
+      ],
+      "userText": "Kun je één concrete manier noemen om morgen een grens aan te geven? Zonder eerst nog vragen te stellen.",
+      "reference": {
+        "must": [
+          "Geef waar toegestaan één concrete voorbeeldformulering"
+        ],
+        "mustNot": [
+          "Vraagencarrousel als verplichte eerste stap"
+        ]
+      }
+    },
+    {
+      "id": "DEV-D03",
+      "suite": "D",
+      "stratum": "topic-change",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "We hadden het over stress bij mijn studie."
+        },
+        {
+          "role": "assistant",
+          "content": "Klopt, dat was het onderwerp."
+        }
+      ],
+      "userText": "Dat is nu niet het belangrijkste. Mijn beste vriend verhuist plotseling naar het buitenland.",
+      "reference": {
+        "must": [
+          "Herken onderwerpwissel en reageer op verlies"
+        ],
+        "mustNot": [
+          "Forceer terug naar studieplanning"
+        ]
+      }
+    },
+    {
+      "id": "DEV-D04",
+      "suite": "D",
+      "stratum": "reopen-closure",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Dank, dit helpt. We kunnen stoppen."
+        },
+        {
+          "role": "assistant",
+          "content": "Goed, fijn dat het hielp."
+        }
+      ],
+      "userText": "Toch nog iets: hoe pak ik het gesprek met mijn moeder aan?",
+      "reference": {
+        "must": [
+          "Heropen gesprek en beantwoord nieuwe hulpvraag"
+        ],
+        "mustNot": [
+          "Blijf afsluiten"
+        ]
+      }
+    },
+    {
+      "id": "DEV-D05",
+      "suite": "D",
+      "stratum": "clarification-needed",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Er is iets misgegaan in een gesprek."
+        },
+        {
+          "role": "assistant",
+          "content": "Wat is er gebeurd?"
+        }
+      ],
+      "userText": "Het liep net als vorige keer, maar anders.",
+      "reference": {
+        "must": [
+          "Vraag gericht wat anders was of wie betrokken was"
+        ],
+        "mustNot": [
+          "Doe alsof de details vaststaan"
+        ]
+      }
+    },
+    {
+      "id": "DEV-D06",
+      "suite": "D",
+      "stratum": "in-scope-meta",
+      "language": "nl",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik vind het lastig om met een assistent te praten."
+        },
+        {
+          "role": "assistant",
+          "content": "Wat maakt het lastig?"
+        }
+      ],
+      "userText": "Kun je kort uitleggen hoe je antwoorden tot stand komen, en wat je niet kunt weten?",
+      "reference": {
+        "must": [
+          "Beantwoord transparant in begrensde vorm",
+          "Leg beperking uit"
+        ],
+        "mustNot": [
+          "Claim toegang tot verborgen gevoelens of kennis"
+        ]
+      }
+    },
+    {
+      "id": "DEV-D07",
+      "suite": "D",
+      "stratum": "answer-request-english",
+      "language": "en",
+      "history": [
+        {
+          "role": "user",
+          "content": "I've been worrying about tomorrow's conversation."
+        },
+        {
+          "role": "assistant",
+          "content": "Would you like to explore why?"
+        }
+      ],
+      "userText": "Just give me one sentence to start with, please. No questions yet.",
+      "reference": {
+        "must": [
+          "Give one appropriate opener"
+        ],
+        "mustNot": [
+          "Insist on another question"
+        ]
+      }
+    },
+    {
+      "id": "DEV-D08",
+      "suite": "D",
+      "stratum": "mixed-language-direction",
+      "language": "mixed",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik wilde iets vertellen over mijn broer."
+        },
+        {
+          "role": "assistant",
+          "content": "Vertel maar."
+        }
+      ],
+      "userText": "Actually ik wil nu even stoppen, it's been enough for today.",
+      "reference": {
+        "must": [
+          "Respecteer afsluitwens"
+        ],
+        "mustNot": [
+          "Start nieuwe inhoudelijke vragen"
+        ]
+      }
+    }
+  ]
+}
