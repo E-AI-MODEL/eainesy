@@ -26,6 +26,7 @@ import {
   type Plan,
   type RiskLevel,
   type TraceStage,
+  type ModelProviderId,
 } from './types';
 import {
   collectLexicalMarkers, collectProtective, estimateDistress, detectPii,
@@ -46,6 +47,7 @@ import { certifyDecisionIsolated } from './z3-isolated';
 import { assertVerificationGate, VerificationHalt } from './verification-gate';
 import { parseFrame, generateReply } from './glm';
 import { ModelProviderUnavailable } from './model-provider';
+import { resolveModelRoute } from './model-routing';
 import { verifyOutput, violationFeedback, cannedReplyFor } from './outputpolicy';
 import { appendAudit } from './audit';
 import { findMatchingSeed, type SeedRow } from './hitl-seeds';
@@ -137,9 +139,11 @@ export type TurnOrigin = 'live' | 'eval' | 'scenario';
 export async function processTurn(
   sessionId: string,
   userText: string,
-  opts?: { presetFrame?: Frame | null; skipGeneration?: boolean; steer?: unknown; origin?: TurnOrigin },
+  opts?: { presetFrame?: Frame | null; skipGeneration?: boolean; steer?: unknown; origin?: TurnOrigin; modelRoute?: {parser:ModelProviderId;generator:ModelProviderId} },
 ): Promise<TurnResult> {
   const origin: TurnOrigin = opts?.origin ?? 'live';
+  const modelRoute = resolveModelRoute(opts?.modelRoute);
+  if (!modelRoute) throw new ModelProviderUnavailable('invalid_configuration');
   const t0 = performance.now();
   const trace: TraceStage[] = [];
   const timings: Record<string, number> = {};
@@ -204,7 +208,7 @@ export async function processTurn(
   const presetProvided = opts && 'presetFrame' in opts;
   let frame: Frame | null;
   try {
-    frame = presetProvided ? (opts!.presetFrame ?? null) : await parseFrame(userText, historyPast);
+    frame = presetProvided ? (opts!.presetFrame ?? null) : await parseFrame(userText, historyPast, modelRoute.parser);
   } catch (error) {
     if (error instanceof ModelProviderUnavailable) {
       // No turn is persisted, no Z3 check is represented as a semantic proof.
@@ -482,7 +486,7 @@ export async function processTurn(
   const guardedGeneration = async (feedback?: string[]) => {
     try {
       return await generateReply({
-        plan, frame, techniqueLines, history: historyAll, style: steer.style,
+        plan, frame, techniqueLines, history: historyAll, style: steer.style, provider: modelRoute.generator,
         conversation: conversationBrief, violationFeedback: feedback, requireModel,
       });
     } catch (error) {
@@ -542,6 +546,7 @@ export async function processTurn(
 
   // --- 12. certificate -------------------------------------------------------------------
   const certificate: Certificate = {
+    modelRoute,
     action,
     riskLevel: riskAssessment,
     unknown: unknownReason ? { reason: unknownReason, runtime: 'neural_parse_failed' } : undefined,
