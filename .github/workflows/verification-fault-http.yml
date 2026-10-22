@@ -2,6 +2,19 @@ name: EAInesy - HTTP verification failure tests
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/lib/eainesy/z3cert.ts'
+      - 'src/lib/eainesy/verification-gate.ts'
+      - 'src/lib/eainesy/modelchecker.ts'
+      - 'src/lib/eainesy/orchestrator.ts'
+      - 'src/lib/eainesy/model-provider.ts'
+      - 'src/lib/eainesy/glm.ts'
+      - 'src/lib/eainesy/abc-shadow.ts'
+      - 'src/app/api/chat/route.ts'
+      - 'scripts/ci-verification-fault-http.mjs'
+      - '.github/workflows/verification-fault-http.yml'
   push:
     branches: [main]
     paths:
@@ -9,6 +22,9 @@ on:
       - 'src/lib/eainesy/verification-gate.ts'
       - 'src/lib/eainesy/modelchecker.ts'
       - 'src/lib/eainesy/orchestrator.ts'
+      - 'src/lib/eainesy/model-provider.ts'
+      - 'src/lib/eainesy/glm.ts'
+      - 'src/lib/eainesy/abc-shadow.ts'
       - 'src/app/api/chat/route.ts'
       - 'scripts/ci-verification-fault-http.mjs'
       - '.github/workflows/verification-fault-http.yml'
