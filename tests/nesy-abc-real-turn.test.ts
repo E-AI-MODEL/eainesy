@@ -8,7 +8,8 @@
  */
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { processTurn } from '../src/lib/eainesy/orchestrator';
-import type { Frame } from '../src/lib/eainesy/types';
+import { FrameSchema, type Frame } from '../src/lib/eainesy/types';
+import { parseDeliveredFrameOffline } from '../src/lib/eainesy/glm';
 import type { FakeDb } from './support/fake-db';
 import { compareVerifiedTurn, comparePersistedTurn, fromVerifiedTurn } from '../research/nesy-abc/kernel-bridge.mjs';
 
@@ -22,6 +23,68 @@ const F = (changes: Partial<Frame>): Frame => ({
 
 describe('NeSy real processTurn -> A/B/C research bridge (DEV ONLY)', () => {
   beforeEach(() => fake.__reset());
+
+  test('actual parser validator accepts grounded dialogue-act model output without another model call', () => {
+    const user = 'Nee, het gaat over mijn zus. Ik heb zelf geen relatieprobleem.';
+    const json = JSON.stringify(F({
+      intent:'GENERAL_VENT',
+      dialogueObservation:{version:1,origin:'model_claim',acts:[
+        {type:'CORRECT_ASSUMPTION',evidence:'het gaat over mijn zus'},
+      ]},
+    }));
+    const parsed = parseDeliveredFrameOffline(json,user);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.dialogueObservation?.acts[0].type).toBe('CORRECT_ASSUMPTION');
+    expect(parsed?.dialogueObservation?.acts[0].evidence).toBe('het gaat over mijn zus');
+  });
+
+  test('malformed optional observation never discards the valid risk frame', () => {
+    const raw = {
+      ...F({
+        intent:'DEPRESSIVE_REPORT',
+        riskMarkers:[{type:'HOPELESSNESS',evidence:'hopeloos'}],
+      }),
+      dialogueObservation:{version:1,origin:'model_claim',acts:'invalid'},
+    };
+    const frame = parseDeliveredFrameOffline(JSON.stringify(raw),'Ik voel me al weken hopeloos.');
+    expect(frame).not.toBeNull();
+    expect(frame?.riskMarkers.map(x=>x.type)).toContain('HOPELESSNESS');
+    expect(frame?.dialogueObservation).toBeUndefined();
+    expect(FrameSchema.safeParse(frame).success).toBe(true);
+  });
+
+  test('stored GLM-shaped dialogue act automatically reaches A/C without overriding mock Z3', async () => {
+    const session = await fake.session.create({data:{label:'abc-semantic-parser-integration'}});
+    const first=await processTurn(String(session.id),'Mijn zus heeft het moeilijk.',{
+      presetFrame:F({intent:'GENERAL_VENT',topics:['familie']}),
+      origin:'scenario',skipGeneration:true,
+    });
+    expect(first.action).toBeDefined();
+    const user='Nee, het gaat over mijn zus. Ik heb zelf geen relatieprobleem.';
+    const parsed=parseDeliveredFrameOffline(JSON.stringify(F({
+      intent:'GENERAL_VENT',topics:['familie'],
+      dialogueObservation:{version:1,origin:'model_claim',acts:[
+        {type:'CORRECT_ASSUMPTION',evidence:'het gaat over mijn zus'},
+      ]},
+    })),user);
+    expect(parsed).not.toBeNull();
+    const next=await processTurn(String(session.id),user,{
+      presetFrame:parsed!,origin:'scenario',skipGeneration:true,
+    });
+    const record=await fake.turn.findUnique({where:{id:next.turnId}});
+    expect(record).not.toBeNull();
+    const original=JSON.stringify(record);
+    const compared=await comparePersistedTurn({db:fake,turnResult:next});
+    expect(compared.arms.A.proposedMove).toBe('REPAIR');
+    expect(compared.arms.C.proposedMove).toBe('REPAIR');
+    expect(compared.arms.C.triggers).toContain('T2');
+    expect(compared.arms.C.accepted).toBe(false);
+    expect(compared.arms.C.selectedMove).toBe(compared.baselineMove);
+    expect(next.certificate.z3.result).toBe('skipped');
+    expect(JSON.stringify(await fake.turn.findUnique({where:{id:next.turnId}}))).toBe(original);
+  });
+
+
 
   test('consumes the actual stored turn and keeps simulated-Z3 decisions blocked', async () => {
     const session = await fake.session.create({ data: { label: 'abc-pipeline-test' } });
