@@ -1,0 +1,87 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { selectArchitecture, evidenceWorkspace, ARMS } from "./architecture-lab.mjs";
+
+const make=(message="Ik wil even praten.",overrides={})=>({
+  userText:message,
+  history:[{role:"user",content:"Ik zit met iets."},{role:"assistant",content:"Wil je vertellen wat er speelt?"}],
+  frame:{intent:"GENERAL_VENT",paraphrase:"Gebruiker wil praten.",riskMarkers:[],...overrides.frame},
+  lexicalMarkers:overrides.lexicalMarkers??[],
+  base:{move:overrides.move??"QUESTION"},
+  safety:{action:"THERAPEUTIC_DIALOG",riskAssessment:"NONE",verification:"sat",outputPolicyAllowed:true,...overrides.safety}
+});
+
+test("four arms exist and P0 retains P0 decision",async()=>{
+  assert.deepEqual(ARMS,["P0","A","B","C"]);
+  const result=await selectArchitecture(make("Ik wil geen tips.",{move:"SUGGESTION"}),"P0");
+  assert.equal(result.selectedMove,"SUGGESTION");
+  assert.equal(result.extraCalls,0);
+});
+test("A honors explicit no-advice without another model call",async()=>{
+  const r=await selectArchitecture(make("Ik wil geen tips. Ik wil alleen vertellen.",{move:"SUGGESTION"}),"A");
+  assert.equal(r.selectedMove,"REFLECTION");
+  assert.equal(r.extraCalls,0);
+});
+test("A repairs correction of assistant assumption",async()=>{
+  const r=await selectArchitecture(make("Nee, je begrijpt me niet. Ik bedoel mijn kind.",{move:"SUGGESTION"}),"A");
+  assert.equal(r.selectedMove,"REPAIR");
+});
+test("A answers direct request without forced phase",async()=>{
+  const r=await selectArchitecture(make("Kun je een voorbeeld geven zonder eerst vragen te stellen?"),"A");
+  assert.equal(r.selectedMove,"INFORMATION");
+});
+test("workspace preserves evidence and distinguishes unverified model scope",()=>{
+  const q=make("Mijn broer had vroeger last van angst.",{
+    frame:{riskMarkers:[{type:"HOPELESSNESS",evidence:"last van angst",scope:{experiencer:"other",temporality:"past_resolved",polarity:"affirmed"}}]},
+    lexicalMarkers:[{type:"HOPELESSNESS",evidence:"last van angst"}]});
+  const w=evidenceWorkspace(q);
+  assert.equal(w.evidence.length,2);
+  assert.equal(w.evidence[1].status,"model_claim");
+  assert.deepEqual(w.triggerCodes,["T3"]);
+});
+test("C never calls orchestrator for ordinary, untriggered message",async()=>{
+  let calls=0;
+  const r=await selectArchitecture(make("Vandaag heb ik een leuke dag gehad."),"C",{orchestrator:async()=>{calls++;return {kind:"revise",move:"INFORMATION"};}});
+  assert.equal(calls,0);assert.equal(r.extraCalls,0);assert.equal(r.selectedMove,"QUESTION");
+});
+test("C fires on correction, calls injected orchestrator once and records triggers",async()=>{
+  let calls=0;
+  const r=await selectArchitecture(make("Nee, je begrijpt me niet. Ik bedoel mijn moeder."),"C",{orchestrator:async({workspace,callBudget})=>{calls++;assert.equal(callBudget,1);assert.deepEqual(workspace.triggerCodes,["T2"]);return {kind:"revise",move:"REPAIR",reason:"correct attribution"};}});
+  assert.equal(calls,1);assert.equal(r.extraCalls,1);assert.equal(r.selectedMove,"REPAIR");
+});
+test("B can revise P0 with exactly one injected supervisor callback",async()=>{
+  let calls=0;
+  const r=await selectArchitecture(make("Ik wil alleen vertellen.",{move:"SUGGESTION"}),"B",{supervisor:async()=>{calls++;return {kind:"revise",move:"REFLECTION",reason:"no-advice request"};}});
+  assert.equal(calls,1);assert.equal(r.selectedMove,"REFLECTION");assert.equal(r.extraCalls,1);
+});
+test("C and B cannot downgrade safety, use model callback, or bypass blocked verification",async()=>{
+  for(const arm of ["A","B","C"]){
+    let calls=0;
+    const r=await selectArchitecture(make("Nee, je begrijpt me niet.",{move:"SAFETY",safety:{action:"CRISIS_PROTOCOL",riskAssessment:"CRISIS"}}),arm,{supervisor:async()=>{calls++;return {kind:"revise",move:"INFORMATION"};},orchestrator:async()=>{calls++;return {kind:"revise",move:"INFORMATION"};}});
+    assert.equal(r.selectedMove,"SAFETY");assert.equal(r.accepted,false);assert.equal(calls,0);
+  }
+  for(const verification of ["unsat","unknown","skipped"]){
+    const r=await selectArchitecture(make("Kun je een voorbeeld geven?",{safety:{verification}}),"A");
+    assert.equal(r.accepted,false);assert.equal(r.selectedMove,"QUESTION");
+  }
+});
+test("untrusted supervisor proposal cannot invent or bypass allowed moves",async()=>{
+  const r=await selectArchitecture(make("Ik wil een antwoord"),"B",{supervisor:async()=>({kind:"revise",move:"DISABLE_SAFETY"})});
+  assert.equal(r.selectedMove,"QUESTION");
+  assert.equal(r.extraCalls,1);
+});
+test("C handles callback exception without extra implicit retries",async()=>{
+  let calls=0;
+  const r=await selectArchitecture(make("Nee, dat klopt niet."),"C",{orchestrator:async()=>{calls++;throw Error("offline failure");}});
+  assert.equal(calls,1);assert.equal(r.extraCalls,1);assert.equal(r.supervisorOutcome.kind,"error");
+  assert.equal(r.selectedMove,"REPAIR");
+});
+test("all safety snapshots are read-only research outputs",async()=>{
+  const inp=make("Geen tips",{safety:{riskAssessment:"ELEVATED",action:"SAFETY_RESPONSE"},move:"SAFETY"});
+  const before=JSON.stringify(inp.safety);
+  for(const arm of ARMS){
+    const r=await selectArchitecture(inp,arm);
+    assert.equal(JSON.stringify(inp.safety),before);
+    assert.equal(JSON.stringify(r.safetyUnchanged),before);
+  }
+});
