@@ -1,0 +1,31 @@
+name: NeSy ABC offline research lab
+
+on:
+  push:
+    branches:
+      - research/nesy-abc-prereg-2026-10-23
+    paths:
+      - "research/nesy-abc/**"
+      - "scripts/validate-nesy-abc-pilot.mjs"
+      - ".github/workflows/nesy-abc-dev-lab.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-lab:
+    name: Offline architecture and pilot checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout exact code
+        uses: actions/checkout@v4
+      - name: Node version
+        run: node --version
+      - name: Validate pilot fixture structure (offline)
+        run: node scripts/validate-nesy-abc-pilot.mjs
+      - name: Test P0 A B C research module (offline)
+        run: node --test research/nesy-abc/architecture-lab.test.mjs
