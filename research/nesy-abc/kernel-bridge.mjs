@@ -15,6 +15,7 @@ export function fromVerifiedTurn({turnResult,turnRecord,history=[]}){
   const frame=safeJson(turnRecord?.frame)??stage(trace,"parse")?.detail;
   const plan=safeJson(turnRecord?.plan)??stage(trace,"plan")?.detail;
   const lexical=stage(trace,"lexical")?.detail;
+  const ground=stage(trace,"ground")?.detail;
   const safe=certificate?.z3?.result==="sat" && certificate?.modelCheck?.pass===true && certificate?.outputPolicy?.pass===true;
   // A skip/mock/invalid verification can be inspected but never approved.
   const verification=certificate?.z3?.result??"missing";
@@ -34,6 +35,20 @@ export function fromVerifiedTurn({turnResult,turnRecord,history=[]}){
     // Do not reinterpret paraphrase as a dialogue act. Forward only explicit
     // parser-provided claims; architecture-lab independently anchors spans.
     dialogueObservation:frame?.dialogueObservation??null,
+    // Same binding plan and KG-derived terms for the post-parse comparison.
+    // Never grant reviewer permission to edit these immutable constraints.
+    bindingPlan:plan && typeof plan==="object" ? {
+      action:plan.action,phase:plan.phase,strategy:plan.strategy,
+      allowedMoves:Array.isArray(plan.allowedMoves)?plan.allowedMoves:[],
+      forbiddenMoves:Array.isArray(plan.forbiddenMoves)?plan.forbiddenMoves:[],
+      mustInclude:Array.isArray(plan.mustInclude)?plan.mustInclude:[],
+      maxSentences:plan.maxSentences,
+    } : null,
+    grounding:ground && typeof ground==="object" ? {
+      emotionKeys:Array.isArray(ground.emotionKeys)?ground.emotionKeys:[],
+      topicKeys:Array.isArray(ground.topicKeys)?ground.topicKeys:[],
+      techniqueKeys:Array.isArray(ground.techniqueKeys)?ground.techniqueKeys:[],
+    } : null,
     // B is post-concept: its supervisor must inspect the actual P0 draft,
     // not only the planned move. This is read-only and never delivered.
     draft:typeof turnRecord?.replyText==="string" ? turnRecord.replyText :
