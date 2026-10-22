@@ -63,3 +63,48 @@ describe('server allowlisted model selection',()=>{
     expect(result).toEqual({status:'unavailable',reason:'invalid_configuration'});
   });
 });
+
+describe('per-provider transport contract (mocked, no external model calls)',()=>{
+  test('OpenAI, Gemini and Claude use their fixed HTTPS endpoints without cross-provider credentials',async()=>{
+    const originalFetch=globalThis.fetch;
+    const calls: {url:string;headers:Record<string,string>;body:Record<string,unknown>}[]=[];
+    globalThis.fetch=(async(url: string | URL | Request,init?:RequestInit)=>{
+      calls.push({url:String(url),headers:(init?.headers || {}) as Record<string,string>,body:JSON.parse(String(init?.body)) as Record<string,unknown>});
+      return new Response(JSON.stringify({choices:[{message:{content:'mock response'}}]}),{status:200,headers:{'Content-Type':'application/json'}});
+    }) as typeof fetch;
+    try{
+      process.env.EAINESY_ALLOWED_PROVIDERS='openai,gemini,claude';
+      for(const p of ['openai','gemini','claude'] as const){
+        process.env['EAINESY_'+p.toUpperCase()+'_MODEL']='test-'+p;
+        process.env['EAINESY_'+p.toUpperCase()+'_API_KEY']='key-'+p;
+        const response=await completeModelWithStatus([{role:'assistant',content:'system'},{role:'user',content:'hello'}],0.1,p);
+        expect(response).toEqual({status:'ok',text:'mock response'});
+      }
+      expect(calls.map(x=>new URL(x.url).hostname)).toEqual(['api.openai.com','generativelanguage.googleapis.com','api.anthropic.com']);
+      expect(calls.map(x=>x.headers.Authorization)).toEqual(['Bearer key-openai','Bearer key-gemini','Bearer key-claude']);
+      expect(calls.every(x=>x.body.model === 'test-'+new URL(x.url).hostname.split('.')[1])).toBe(false);
+      expect(calls.map(x=>x.body.model)).toEqual(['test-openai','test-gemini','test-claude']);
+      expect(calls[0].body.temperature).toBe(0.1);
+      expect(calls[1].body.temperature).toBe(0.1);
+      expect('temperature' in calls[2].body).toBe(false);
+      expect((calls[0].body.messages as {role:string}[])[0].role).toBe('system');
+    }finally{globalThis.fetch=originalFetch;}
+  });
+
+  test('local Ollama uses loopback only and sends no Authorization',async()=>{
+    const originalFetch=globalThis.fetch;
+    let url='', headers:Record<string,string>={};
+    globalThis.fetch=(async(u:string | URL | Request,init?:RequestInit)=>{
+      url=String(u);headers=init?.headers as Record<string,string>;
+      return new Response(JSON.stringify({choices:[{message:{content:'local'}}]}),{status:200});
+    }) as typeof fetch;
+    try{
+      process.env.EAINESY_ALLOWED_PROVIDERS='ollama';
+      process.env.EAINESY_OLLAMA_LOOPBACK_ENABLED='true';
+      process.env.EAINESY_OLLAMA_MODEL='local-test';
+      expect(await completeModelWithStatus([{role:'user',content:'hello'}],0,'ollama')).toEqual({status:'ok',text:'local'});
+      expect(new URL(url).hostname).toBe('127.0.0.1');
+      expect('Authorization' in headers).toBe(false);
+    }finally{globalThis.fetch=originalFetch;}
+  });
+});
