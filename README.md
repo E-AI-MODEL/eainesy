@@ -112,6 +112,19 @@ De live HTTP-proef gebruikt een **aparte fictieve SQLite-database** onder `.live
 
 Bron en beperking: [GLM-reconstructie en review](docs/GLM-live-patch-review-2026-10-17.md) en [de afzonderlijke inhoudelijke evaluatienotitie](docs/GLM-live-evaluation-2026-10-17.md). De gemelde `57/58` is een **door GLM Agent aangeleverde uitkomst** en nog niet onafhankelijk door onze GitHub-runner met een echt model gereproduceerd. Zeven inhoudelijke grensgevallen vragen menselijke beoordeling. Dit ondersteunt geen gebruik met echte hulpvragers.
 
+
+## Modelonafhankelijke configuratie (reviewbranch, 22 oktober 2026)
+
+EAInesy ondersteunt nu provider-ID's `zai`, `openai`, `gemini`, `claude`, `ollama` en `custom`. Dit is **servergeconfigureerde modelroutering** en geen claim dat de externe modellen afzonderlijk live zijn gevalideerd. Parser en antwoordgenerator kunnen onafhankelijk worden gekozen; de symbolische regels, Z3, bronregistratie en outputpolicy blijven EAInesy-eigendom.
+
+- Leg eerst op de server `EAINESY_ALLOWED_PROVIDERS=zai,openai,gemini,claude,ollama` vast. Laat ongebruikte providers weg. Zonder de variabele blijft uitsluitend de oudere Z.ai- of custom-backend beschikbaar.
+- Configureer per aanbieder zijn eigen model-ID en server-side API-sleutel in de variabelen in `.env.example`. Er staan geen sleutels of model-URL's in chatverzoeken. Ollama is alleen bereikbaar via opt-in `EAINESY_OLLAMA_LOOPBACK_ENABLED=true` op serverloopbackpoort 11434.
+- Het endpoint `GET /api/model-providers` toont alleen beschikbare provider-ID's, zonder secrets of modelnamen. Een toekomstige interface kan die selectie aanbieden. De UI bevat in deze commit nog **geen modelkiezer**.
+- Bij `POST /api/chat` mag `modelRoute: {parser: 'gemini', generator: 'claude'}` worden meegestuurd, mits beide op de server zijn toegestaan/geconfigureerd. Zonder expliciete keuze geldt de oude default. Voor een andere providercombinatie is een **nieuwe chatsessie** nodig.
+- Bij een ontbrekende configuratie, ongeldige keuze, ontoegankelijke provider of onleesbare API-respons blijft de automatische beantwoording geblokkeerd. Er is **geen stille modelwissel** en geen aanpassing aan de geverifieerde controllerbeslissingen.
+- De providertransporten gebruiken de OpenAI-compatibele `chat/completions`-vorm waar mogelijk. Claude krijgt geen expliciet `temperature`-veld; verschillen in modelspecifieke API-contracten kunnen aanvullende adapters vergen. Controleer modelcapabilities vóór inzet.
+- De CI-tests met een nep-provider en echte Z3 bewijzen de routering en syntactische/protocolcontracten onder de testvoorwaarden. **Dit bewijst geen overeenkomstige gedragskwaliteit van OpenAI, Gemini, Claude of Ollama bij complexe gespreksinhoud.** Hiervoor zijn onafhankelijke, geblindeerde providerproeven vereist.
+
 ## Live GLM and build checks
 
 `src/lib/eainesy/glm.ts` gebruikt de afzonderlijke, getypeerde transportgrens `model-provider.ts`: de oorspronkelijke `z-ai-web-dev-sdk` of een expliciet geconfigureerd OpenAI-compatibel HTTPS-endpoint. Er staan geen portable credentials in Git. Echte providertests zijn opt-in, met gescheiden resultaatrapportage; de deterministische suite gebruikt een stub en bewijst geen live-modelkwaliteit.
