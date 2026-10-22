@@ -163,6 +163,19 @@ export async function processTurn(
     take: 3,
     select: { userText: true, replyText: true, certificate: true },
   });
+  // A session is pinned to the first recorded provider pair. Never change
+  // providers in the middle of a conversation without an explicit new session.
+  if (pastTurns[0]) {
+    try {
+      const prev = JSON.parse(pastTurns[0].certificate) as {modelRoute?: {parser?: string; generator?: string}};
+      if (prev.modelRoute && (prev.modelRoute.parser !== modelRoute.parser || prev.modelRoute.generator !== modelRoute.generator)) {
+        throw new ModelProviderUnavailable('invalid_configuration');
+      }
+    } catch (error) {
+      if (error instanceof ModelProviderUnavailable) throw error;
+      // Legacy certificates without provider fields remain readable.
+    }
+  }
   // Conversation state travels with the most recent turn's certificate.
   let convState = parseConversationState(undefined);
   if (pastTurns[0]) {
