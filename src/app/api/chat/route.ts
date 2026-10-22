@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         sessionId = session.id;
       }
     }
-    const result = await processTurn(sessionId, parsed.data.message, { steer: parsed.data.steer });
+    const result = await processTurn(sessionId, parsed.data.message, { steer: parsed.data.steer, modelRoute: parsed.data.modelRoute });
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ModelProviderUnavailable) {
