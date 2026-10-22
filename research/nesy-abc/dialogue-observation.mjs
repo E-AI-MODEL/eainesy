@@ -46,13 +46,12 @@ export function normalizeDialogueObservation(value, userText) {
 }
 
 export function deriveDialogueObservation(frame, userText) {
-  // The current FrameSchema has no full dialogue-act taxonomy. We only
-  // translate one explicit existing field; never hallucinate a correction,
-  // goal, or source excerpt from the paraphrase.
-  //
-  // A parser that can return explicit acts should use the contract above.
-  // Until then, status is deliberately "no structured observation".
-  return {observation:null,readableFrame:{
+  // Only explicit FrameSchema dialogueObservation is eligible.
+  // Never infer a correction, goal or source excerpt from paraphrase,
+  // confidence, asksForHelp, or the research author's expectations.
+  const claim = frame?.dialogueObservation == null ? null
+    : normalizeDialogueObservation(frame.dialogueObservation, userText);
+  return {observation:claim,readableFrame:{
     intent:typeof frame?.intent==="string"?frame.intent:"UNKNOWN",
     asksForHelp:frame?.asksForHelp===true,
     parseConfidence:typeof frame?.parseConfidence==="number"?frame.parseConfidence:null,
