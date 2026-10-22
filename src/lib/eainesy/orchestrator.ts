@@ -47,6 +47,7 @@ import { parseFrame, generateReply } from './glm';
 import { ModelProviderUnavailable } from './model-provider';
 import { verifyOutput, violationFeedback, cannedReplyFor } from './outputpolicy';
 import { appendAudit } from './audit';
+import { maybeRecordABCShadow } from './abc-shadow';
 import { findMatchingSeed, type SeedRow } from './hitl-seeds';
 import { pointOfUse, applyRecurrence, type PointOfUseDecision } from './seed-authority';
 import { DEFAULT_STEER, STEER_EPSILON, isDefaultSteer, normalizeSteer, styleMaxSentences, type SteerSettings } from './steer';
@@ -618,6 +619,17 @@ export async function processTurn(
   mark('persist', {
     stage: 'persist', label: 'Opslaan + audit-chain', labelKey: 'persist', kind: 'meta', ms: performance.now() - ts, status: 'ok',
     summary: `turn ${turn.id.slice(0, 8)} · 6+ ledger entries appended${wantsReview ? (origin === 'live' ? ' · review item queued' : ` · review skipped (origin=${origin})`) : ''}`,
+  });
+
+  // Optional read-only post-response A/B/C comparison. This observes the
+  // same persisted P0 turn, never changes its reply, and uses zero extra
+  // model calls. Failure cannot interrupt the already-completed turn.
+  await maybeRecordABCShadow({
+    turn,
+    certificate,
+    trace,
+    history: historyPast,
+    origin,
   });
 
   return {
