@@ -25,7 +25,9 @@ function safetyLocked(input) {
   return HIGH_RISK.has(input.safety.riskAssessment) ||
     SAFETY_ACTIONS.includes(input.safety.action) ||
     input.safety.verification !== "sat" ||
-    input.safety.outputPolicyAllowed === false;
+    input.safety.modelCheckPass !== true ||
+    input.safety.outputPolicyAllowed !== true ||
+    input.safety.riskMemory === "ACTIVE";
 }
 function validate(input) {
   if (!input || typeof input !== "object") throw new Error("missing input");
@@ -34,8 +36,9 @@ function validate(input) {
   if (!input.base || !has(input.base.move)) throw new Error("missing P0 move");
   if (!VALID_MOVES.includes(input.base.move)) throw new Error("invalid P0 move");
   if (!input.frame || typeof input.frame !== "object") throw new Error("missing frame");
-  if (input.safety.verification !== "sat") return;
   if (!["NONE","ELEVATED","HIGH","CRISIS","UNKNOWN"].includes(input.safety.riskAssessment)) throw new Error("invalid risk assessment");
+  // An invalid checker/verification state may only produce a blocked proposal.
+  if (typeof input.safety.modelCheckPass !== "boolean") throw new Error("missing model-check status");
 }
 
 /** Model claims are *claims*, never verified semantics or permission to downgrade. */
