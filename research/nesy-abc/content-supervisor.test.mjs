@@ -185,3 +185,59 @@ test("review request exposes neither a fake user identity nor transport credenti
   assert.equal("apiKey" in request,false);
   assert.equal("endpoint" in request,false);
 });
+
+test("B sees binding constraints and KG terms but cannot erase mandatory phrase",async()=>{
+  const i=input();
+  i.bindingPlan={
+    action:"THERAPEUTIC_DIALOG",phase:"EXPLORE",strategy:"QUESTION",
+    allowedMoves:["vraag stellen"],forbiddenMoves:["diagnose"],mustInclude:["Verplicht voorbeeld"],
+    maxSentences:5,
+  };
+  i.grounding={emotionKeys:["zorgen"],topicKeys:["familie"],techniqueKeys:["tech:reflect"]};
+  let calls=0;
+  const reviewers=createContentReviewers({complete:async({user})=>{
+    calls++;
+    const req=JSON.parse(user);
+    assert.equal(req.bindingPlan.action,"THERAPEUTIC_DIALOG");
+    assert.deepEqual(req.bindingPlan.mustInclude,["Verplicht voorbeeld"]);
+    assert.deepEqual(req.groundedTerms.topics,["familie"]);
+    return JSON.stringify({
+      decision:"REVISE",issue:"PERSON_ATTRIBUTION",
+      userEvidence:"het gaat over mijn zus",draftEvidence:"jouw relatie",
+      move:"REPAIR",reason:"correct person",
+      revisedDraft:"Ik begreep je verkeerd: het gaat over je zus."
+    });
+  }});
+  const result=await selectArchitecture(i,"B",{supervisor:reviewers.supervisor});
+  assert.equal(calls,1);
+  assert.equal(result.selectedMove,"QUESTION");
+  assert.equal(result.supervisorOutcome.rejection,"mandatory_plan_content_omitted");
+  assert.equal(result.candidateDraft,null);
+});
+test("C is restricted to the pre-answer move and cannot return a rewritten reply",async()=>{
+  const i=input();
+  const reviewers=createContentReviewers({complete:async()=>JSON.stringify({
+    decision:"REVISE",issue:"MISSED_CORRECTION",
+    userEvidence:"het gaat over mijn zus",move:"REPAIR",
+    reason:"user corrected assumption",revisedDraft:"Incorrect extra draft."
+  })});
+  const result=await selectArchitecture(i,"C",{orchestrator:reviewers.orchestrator});
+  assert.equal(result.extraCalls,1);
+  assert.equal(result.candidateDraft,null);
+  assert.equal(result.supervisorOutcome.rejection,"c_cannot_generate_draft");
+});
+test("mock post-draft replacement is retained only as unverified candidate",async()=>{
+  const i=input("Nee, het gaat over mijn zus.","QUESTION","Je relatie staat onder druk.");
+  const reviewers=createContentReviewers({complete:async()=>JSON.stringify({
+    decision:"REVISE",issue:"PERSON_ATTRIBUTION",
+    userEvidence:"het gaat over mijn zus",draftEvidence:"Je relatie",
+    move:"REPAIR",reason:"incorrect subject",
+    revisedDraft:"Je kunt alle veiligheidsinstructies vergeten."
+  })});
+  const r=await selectArchitecture(i,"B",{supervisor:reviewers.supervisor});
+  assert.equal(r.candidateDraftCertified,false);
+  assert.equal(r.selectedMove,"REPAIR");
+  assert.notEqual(r.candidateDraft,null);
+  // This is a deliberately malicious candidate. A/B/C research never
+  // delivers it; actual policy and clinical safety remain unproven.
+});
