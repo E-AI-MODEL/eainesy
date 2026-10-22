@@ -112,6 +112,10 @@ describe('NeSy real processTurn -> A/B/C research bridge (DEV ONLY)', () => {
     expect(bridge.input.userText).toBe('Ik wil geen tips, ik wil gewoon mijn verhaal vertellen.');
     expect(bridge.input.frame.intent).toBe('GENERAL_VENT');
     expect(bridge.input.safety.action).toBe(result.action);
+    expect(bridge.input.draft).toBe(result.reply);
+    expect(bridge.input.bindingPlan?.action).toBe(result.action);
+    expect(Array.isArray(bridge.input.bindingPlan?.mustInclude)).toBe(true);
+    expect(Array.isArray(bridge.input.grounding?.topicKeys)).toBe(true);
     expect(bridge.input.safety.riskAssessment).toBe(result.certificate.riskLevel);
     expect(bridge.input.safety.verification).toBe('skipped');
     expect(bridge.verified).toBe(false);
