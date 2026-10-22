@@ -51,3 +51,34 @@ export async function compareVerifiedTurn(snapshot,options={}){
     note:"Proposed moves were NOT applied to the actual response or stored conversation.",
   };
 }
+
+
+/**
+ * Read-only adapter for an actual persisted processTurn result.
+ *
+ * Reconstructs exactly the preceding three stored turns (up to six
+ * user/assistant messages), matching the production history window.
+ * This is essential for C's correction/rupture triggers: a bare
+ * certificate does not contain the dialogue text.
+ *
+ * No Prisma imports: the injected db may be production-backed or fake,
+ * but this function never writes and is NEVER wired into the chat API.
+ */
+export async function comparePersistedTurn({ db, turnResult, options = {} }) {
+  if (!db?.turn?.findUnique || !db?.turn?.findMany) throw Error("read-only turn query adapter required");
+  if (!turnResult?.turnId || !turnResult?.sessionId) throw Error("missing turn identity");
+  const turnRecord = await db.turn.findUnique({ where: { id: turnResult.turnId } });
+  if (!turnRecord || turnRecord.sessionId !== turnResult.sessionId) throw Error("turn not found in expected session");
+  const all = await db.turn.findMany({
+    where: { sessionId: turnResult.sessionId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, userText: true, replyText: true },
+  });
+  const index = all.findIndex((turn) => turn.id === turnRecord.id);
+  if (index < 0) throw Error("turn missing from session history");
+  const history = all.slice(Math.max(0, index - 3), index).flatMap((turn) => [
+    { role: "user", content: turn.userText },
+    { role: "assistant", content: turn.replyText },
+  ]);
+  return compareVerifiedTurn({ turnResult, turnRecord, history }, options);
+}
