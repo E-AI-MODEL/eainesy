@@ -31,6 +31,9 @@ export function fromVerifiedTurn({turnResult,turnRecord,history=[]}){
     history:Array.isArray(history)?history:[],
     frame:frame && typeof frame==="object" && !frame.error ?frame:{intent:"UNKNOWN",paraphrase:"",riskMarkers:[]},
     lexicalMarkers:Array.isArray(lexical?.lexicalMarkers)?lexical.lexicalMarkers:[],
+    // Do not reinterpret paraphrase as a dialogue act. Forward only explicit
+    // parser-provided claims; architecture-lab independently anchors spans.
+    dialogueObservation:frame?.dialogueObservation??null,
     base:{move:STRATEGIES.has(plan?.strategy)?plan.strategy:
       STRATEGIES.has(certificate?.conversation?.strategy)?certificate.conversation.strategy:"CLARIFY"},
     safety,
