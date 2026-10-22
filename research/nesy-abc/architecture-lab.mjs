@@ -64,7 +64,17 @@ export function evidenceWorkspace(input) {
   const acts = new Set(observed.anchored.map(x=>x.type));
   const explicitCorrections = /\b(nee|niet wat ik bedoel|dat klopt niet|je begrijpt|ik bedoel|no[,]?\s+i|that's not|you misunderstood|not what i)\b/i.test(raw);
   const currentNeed = text(frame.paraphrase);
-  const mismatchedScope = evidence.some(e=>e.scope && (e.scope.experiencer==="other" || e.scope.experiencer==="quoted" || e.scope.temporality==="past_resolved" || e.scope.polarity==="negated"));
+  // "Other person", quotation, resolved past and negation are legitimate
+  // EXPLICIT context, not automatically semantic uncertainty. Those claims
+  // never warrant an extra C call just for being non-current/non-self.
+  const contextualScope = evidence.some(e=>e.scope &&
+    (e.scope.experiencer==="other" || e.scope.experiencer==="quoted" ||
+     e.scope.temporality==="past_resolved" || e.scope.polarity==="negated"));
+  // T3 is reserved for actual unknown/mixed attribution, time or polarity.
+  const uncertainScope = evidence.some(e=>e.scope &&
+    (e.scope.experiencer==="unknown" || e.scope.experiencer==="mixed" ||
+     e.scope.temporality==="unknown" || e.scope.temporality==="mixed" ||
+     e.scope.polarity==="uncertain" || e.scope.polarity==="mixed"));
   const questionableEvidence = evidence.some(e=>e.provenance==="unanchored");
   const breakdown = list(input.history).length>0 && explicitCorrections;
   const reopened = /\b(toch nog|nog een ding|one more thing|actually one more)\b/i.test(raw);
@@ -77,7 +87,7 @@ export function evidenceWorkspace(input) {
     ...(acts.has("UNCERTAIN_ATTRIBUTION")?["T3"]:[]),
     ...((acts.has("REOPEN_CONVERSATION"))?["T4"]:[]),
     ...(breakdown?["T2"]:[]),
-    ...((mismatchedScope||questionableEvidence)?["T3"]:[]),
+    ...((uncertainScope||questionableEvidence)?["T3"]:[]),
     ...((reopened)?["T4"]:[])
   ]);
   return Object.freeze({
@@ -87,7 +97,7 @@ export function evidenceWorkspace(input) {
     bindingPlan:input.bindingPlan && typeof input.bindingPlan==='object' ? clone(input.bindingPlan) : null,
     grounding:input.grounding && typeof input.grounding==='object' ? clone(input.grounding) : null,
     conflictingMarkers,
-    flags:{explicitCorrections,breakdown,reopened,requestDirect,noAdvice,termination,mismatchedScope,questionableEvidence},
+    flags:{explicitCorrections,breakdown,reopened,requestDirect,noAdvice,termination,contextualScope,uncertainScope,questionableEvidence},
     triggerCodes:reasons,
     userText:raw,
     history:list(input.history).filter(x=>x && (x.role==="user"||x.role==="assistant") && typeof x.content==="string").slice(-6).map(x=>({role:x.role,content:x.content})),
@@ -111,7 +121,7 @@ function proposeMixer(workspace) {
   else if(f.termination){move="AFFIRMATION";reason="respect stated closure";}
   else if(f.requestDirect){move="INFORMATION";reason="respond directly to explicit request";}
   else if(f.reopened){move="QUESTION";reason="acknowledge reopened subject";}
-  else if(f.mismatchedScope||f.questionableEvidence){move="CLARIFY";reason="scope/source uncertain; ask rather than invent attribution";}
+  else if(f.uncertainScope||f.questionableEvidence){move="CLARIFY";reason="scope/source uncertain; ask rather than invent attribution";}
   return {move,reason};
 }
 function guard(input,workspace,proposal) {
