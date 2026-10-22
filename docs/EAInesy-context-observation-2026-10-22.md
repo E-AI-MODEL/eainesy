@@ -57,6 +57,26 @@ Het blanco bestand `docs/EAInesy-independent-review-blank-v1.tsv` bevat uitsluit
 
 Laat twee geschikte beoordelaars het formulier **afzonderlijk** invullen vóór het tonen van dit rapport of de modeluitvoer. Leg vooraf een codeboek vast voor de categorieën en een route voor onenigheid. Een onbesliste casus blijft als onbeslist staan. Gebruik geen algemene accuracyscore zonder een door mensen beoordeelde referentie.
 
+## Aanvullende shadow-meting: dubbele markers (22 oktober 2026)
+
+Een tweede deterministische proef, `tests/duplicate-risk-shadow.test.ts`, vergelijkt het huidige lexicale scorepad met een **uitsluitend analytische** berekening waarin elk markertype hooguit één keer meetelt. De bestaande productiecode is niet gewijzigd.
+
+- Broncommit: `8fc98970757fbb914df96ae0146133589065235a`.
+- [GitHub Actions-run 39849051310](https://github.com/E-AI-MODEL/eainesy/actions/runs/39849051310): **229 tests PASS, 0 FAIL**, synthetische fast-eval 58/58 en scenario's 12/12, lint/typecontrole/Z3/build PASS. De aparte provider- en HTTP-werkstromen zijn eveneens geslaagd.
+- De proef toont enkel structurele gevoeligheid voor patroonverdubbeling. Geen externe GLM-modelaanroepen, menselijke beoordeling of klinische validatie.
+
+| ID | Lexicale markertypen | Huidige score / categorie | Hooguit eenmaal per type / categorie |
+|---|---|---|---|
+| D01 | HOPELESSNESS, HOPELESSNESS | 5,0 / CRISIS | 2,5 / ELEVATED |
+| D02 | HOPELESSNESS | 2,5 / ELEVATED | 2,5 / ELEVATED |
+| D03 | HOPELESSNESS, HOPELESSNESS | 5,0 / CRISIS | 2,5 / ELEVATED |
+| D04 | SUICIDAL_IDEATION | 5,0 / CRISIS | 5,0 / CRISIS |
+| D05 | HOPELESSNESS, ISOLATION | 3,5 / HIGH | 3,5 / HIGH |
+
+**Bevestigde technische afwijking:** twee formuleringen die aan verschillende patronen van de `HOPELESSNESS`-regel voldoen, tellen ieder met gewicht 2,5 mee. De implementatie van `collectLexicalMarkers` bewaakt momenteel niet werkelijk de in de code bedoelde 'one marker per rule type'. Hierdoor kan tweemaal hetzelfde markertype de crisisgrens van 5,0 bereiken.
+
+**Nog te beslissen:** is de gewenste semantiek één risicomarker per type, of mogen meerdere *onafhankelijk beoordeelde* aanwijzingen binnen hetzelfde type optellen? Zowel automatische deduplicatie als ongelimiteerd optellen heeft veiligheidsgevolgen. Leg deze beslissing vooraf vast, meet ook mogelijke gemiste acute gevallen en controleer de integratie met neurale max-fusie en menselijke beoordeling. Tot die tijd geen wijziging van de productiescore.
+
 ## Besluit voor PR #5
 
 - Laat de originele 58 fictieve casussen, 14 probes en geregistreerde criteria ongewijzigd.
