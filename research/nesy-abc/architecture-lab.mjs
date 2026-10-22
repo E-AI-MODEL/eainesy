@@ -75,10 +75,10 @@ export function evidenceWorkspace(input) {
     ...((conflictingMarkers.length>0)?["T1"]:[]),
     ...(acts.has("CORRECT_ASSUMPTION")?["T2"]:[]),
     ...(acts.has("UNCERTAIN_ATTRIBUTION")?["T3"]:[]),
-    ...((acts.has("REOPEN_CONVERSATION")||acts.has("END_CONVERSATION")||acts.has("DECLINE_ADVICE"))?["T4"]:[]),
+    ...((acts.has("REOPEN_CONVERSATION"))?["T4"]:[]),
     ...(breakdown?["T2"]:[]),
     ...((mismatchedScope||questionableEvidence)?["T3"]:[]),
-    ...((reopened||noAdvice||termination)?["T4"]:[])
+    ...((reopened)?["T4"]:[])
   ]);
   return Object.freeze({
     protocol:PROTOCOL_ID,
