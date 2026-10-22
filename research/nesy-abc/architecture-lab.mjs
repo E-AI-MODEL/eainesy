@@ -130,7 +130,7 @@ function normalizeSupervisorReply(value) {
       status:text(value.status),issue:text(value.issue),candidateDraft,
       candidateRequiresOutputPolicy:value.candidateRequiresOutputPolicy===true};
   }
-  return {kind:"keep",reason:text(value.reason)||"unchanged"};
+  return {kind:"keep",reason:text(value.reason)||"unchanged",status:text(value.status),issue:text(value.issue),rejection:text(value.rejection)};
 }
 
 /** Async callbacks are dependency-injected; this module never contacts a model. */
