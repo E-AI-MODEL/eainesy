@@ -85,3 +85,32 @@ test("all safety snapshots are read-only research outputs",async()=>{
     assert.equal(JSON.stringify(r.safetyUnchanged),before);
   }
 });
+
+test("anchored semantic correction can drive A when literal correction phrase is absent",async()=>{
+  const input=make("That refers to my sister, not me.");
+  input.dialogueObservation={version:1,origin:"model_claim",acts:[
+    {type:"CORRECT_ASSUMPTION",evidence:"my sister, not me"}
+  ]};
+  const result=await selectArchitecture(input,"A");
+  assert.equal(result.proposedMove,"REPAIR");
+  assert.equal(result.selectedMove,"REPAIR");
+  assert.equal(result.extraCalls,0);
+});
+test("invented semantic observation cannot change the dialogue choice",async()=>{
+  const input=make("A neutral comment.");
+  input.dialogueObservation={version:1,origin:"model_claim",acts:[
+    {type:"CORRECT_ASSUMPTION",evidence:"my sister, not me"}
+  ]};
+  const result=await selectArchitecture(input,"A");
+  assert.equal(result.proposedMove,"QUESTION");
+});
+test("grounded semantic claim still cannot override safety",async()=>{
+  const input=make("I mean my sister, not me.",{move:"SAFETY",safety:{action:"CRISIS_PROTOCOL",riskAssessment:"CRISIS"}});
+  input.dialogueObservation={version:1,origin:"model_claim",acts:[
+    {type:"CORRECT_ASSUMPTION",evidence:"my sister, not me"}
+  ]};
+  const result=await selectArchitecture(input,"C",{orchestrator:async()=>{throw new Error("should not call");}});
+  assert.equal(result.selectedMove,"SAFETY");
+  assert.equal(result.accepted,false);
+  assert.equal(result.extraCalls,0);
+});
