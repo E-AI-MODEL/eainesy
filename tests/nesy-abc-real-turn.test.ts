@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { processTurn } from '../src/lib/eainesy/orchestrator';
 import type { Frame } from '../src/lib/eainesy/types';
 import type { FakeDb } from './support/fake-db';
-import { compareVerifiedTurn, fromVerifiedTurn } from '../research/nesy-abc/kernel-bridge.mjs';
+import { compareVerifiedTurn, comparePersistedTurn, fromVerifiedTurn } from '../research/nesy-abc/kernel-bridge.mjs';
 
 const fake = (globalThis as unknown as { __fakeDb: FakeDb }).__fakeDb;
 const F = (changes: Partial<Frame>): Frame => ({
@@ -85,16 +85,10 @@ describe('NeSy real processTurn -> A/B/C research bridge (DEV ONLY)', () => {
     expect(secondRecord).not.toBeNull();
     expect(second.certificate.conversation).toBeDefined();
     const stored = JSON.stringify(secondRecord);
-    const comparison = await compareVerifiedTurn({
-      turnResult: second,
-      turnRecord: secondRecord,
-      history: [
-        { role: 'user', content: 'Ik maak me zorgen over mijn werk.' },
-        { role: 'assistant', content: first.reply },
-      ],
-    });
+    const comparison = await comparePersistedTurn({ db: fake, turnResult: second });
     expect(comparison.verified).toBe(false);
     expect(comparison.baselineAction).toBe(second.action);
+    expect(comparison.arms.C.triggers).toContain('T2');
     for (const arm of ['A', 'B', 'C']) expect(comparison.arms[arm].accepted).toBe(false);
     const latest = await fake.turn.findUnique({ where: { id: second.turnId } });
     expect(JSON.stringify(latest)).toBe(stored);
