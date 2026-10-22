@@ -106,12 +106,16 @@ describe('ABC shadow observation alongside unchanged P0',()=>{
     const {stored,result}=await scenario('Een gewoon bericht.');
     const count=await db.turn.count();
     const r=await maybeRecordABCShadow({
-      turn:{...stored,frame:'undefined json',certificate:'no-json',trace:'not-json'},
-      certificate:result.certificate,trace:result.trace,history:[],origin:'scenario'
+      turn:stored,
+      // Deliberately corrupt the already-persisted certificate passed to
+      // telemetry. The observer must fail, never interrupt the real turn.
+      certificate:null as never,trace:result.trace,history:[],origin:'scenario'
     });
-    // Missing frame/plan is tolerated as unknown, but a broken certificate
-    // may either fail the observer or produce only an ineligible suggestion.
-    expect(['failed','recorded']).toContain(r);
+    expect(r).toBe('failed');
+    const errs=await stages('turn.abc_shadow_error');
+    expect(errs).toHaveLength(1);
+    expect(errs[0].payload).not.toContain(result.reply);
+    expect(JSON.parse(errs[0].payload).reason).toBe('non_authoritative_observer_failed');
     expect(await db.turn.count()).toBe(count);
     expect((await db.turn.findUnique({where:{id:result.turnId}})).replyText).toBe(result.reply);
   });
