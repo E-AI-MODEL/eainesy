@@ -199,8 +199,10 @@ const result={
   schema:"eainesy-abc-review-callback-lab-v1",
   protocol:dev.protocol,
   status:errors.length===0&&rows.length===24&&bCalls===24&&
-    cCalls===expectedCCalls&&usage.calls===bCalls+cCalls&&
-    (ciStub?stubRequests===usage.calls:true)
+    cCalls===expectedCCalls&&usage.calls===bCalls+cCalls&&usage.failed===0&&
+    (ciStub?(stubRequests===usage.calls &&
+      rows.filter(r=>r.b.candidateDraftProvided).length>=2 &&
+      rows.filter(r=>r.c.decision==="revise").length>=2):true)
     ?"PASS_DEV_REVIEW_WIRING":"FAIL_DEV_REVIEW_WIRING",
   sourceCommit:process.env.GITHUB_SHA||"local",
   devCorpusSha256:digest(devRaw),
