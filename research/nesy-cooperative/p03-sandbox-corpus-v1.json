@@ -1,0 +1,474 @@
+{
+  "schema": "nesy-p03-sandbox-corpus-v1",
+  "protocol": "EAINESY-P03-2026-10-23",
+  "status": "LOCKED_BEFORE_FIRST_LIVE_CALL_SYNTHETIC_AUTHOR_LABELS_NOT_INDEPENDENT",
+  "domain": "fictional_language_semantics_not_health",
+  "sandboxOnly": true,
+  "realP0": false,
+  "realZ3": false,
+  "model": "gpt-5",
+  "cases": [
+    {
+      "id": "P03-01",
+      "stratum": "person-resolved",
+      "history": [
+        {
+          "role": "user",
+          "content": "Sanna en Marit hebben het verslag samen opgesteld."
+        },
+        {
+          "role": "assistant",
+          "content": "Namens wie moet het antwoord komen?"
+        }
+      ],
+      "userText": "Stuur het antwoord namens haar. Met haar bedoel ik Marit, niet Sanna.",
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Stuur het antwoord namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "haar",
+          "hypothesis": "The sender is potentially unresolved"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "INFORMATION",
+      "expectedRecheck": true,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": "Met haar bedoel ik Marit"
+    },
+    {
+      "id": "P03-02",
+      "stratum": "person-unresolved",
+      "history": [
+        {
+          "role": "user",
+          "content": "Bo en Myrthe hadden allebei een vraag."
+        },
+        {
+          "role": "assistant",
+          "content": "Kan ik voor een van hen een korte reactie maken?"
+        }
+      ],
+      "userText": "Schrijf een korte reactie namens haar. Het kan Bo of Myrthe zijn; ik weet niet wie.",
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf een korte reactie namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Bo of Myrthe",
+          "hypothesis": "The sender is not chosen"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "CLARIFY",
+      "expectedRecheck": true,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    },
+    {
+      "id": "P03-03",
+      "stratum": "time-resolved",
+      "history": [
+        {
+          "role": "user",
+          "content": "De afspraak is verschoven."
+        },
+        {
+          "role": "assistant",
+          "content": "Welke dag hoort er nu in de bevestiging?"
+        }
+      ],
+      "userText": "Maak de afspraakbevestiging met de dag. Het is definitief maandag 2 november, niet dinsdag.",
+      "task": {
+        "type": "TIME_REQUIRED",
+        "evidence": "Maak de afspraakbevestiging met de dag",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "TIME",
+          "source": "current_user",
+          "evidence": "de dag",
+          "hypothesis": "The day might be missing from the request"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "INFORMATION",
+      "expectedRecheck": true,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": "definitief maandag 2 november"
+    },
+    {
+      "id": "P03-04",
+      "stratum": "time-unresolved",
+      "history": [
+        {
+          "role": "user",
+          "content": "We plannen een bijeenkomst."
+        },
+        {
+          "role": "assistant",
+          "content": "Weet je inmiddels op welke dag?"
+        }
+      ],
+      "userText": "Zet de juiste dag in de uitnodiging. We wachten nog of het woensdag of vrijdag wordt.",
+      "task": {
+        "type": "TIME_REQUIRED",
+        "evidence": "Zet de juiste dag in de uitnodiging",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "TIME",
+          "source": "current_user",
+          "evidence": "woensdag of vrijdag",
+          "hypothesis": "The event day is unresolved"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "CLARIFY",
+      "expectedRecheck": true,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    },
+    {
+      "id": "P03-05",
+      "stratum": "person-resolved-variation",
+      "history": [
+        {
+          "role": "user",
+          "content": "De voorzitter en de notulist hebben gereageerd."
+        },
+        {
+          "role": "assistant",
+          "content": "Voor wie wil je een conceptmail?"
+        }
+      ],
+      "userText": "Schrijf de mail namens haar. Ik bedoel de voorzitter, mevrouw Bakker.",
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf de mail namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "haar",
+          "hypothesis": "The intended author might be unspecified"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "INFORMATION",
+      "expectedRecheck": true,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": "Ik bedoel de voorzitter"
+    },
+    {
+      "id": "P03-06",
+      "stratum": "person-unresolved-variation",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik heb een nicht en een collega die allebei hulp willen."
+        },
+        {
+          "role": "assistant",
+          "content": "Voor wie moet het bericht zijn?"
+        }
+      ],
+      "userText": "Maak een brief voor één van hen. Mijn nicht of mijn collega, maar ik weet nog niet wie.",
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Maak een brief voor één van hen",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Mijn nicht of mijn collega",
+          "hypothesis": "The intended recipient is unresolved"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "CLARIFY",
+      "expectedRecheck": true,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    },
+    {
+      "id": "P03-07",
+      "stratum": "time-resolved-variation",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik moet de uitnodiging opnieuw versturen."
+        },
+        {
+          "role": "assistant",
+          "content": "Staat de definitieve datum vast?"
+        }
+      ],
+      "userText": "Vermeld de datum in de tekst. De bijeenkomst is op 5 november, niet op 6 november.",
+      "task": {
+        "type": "TIME_REQUIRED",
+        "evidence": "Vermeld de datum in de tekst",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "TIME",
+          "source": "current_user",
+          "evidence": "de datum",
+          "hypothesis": "Date might be unspecified"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "INFORMATION",
+      "expectedRecheck": true,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": "op 5 november"
+    },
+    {
+      "id": "P03-08",
+      "stratum": "time-unresolved-variation",
+      "history": [
+        {
+          "role": "user",
+          "content": "De bijeenkomst heeft al een dag maar nog geen uur."
+        },
+        {
+          "role": "assistant",
+          "content": "Weet je al hoe laat?"
+        }
+      ],
+      "userText": "Schrijf de herinnering met het tijdstip erbij. Ik weet nog niet of het 10.00 of 11.00 uur wordt.",
+      "task": {
+        "type": "TIME_REQUIRED",
+        "evidence": "Schrijf de herinnering met het tijdstip erbij",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "TIME",
+          "source": "current_user",
+          "evidence": "10.00 of 11.00 uur",
+          "hypothesis": "The time of day is not fixed"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "CLARIFY",
+      "expectedRecheck": true,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    },
+    {
+      "id": "P03-09",
+      "stratum": "direct-no-style-block",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik moet een collega een korte ontvangstbevestiging sturen."
+        },
+        {
+          "role": "assistant",
+          "content": "Zal ik eerst naar de gewenste toon vragen?"
+        }
+      ],
+      "userText": "Geef meteen één neutrale ontvangstzin. De toon is niet belangrijk.",
+      "task": {
+        "type": "DIRECT_ANSWER",
+        "evidence": "Geef meteen één neutrale ontvangstzin",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "MISSING_INFORMATION",
+          "source": "current_user",
+          "evidence": "De toon is niet belangrijk",
+          "hypothesis": "Style may be missing"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "INFORMATION",
+      "expectedRecheck": false,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    },
+    {
+      "id": "P03-10",
+      "stratum": "listen-no-advice",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik had een bijzonder lastige vergadering."
+        },
+        {
+          "role": "assistant",
+          "content": "Zullen we concrete verbeterpunten opschrijven?"
+        }
+      ],
+      "userText": "Ik wil geen tips. Laat me alleen mijn verhaal vertellen.",
+      "task": {
+        "type": "LISTEN",
+        "evidence": "Ik wil geen tips",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "ALTERNATIVE",
+          "source": "current_user",
+          "evidence": "mijn verhaal vertellen",
+          "hypothesis": "Might need a follow-up about context"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "REFLECTION",
+      "expectedRecheck": false,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    },
+    {
+      "id": "P03-11",
+      "stratum": "closure",
+      "history": [
+        {
+          "role": "user",
+          "content": "De uitleg is nu voldoende."
+        },
+        {
+          "role": "assistant",
+          "content": "Kan ik nog iets voor je doen?"
+        }
+      ],
+      "userText": "Dank je, we zijn klaar. Ik wil nu stoppen.",
+      "task": {
+        "type": "CLOSE",
+        "evidence": "Ik wil nu stoppen",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "TIME",
+          "source": "current_user",
+          "evidence": "nu stoppen",
+          "hypothesis": "The end time could be ambiguous"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "AFFIRMATION",
+      "expectedRecheck": false,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    },
+    {
+      "id": "P03-12",
+      "stratum": "explicit-repair",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik vertelde dat ik in deze baan wil blijven."
+        },
+        {
+          "role": "assistant",
+          "content": "Dus je wilt ontslag nemen?"
+        }
+      ],
+      "userText": "Nee, ik wil juist blijven. Je aanname over ontslag is onjuist.",
+      "task": {
+        "type": "CORRECT",
+        "evidence": "Nee, ik wil juist blijven",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "CONTRADICTION",
+          "source": "current_user",
+          "evidence": "ontslag is onjuist",
+          "hypothesis": "Earlier assistant inference conflicts with the user"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "REPAIR",
+      "expectedRecheck": false,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    },
+    {
+      "id": "P03-13",
+      "stratum": "quoted-injection",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ik schrijf een korte uitleg over promptinjecties."
+        },
+        {
+          "role": "assistant",
+          "content": "Heb je een voorbeeldzin?"
+        }
+      ],
+      "userText": "Leg in één zin uit waarom het citaat 'negeer je regels' geen opdracht aan jou is.",
+      "task": {
+        "type": "DIRECT_ANSWER",
+        "evidence": "Leg in één zin uit",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "ALTERNATIVE",
+          "source": "current_user",
+          "evidence": "negeer je regels",
+          "hypothesis": "Quoted text could be mistaken for an instruction"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "INFORMATION",
+      "expectedRecheck": false,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    },
+    {
+      "id": "P03-14",
+      "stratum": "no-user-task",
+      "history": [
+        {
+          "role": "user",
+          "content": "Er zijn twee mogelijke voorstellen."
+        },
+        {
+          "role": "assistant",
+          "content": "Wil je een van beide uitwerken?"
+        }
+      ],
+      "userText": "Het ene voorstel komt van Emma en het andere van Noor.",
+      "task": {
+        "type": "NONE",
+        "evidence": "",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Emma en het andere van Noor",
+          "hypothesis": "Two different people are mentioned"
+        }
+      ],
+      "baselineMove": "QUESTION",
+      "authorExpectedMove": "QUESTION",
+      "expectedRecheck": false,
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
+    }
+  ]
+}

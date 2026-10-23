@@ -1,0 +1,86 @@
+name: NeSy P03 - GPT-5 sandbox S1 vs S2 (no P0)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/nesy-p03-semantic-sandbox.yml"
+      - "research/nesy-cooperative/p03-*"
+      - "scripts/nesy-p03-sandbox-gpt5.mjs"
+      - "docs/NeSy-P03-semantische-samenwerking-2026-10-23.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/nesy-p03-semantic-sandbox.yml"
+  workflow_dispatch:
+    inputs:
+      confirm_api_costs:
+        description: "YES - up to 16 GPT-5 requests on 14 fictional language cases"
+        required: true
+        type: choice
+        default: "NO"
+        options: ["NO","YES"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nesy-p03-one-time-synthetic-sandbox
+  cancel-in-progress: false
+
+jobs:
+  offline:
+    name: Synthetic scope, eight model opportunities, keyless tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate syntax, research gates, transport and source policy
+        run: |
+          node --check scripts/nesy-p03-sandbox-gpt5.mjs
+          node --check research/nesy-cooperative/p03-api-client.mjs
+          node --check research/nesy-cooperative/p03-sandbox.mjs
+          node --test research/nesy-cooperative/*.test.mjs
+          node scripts/nesy-p03-sandbox-gpt5.mjs --preflight
+
+  live:
+    if: >-
+      ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'research(nesy): P03 GPT-5 one-shot sandbox 2026-10-23')) }}
+    needs: offline
+    name: Real GPT-5 on fictional sandbox; save separate blind-review packet
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: nesy
+    env:
+      NESY_P03_APPROVED: P03_ONE_SHOT_16_CALLS
+      NESY_P03_SYNTHETIC_ONLY: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Bounded GPT-5 semantic research, no production API or Z3
+        env:
+          nesy: ${{ secrets.nesy }}
+        run: |
+          if [ -z "$nesy" ]; then
+            echo "::error::The existing GitHub Environment nesy secret is unavailable."
+            exit 1
+          fi
+          node scripts/nesy-p03-sandbox-gpt5.mjs --live --accept-costs
+      - name: Preserve research result and blind packet separately
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesy-p03-gpt5-s1s2-sandbox-blind-review
+          path: .research-output/nesy-p03-sandbox/
+          if-no-files-found: warn
+          retention-days: 30
