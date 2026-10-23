@@ -2,17 +2,18 @@ import { db } from '@/lib/db';
 import { parseSessions, type SeedView } from './seed-authority';
 
 /**
- * Review candidates as remembered recognition patterns (see seed-authority.ts).
+ * Remembered recognition patterns (see seed-authority.ts).
  *
- * v1 turned an approved message into "known territory" immediately and
- * created a NEW queue item for every unknown message (hundreds of
- * duplicates). v2: one candidate per pattern — a recurring message updates
- * the existing candidate (recurrence, sessions seen) instead of piling up;
- * influence goes through weight + point-of-use, never directly.
+ * LIVE recognition is deliberately high-precision: ONLY exactly equal
+ * normalized utterances may share a candidate. Token overlap is not a
+ * semantic equivalence test: "ik wil tips" and "ik wil geen tips" used to
+ * overlap completely, and an approved seed could incorrectly be used for
+ * the opposite meaning. The same risk applies to person and time changes.
  *
- * Matching is a word-pattern match, NOT clinical understanding:
- * same normalized text, or ≥60% token overlap (min. 3 tokens per side so
- * single words cannot hijack recognition).
+ * Paraphrase matching needs independently checked semantic equivalence
+ * BEFORE recurrence, learned authority or point-of-use may use it. The
+ * research-only C2 observer investigates such differences without authority.
+ * This guard is conservative, not a claim of semantic understanding.
  */
 
 /** Lowercase, strip punctuation/accents, collapse whitespace. */
@@ -24,14 +25,6 @@ export function normalizeSeedText(s: string): string {
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-/** Overlap coefficient on tokens (robust for short messages). */
-function overlapCoefficient(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 || b.size === 0) return 0;
-  let inter = 0;
-  for (const t of a) if (b.has(t)) inter++;
-  return inter / Math.min(a.size, b.size);
 }
 
 export interface SeedRow extends SeedView {
@@ -53,34 +46,25 @@ export function toSeedView(r: Record<string, unknown>): SeedRow {
 }
 
 /**
- * The best matching LIVE candidate for this utterance (any status), or null.
- * Exact normalized match wins over overlap; among overlaps the highest
- * coefficient wins, ties to the heaviest pattern.
+ * Return an existing live candidate only for an exact normalized message.
+ * Neither a model claim nor lexical similarity may silently promote a new
+ * utterance to an earlier approved interpretation.
+ *
+ * A meaningful paraphrase therefore stays a separate, weightless review
+ * opportunity. This intentionally trades recall for protection from false
+ * semantic equivalence until semantic review is available.
  */
 export async function findMatchingSeed(utterance: string): Promise<SeedRow | null> {
   const norm = normalizeSeedText(utterance);
   if (!norm) return null;
-  const tokens = new Set(norm.split(' '));
   const rows = await db.seedCandidate.findMany({
     where: { origin: 'live' },
     orderBy: { createdAt: 'desc' },
     take: 500,
   });
-  let best: { row: SeedRow; score: number } | null = null;
   for (const raw of rows) {
     const row = toSeedView(raw as unknown as Record<string, unknown>);
-    const sn = normalizeSeedText(row.utterance);
-    if (!sn) continue;
-    let score = 0;
-    if (sn === norm) score = 2;
-    else {
-      const st = new Set(sn.split(' '));
-      if (st.size >= 3 && tokens.size >= 3) {
-        const o = overlapCoefficient(tokens, st);
-        if (o >= 0.6) score = o;
-      }
-    }
-    if (score > 0 && (!best || score > best.score || (score === best.score && row.weight > best.row.weight))) best = { row, score };
+    if (normalizeSeedText(row.utterance) === norm) return row;
   }
-  return best?.row ?? null;
+  return null;
 }
