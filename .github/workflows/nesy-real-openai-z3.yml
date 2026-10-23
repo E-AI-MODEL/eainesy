@@ -1,0 +1,71 @@
+name: NeSy real OpenAI + real Z3 - opt-in research
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_api_costs:
+        description: "YES authorizes up to 12 bounded paid API attempts for four fictional full-chain test turns"
+        required: true
+        type: choice
+        default: "NO"
+        options: ["NO", "YES"]
+  # One-time approved main-branch activation; removed after the experiment.
+  push:
+    branches: [main]
+    paths: [".github/workflows/nesy-real-openai-z3.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nesy-real-z3-single-execution
+  cancel-in-progress: false
+
+jobs:
+  real-chain:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES')
+      || (github.event_name == 'push' &&
+          startsWith(github.event.head_commit.message,
+            'test(nesy): one-shot live OpenAI and real Z3'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: nesy
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NESY_FULLCHAIN_APPROVED: ONE_SHOT_LIVE_APPROVED
+    steps:
+      - name: Checkout read-only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - name: Install Node 22 for isolated Z3
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Resolve frozen dependencies
+        run: bun install --frozen-lockfile
+      - name: Validate bounded runner syntax offline
+        run: node --check scripts/nesy-full-chain-live-once.mjs
+      - name: One-shot full pipeline, real model and real isolated Z3
+        env:
+          nesy: ${{ secrets.nesy }}
+        run: |
+          if [ -z "$nesy" ]; then
+            echo "::error::Environment nesy needs its secret named nesy."
+            exit 1
+          fi
+          node scripts/nesy-full-chain-live-once.mjs --live --accept-costs
+      - name: Publish metadata, never key or model text
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesy-fullchain-real-z3-metadata
+          path: .research-output/nesy-full-chain-live/
+          if-no-files-found: warn
+          retention-days: 14
