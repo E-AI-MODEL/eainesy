@@ -16,13 +16,6 @@ on:
         default: "NO"
         required: true
         options: ["NO", "YES"]
-  # ONE-TIME activation only on the approved frozen-corpus merge.
-  # Must be removed immediately after interpreting the first live result.
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/nesy-p0-independent-baseline.yml"
-
 permissions:
   contents: read
 
@@ -53,11 +46,7 @@ jobs:
           fi
 
   real-p0:
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES')
-      || (github.event_name == 'push' &&
-          startsWith(github.event.head_commit.message,
-            'test(nesy): P0 first independent baseline'))
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES' }}
     name: REAL P0-only NeSy, gpt-5-mini, isolated sessions and Z3
     runs-on: ubuntu-latest
     timeout-minutes: 18
