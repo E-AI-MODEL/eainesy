@@ -297,6 +297,7 @@ const result={
 writeFileSync(join(OUT,"summary.json"),JSON.stringify(result,null,2)+"\n");
 console.log("NESY ABC LIVE DEV "+JSON.stringify({
   status:result.status,processed:rows.length,realZ3,comparisons:verified,
+  persistedIsolated:sessionsIsolated,
   B:counts.B,C:counts.C,A:counts.A,P0:counts.P0,
   reviewerRequests:callCounter,setupError
 }));
