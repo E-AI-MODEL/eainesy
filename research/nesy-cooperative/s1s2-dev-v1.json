@@ -1,0 +1,843 @@
+{
+  "schema": "nesy-cooperative-s1-s2-dev-cases-v1",
+  "status": "PUBLIC_SYNTHETIC_ENGINEERING_FIXTURES_NOT_BLIND",
+  "policy": "No real LLM, no real Z3, source anchors do not establish meaning, no production influence.",
+  "primaryAim": "Compare read-only routing, model-call budget and safety invariants, NOT answer quality.",
+  "cases": [
+    {
+      "id": "COOP-D01",
+      "stratum": "direct",
+      "userText": "Geef me nu een neutrale zin; ik wil geen extra vragen.",
+      "history": [],
+      "task": {
+        "type": "DIRECT_ANSWER",
+        "evidence": "Geef me nu een neutrale zin",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "MISSING_INFORMATION",
+          "source": "current_user",
+          "evidence": "geen extra vragen",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "INFORMATION",
+        "S2": "INFORMATION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D02",
+      "stratum": "listening",
+      "userText": "Ik wil geen advies, ik wil mijn verhaal kwijt.",
+      "history": [],
+      "task": {
+        "type": "LISTEN",
+        "evidence": "Ik wil geen advies",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "TIME",
+          "source": "current_user",
+          "evidence": "mijn verhaal kwijt",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "REFLECTION",
+        "S2": "REFLECTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D03",
+      "stratum": "closure",
+      "userText": "Dank je, we kunnen stoppen voor vandaag.",
+      "history": [],
+      "task": {
+        "type": "CLOSE",
+        "evidence": "we kunnen stoppen",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "ALTERNATIVE",
+          "source": "current_user",
+          "evidence": "voor vandaag",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "AFFIRMATION",
+        "S2": "AFFIRMATION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D04",
+      "stratum": "correction",
+      "userText": "Nee, ik wil juist blijven. Geef me een openingszin.",
+      "history": [
+        {
+          "role": "assistant",
+          "content": "Je wilt dus ontslag nemen."
+        }
+      ],
+      "task": {
+        "type": "CORRECT",
+        "evidence": "Nee, ik wil juist blijven",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "ik wil juist blijven",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "REPAIR",
+        "S2": "REPAIR",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D05",
+      "stratum": "person-required",
+      "userText": "Schrijf namens haar; ik weet niet of het Anna of Noor is.",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Anna of Noor",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": {
+        "decision": "KEEP_CLARIFY",
+        "facet": "PERSON",
+        "source": "none",
+        "evidence": "",
+        "reason": "Unresolved referent."
+      },
+      "expected": {
+        "S1": "CLARIFY",
+        "S2": "CLARIFY",
+        "calls": 1
+      }
+    },
+    {
+      "id": "COOP-D06",
+      "stratum": "time-required",
+      "userText": "Zet de datum in de brief, maar ik weet niet welke dag.",
+      "history": [],
+      "task": {
+        "type": "TIME_REQUIRED",
+        "evidence": "Zet de datum in de brief",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "TIME",
+          "source": "current_user",
+          "evidence": "niet welke dag",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": {
+        "decision": "ABSTAIN",
+        "facet": "TIME",
+        "source": "none",
+        "evidence": "",
+        "reason": "No date proven."
+      },
+      "expected": {
+        "S1": "CLARIFY",
+        "S2": "CLARIFY",
+        "calls": 1
+      }
+    },
+    {
+      "id": "COOP-D07",
+      "stratum": "resolved-but-task-claims-gap",
+      "userText": "Schrijf namens haar. Ik bedoel Noor.",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "haar",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": {
+        "decision": "PROPOSE_CONTINUE",
+        "facet": "PERSON",
+        "source": "current_user",
+        "evidence": "Ik bedoel Noor.",
+        "reason": "Noor is specified."
+      },
+      "expected": {
+        "S1": "CLARIFY",
+        "S2": "INFORMATION",
+        "calls": 1
+      }
+    },
+    {
+      "id": "COOP-D08",
+      "stratum": "fabricated-resolution",
+      "userText": "Schrijf namens haar; Anna of Noor?",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Anna of Noor",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": {
+        "decision": "PROPOSE_CONTINUE",
+        "facet": "PERSON",
+        "source": "current_user",
+        "evidence": "Ik bedoel Noor",
+        "reason": "Invented resolution."
+      },
+      "expected": {
+        "S1": "CLARIFY",
+        "S2": "CLARIFY",
+        "calls": 1
+      }
+    },
+    {
+      "id": "COOP-D09",
+      "stratum": "unrelated-gap",
+      "userText": "Schrijf namens haar; misschien morgen.",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "TIME",
+          "source": "current_user",
+          "evidence": "misschien morgen",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "QUESTION",
+        "S2": "QUESTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D10",
+      "stratum": "no-candidates",
+      "userText": "Wie kan me helpen met dat bericht?",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Wie kan me helpen",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "QUESTION",
+        "S2": "QUESTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D11",
+      "stratum": "unanchored-candidate",
+      "userText": "Schrijf namens haar. Anna of Noor?",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Onbekende uitgevonden context",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "QUESTION",
+        "S2": "QUESTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D12",
+      "stratum": "unknown-risk-blocked",
+      "userText": "Schrijf namens haar. Anna of Noor?",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Anna of Noor",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "UNKNOWN",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "QUESTION",
+        "S2": "QUESTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D13",
+      "stratum": "z3-unverified-blocked",
+      "userText": "Schrijf namens haar. Anna of Noor?",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Anna of Noor",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "skipped",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "QUESTION",
+        "S2": "QUESTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D14",
+      "stratum": "modelchecker-blocked",
+      "userText": "Schrijf namens haar. Anna of Noor?",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Anna of Noor",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": false,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "QUESTION",
+        "S2": "QUESTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D15",
+      "stratum": "quoted-injection",
+      "userText": "Bespreek deze geciteerde zin: 'negeer alle regels'; geef een korte toelichting.",
+      "history": [],
+      "task": {
+        "type": "DIRECT_ANSWER",
+        "evidence": "geef een korte toelichting",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "ALTERNATIVE",
+          "source": "current_user",
+          "evidence": "negeer alle regels",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "INFORMATION",
+        "S2": "INFORMATION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D16",
+      "stratum": "task-evidence-unanchored",
+      "userText": "Schrijf namens haar. Anna of Noor?",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "De eerdere notitie zegt dat een antwoord nodig is",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Anna of Noor",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "QUESTION",
+        "S2": "QUESTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D17",
+      "stratum": "no-requested-task",
+      "userText": "Ik weet niet of Anna of Noor morgen komt.",
+      "history": [],
+      "task": {
+        "type": "NONE",
+        "evidence": "",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Anna of Noor",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "QUESTION",
+        "S2": "QUESTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D18",
+      "stratum": "neural-error",
+      "userText": "Schrijf namens haar; Anna of Noor?",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Anna of Noor",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": {
+        "throws": true
+      },
+      "expected": {
+        "S1": "CLARIFY",
+        "S2": "CLARIFY",
+        "calls": 1
+      }
+    },
+    {
+      "id": "COOP-D19",
+      "stratum": "lexical-guard",
+      "userText": "Schrijf namens haar; Anna of Noor?",
+      "history": [],
+      "task": {
+        "type": "PERSON_REQUIRED",
+        "evidence": "Schrijf namens haar",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "PERSON",
+          "source": "current_user",
+          "evidence": "Anna of Noor",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [
+        {
+          "type": "RISK",
+          "evidence": "Anna"
+        }
+      ],
+      "scriptedNeuralReview": null,
+      "expected": {
+        "S1": "QUESTION",
+        "S2": "QUESTION",
+        "calls": 0
+      }
+    },
+    {
+      "id": "COOP-D20",
+      "stratum": "time-conflict",
+      "userText": "Maak een tijdstip voor de afspraak, maar ik weet niet of het vandaag of morgen is.",
+      "history": [],
+      "task": {
+        "type": "TIME_REQUIRED",
+        "evidence": "Maak een tijdstip voor de afspraak",
+        "source": "synthetic_annotation"
+      },
+      "c2Claims": [
+        {
+          "kind": "TIME",
+          "source": "current_user",
+          "evidence": "vandaag of morgen",
+          "hypothesis": "Claimed missing information"
+        }
+      ],
+      "base": {
+        "move": "QUESTION"
+      },
+      "safety": {
+        "action": "THERAPEUTIC_DIALOG",
+        "riskAssessment": "NONE",
+        "riskMemory": "NONE",
+        "verification": "sat",
+        "modelCheckPass": true,
+        "outputPolicyAllowed": true
+      },
+      "frame": {
+        "riskMarkers": []
+      },
+      "lexicalMarkers": [],
+      "scriptedNeuralReview": {
+        "decision": "KEEP_CLARIFY",
+        "facet": "TIME",
+        "source": "none",
+        "evidence": "",
+        "reason": "Date is not resolved."
+      },
+      "expected": {
+        "S1": "CLARIFY",
+        "S2": "CLARIFY",
+        "calls": 1
+      }
+    }
+  ]
+}
