@@ -1,0 +1,98 @@
+name: NeSy P02 S1 S2 real GPT-5 blind-packet exploratory
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/nesy-s1s2-real-p02.yml"
+      - "research/nesy-cooperative/s1s2-real-p02-corpus.json"
+      - "research/nesy-cooperative/s1s2-real-p02-corpus.test.mjs"
+      - "scripts/nesy-s1s2-real-p02-e2e.mjs"
+      - "scripts/nesy-full-chain-live-once.mjs"
+      - "docs/NeSy-S1S2-P02-real-GPT5-protocol-2026-10-23.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/nesy-s1s2-real-p02.yml"
+  workflow_dispatch:
+    inputs:
+      confirm_api_costs:
+        description: "YES - explicitly authorize up to 64 GPT-5 API calls on 10 synthetic cases"
+        type: choice
+        options: ["NO","YES"]
+        default: "NO"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nesy-s1s2-p02-single-live-attempt
+  cancel-in-progress: false
+
+jobs:
+  offline:
+    name: Freeze ten cases, check proxy/callbacks, no key or API calls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate all scripts without paid calls
+        run: |
+          node --check scripts/nesy-s1s2-real-p02-e2e.mjs
+          node --check scripts/nesy-full-chain-live-once.mjs
+          node scripts/nesy-s1s2-real-p02-e2e.mjs --check-cases
+          node --test research/nesy-cooperative/*.test.mjs
+  real:
+    if: >-
+      ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'research(nesy): S1S2 GPT-5 one-shot P02-2026-10-23')) }}
+    needs: offline
+    name: Genuine GPT-5, real NeSy P0 and Node/Z3, paired S1/S2 blind review packet
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: nesy
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NESY_FULLCHAIN_APPROVED: ONE_SHOT_LIVE_APPROVED
+      NESY_S1S2_P02_ALLOWED: S1S2_P02_ONE_SHOT
+      EAINESY_ABC_SHADOW_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Locked dependency installation
+        run: bun install --frozen-lockfile
+      - name: Verify fixed cases before spending API requests
+        run: |
+          node --check scripts/nesy-s1s2-real-p02-e2e.mjs
+          node --check scripts/nesy-full-chain-live-once.mjs
+          node scripts/nesy-s1s2-real-p02-e2e.mjs --check-cases
+      - name: Run bounded real GPT-5 comparison with existing GitHub Environment secret
+        env:
+          nesy: ${{ secrets.nesy }}
+        run: |
+          if [ -z "$nesy" ]; then
+            echo "::error::GitHub Environment 'nesy' must contain the already-configured secret 'nesy'."
+            exit 1
+          fi
+          node scripts/nesy-full-chain-live-once.mjs --live --accept-costs --s1s2-pilot
+      - name: Preserve source-linked synthetic pilot outputs for independent review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesy-s1s2-p02-real-gpt5-blind-review-packet
+          path: .research-output/nesy-s1s2-p02/
+          if-no-files-found: warn
+          retention-days: 30
