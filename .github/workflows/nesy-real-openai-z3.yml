@@ -9,11 +9,6 @@ on:
         type: choice
         default: "NO"
         options: ["NO", "YES"]
-  # One-time approved main-branch activation; removed after the experiment.
-  push:
-    branches: [main]
-    paths: [".github/workflows/nesy-real-openai-z3.yml"]
-
 permissions:
   contents: read
 
@@ -23,11 +18,7 @@ concurrency:
 
 jobs:
   real-chain:
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES')
-      || (github.event_name == 'push' &&
-          startsWith(github.event.head_commit.message,
-            'test(nesy): one-shot live OpenAI and real Z3'))
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
