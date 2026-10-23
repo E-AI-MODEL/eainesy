@@ -68,6 +68,24 @@ EAINESY_MODEL_NAME=<jouw-model-id>
 EAINESY_MODEL_API_KEY=<alleen-via-secrets>
 ```
 
+**Rechtstreeks naar de OpenAI API, zonder de verwijderde sandbox:**
+
+```dotenv
+# Voor een vertrouwde serveromgeving of lokale .env; nooit committen.
+EAINESY_MODEL_BACKEND=openai-compatible
+EAINESY_MODEL_ENDPOINT=https://api.openai.com/v1/chat/completions
+EAINESY_MODEL_NAME=gpt-4.1
+EAINESY_MODEL_API_KEY=<via-je-eigen-secret-store>
+```
+
+Dit gebruikt de **bestaande** NeSy-modeladapter en dezelfde controleketen
+(GLM-parser, controller, echte Z3, uitvoercontrole). Het model wordt **niet**
+automatisch gekozen door een GitHub-secret of door een chatbericht met een
+sleutel. De serveromgeving moet expliciet geconfigureerd zijn. De oude, losse
+`nesy-openai-sandbox`-workflow en bijbehorende code zijn verwijderd omdat
+ze geen werkende sleuteltoegang hadden. De eerder geregistreerde fictieve
+testuitkomsten vormen geen bewijs voor de kwaliteit van een echt OpenAI-model.
+
 Een ontbrekende sleutel, ongeldig endpoint, onjuiste backend, ongeldige respons of providerstoring leidt tot een **getypeerde foutstatus**. In echte gesprekken blokkeert EAInesy een automatisch antwoord bij provideruitval, en er volgt **geen stille modelwissel**. De adapter staat alleen HTTPS toe, met een beperkte localhost-HTTP-uitzondering voor `CI=true`. Redirects worden geweigerd. De HTTP-aanroep heeft een timeout van 20 seconden; de bestaande Z.ai-SDK wordt niet door een nieuwe HTTP-timeout afgebroken.
 
 **Getest zonder echte GLM-credentials:**
