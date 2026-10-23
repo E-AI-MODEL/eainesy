@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     environment:
-      name: nesy-openai-sandbox
+      name: nesy
     steps:
       - name: Checkout repository (no persistent Git credentials)
         uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
         run: |
           # Never display the secret or test it with shell tracing.
           if [ -z "$NESY_OPENAI_API_KEY" ]; then
-            echo "::error::GitHub environment secret NESY_OPENAI_API_KEY is missing from nesy-openai-sandbox."
+            echo "::error::GitHub environment secret NESY_OPENAI_API_KEY is missing from nesy."
             exit 1
           fi
           node scripts/run-nesy-openai-sandbox.mjs --connect
