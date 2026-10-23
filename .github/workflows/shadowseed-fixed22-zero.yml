@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        model: [gpt-5, gpt-6.1-sol]
+        model: [gpt-5]
     env:
       PYTHONUNBUFFERED: "1"
     steps:
@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: E-AI-MODEL/shadowseed-pro
-          ref: e76e33f704e6b05c718b348a3ff3379179646e78
+          ref: 49f7f4c37a3668fed6c7727dd90743f2dd95218e
           path: shadowseed-pro
           persist-credentials: false
       - name: Set up Python 3.12
@@ -49,7 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "e76e33f704e6b05c718b348a3ff3379179646e78"
+          test "$(git rev-parse HEAD)" = "49f7f4c37a3668fed6c7727dd90743f2dd95218e"
           sha256sum src/shadowseed/data/ssl_session_suite.json
           sha256sum scripts/research_controlled_pair_run.py
           python -m py_compile scripts/research_controlled_pair_run.py
