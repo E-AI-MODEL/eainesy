@@ -19,8 +19,11 @@ import {mkdirSync,writeFileSync} from "node:fs";
 import {resolve,join} from "node:path";
 
 const flags=process.argv.slice(2);
-if(flags.length!==2 || !flags.includes("--live") || !flags.includes("--accept-costs"))
-  throw Error("Live test requires --live --accept-costs");
+const p0Baseline=flags.includes("--p0-baseline");
+if(flags.length!==(p0Baseline?3:2) || !flags.includes("--live") ||
+   !flags.includes("--accept-costs") ||
+   flags.some(x=>!["--live","--accept-costs","--p0-baseline"].includes(x)))
+  throw Error("Live test requires --live --accept-costs [--p0-baseline]");
 if(process.env.NESY_FULLCHAIN_APPROVED!=="ONE_SHOT_LIVE_APPROVED")
   throw Error("Missing one-shot cost consent");
 const key=process.env.nesy;
@@ -29,7 +32,7 @@ if(typeof key!=="string" || !key.startsWith("sk-") || key.length<30)
 delete process.env.nesy; // real key is held ONLY by the parent/proxy
 
 const MODEL="gpt-5-mini"; // same model as the earlier successful B/C connection
-const MAX_CALLS=12; // total upstream HTTP attempts incl. model-provider retries
+const MAX_CALLS=p0Baseline?48:12; // hard total upstream attempts incl. retries
 const MAX_COMPLETION_TOKENS=1600; // hard per-request generated-token limit
 const MAX_INPUT_BYTES=90_000; // bounded prompt bytes, no attachments or tools
 const MAX_RESPONSE_BYTES=300_000;
@@ -117,12 +120,30 @@ const env={...process.env,
   EAINESY_MODEL_API_KEY:LOCAL_BEARER
 };
 const ROOT=resolve(import.meta.dirname,"..");
-const child=spawn(process.execPath,["scripts/live-http-e2e.mjs","--live","--accept-costs"],{
+const child=spawn(process.execPath,[p0Baseline?"scripts/nesy-p0-baseline-e2e.mjs":
+  "scripts/live-http-e2e.mjs","--live","--accept-costs"],{
   cwd:ROOT,env,stdio:["ignore","pipe","pipe"]
 });
 const turns=[];
+const p0Events=[];
+let p0Summary=null;
 let safePassSummary=false,buffer="";
 function parseSafeLine(line){
+  if(p0Baseline){
+    if(line.startsWith("NESY P0 CASE ")){
+      try{
+        const entry=JSON.parse(line.slice("NESY P0 CASE ".length));
+        if(typeof entry.id==="string" && entry.id.length<80) p0Events.push({
+          id:entry.id,technical:entry.technical===true,
+          semanticPass:entry.semanticPass===true,
+          z3:entry.z3||null,action:entry.finalAction||null
+        });
+      }catch{}
+    }else if(line.startsWith("NESY P0 BASELINE ")){
+      try{p0Summary=JSON.parse(line.slice("NESY P0 BASELINE ".length));}catch{}
+    }
+    return;
+  }
   let prefix=null;
   if(line.startsWith("LIVE HTTP TURN "))prefix="LIVE HTTP TURN ";
   else if(line.startsWith("LIVE HTTP E2E PASS "))prefix="LIVE HTTP E2E PASS ";
@@ -158,32 +179,40 @@ const outcome=await new Promise(resolve=>{
   child.once("error",()=>resolve({code:1,signal:"spawn_error"}));
 });
 await new Promise(resolve=>proxy.close(resolve));
-const passed=outcome.code===0 && safePassSummary && turns.length===4 &&
-  turns.every(t=>t.ok && t.z3==="sat" && !t.failClosed) &&
-  metrics.requests>0 && metrics.requests<=MAX_CALLS;
+const passed=p0Baseline ?
+  (outcome.code===0 && p0Events.length===14 && p0Summary?.technicalPass===14 &&
+   p0Summary?.semanticContractPass===14 && p0Summary?.realZ3Sat===14 &&
+   p0Summary?.persistencePass===13 &&
+   metrics.requests>0 && metrics.requests<=MAX_CALLS) :
+  (outcome.code===0 && safePassSummary && turns.length===4 &&
+   turns.every(t=>t.ok && t.z3==="sat" && !t.failClosed) &&
+   metrics.requests>0 && metrics.requests<=MAX_CALLS);
 const result={
-  schema:"nesy-real-model-real-z3-one-shot-v1",
+  schema:p0Baseline?"nesy-p0-proxy-v1":"nesy-real-model-real-z3-one-shot-v1",
   status:passed?"PASS":"FAIL",
   model:MODEL,
   route:"real Next.js API > GLM parser > controller > isolated Z3 > generator > output policy",
   realExternalModel:true,isolatedNodeZ3Used:true,
   syntheticCasesOnly:true,clinicalValidation:false,productionChanged:false,
+  baselineOnly:p0Baseline,abcArmsInvoked:false,
   api:{...metrics},
-  turns,
-  persistedCertificatesVerified:safePassSummary,
+  turns:p0Baseline?p0Events:turns,
+  persistedCertificatesVerified:p0Baseline?p0Summary?.persistencePass===13:safePassSummary,
   childExitCode:outcome.code,
   secretsLogged:false,
   promptOrReplyTextStoredInReport:false,
   timestamp:new Date().toISOString()
 };
-const output=join(ROOT,".research-output","nesy-full-chain-live");
+const output=join(ROOT,".research-output",p0Baseline?"nesy-p0-baseline":"nesy-full-chain-live");
 mkdirSync(output,{recursive:true});
-writeFileSync(join(output,"summary.json"),JSON.stringify(result,null,2)+"\n");
-console.log("NESY FULL CHAIN "+result.status+" "+JSON.stringify({
-  cases:turns.length,realZ3Sat:turns.filter(x=>x.z3==="sat").length,
+writeFileSync(join(output,p0Baseline?"proxy-summary.json":"summary.json"),
+  JSON.stringify(result,null,2)+"\n");
+console.log((p0Baseline?"NESY P0 PROXY ":"NESY FULL CHAIN ")+result.status+" "+JSON.stringify({
+  cases:p0Baseline?p0Events.length:turns.length,
+  realZ3Sat:(p0Baseline?p0Events:turns).filter(x=>x.z3==="sat").length,
   upstreamCalls:metrics.requests,httpStatuses:metrics.statusCodes,
   tokens:{input:metrics.promptTokens,output:metrics.completionTokens},
-  failedClosed:turns.filter(x=>x.failClosed).length,
+  failedClosed:p0Baseline?null:turns.filter(x=>x.failClosed).length,
   boundedBy:MAX_CALLS
 }));
 if(!passed)process.exitCode=1;
