@@ -38,7 +38,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "INFORMATION",
       "expectedRecheck": true,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": "Met haar bedoel ik Marit"
     },
     {
       "id": "P03-02",
@@ -70,7 +71,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "CLARIFY",
       "expectedRecheck": true,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     },
     {
       "id": "P03-03",
@@ -102,7 +104,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "INFORMATION",
       "expectedRecheck": true,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": "definitief maandag 2 november"
     },
     {
       "id": "P03-04",
@@ -134,7 +137,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "CLARIFY",
       "expectedRecheck": true,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     },
     {
       "id": "P03-05",
@@ -166,7 +170,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "INFORMATION",
       "expectedRecheck": true,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": "Ik bedoel de voorzitter"
     },
     {
       "id": "P03-06",
@@ -198,7 +203,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "CLARIFY",
       "expectedRecheck": true,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     },
     {
       "id": "P03-07",
@@ -230,7 +236,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "INFORMATION",
       "expectedRecheck": true,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": "op 5 november"
     },
     {
       "id": "P03-08",
@@ -262,7 +269,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "CLARIFY",
       "expectedRecheck": true,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     },
     {
       "id": "P03-09",
@@ -294,7 +302,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "INFORMATION",
       "expectedRecheck": false,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     },
     {
       "id": "P03-10",
@@ -326,7 +335,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "REFLECTION",
       "expectedRecheck": false,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     },
     {
       "id": "P03-11",
@@ -358,7 +368,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "AFFIRMATION",
       "expectedRecheck": false,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     },
     {
       "id": "P03-12",
@@ -390,7 +401,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "REPAIR",
       "expectedRecheck": false,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     },
     {
       "id": "P03-13",
@@ -422,7 +434,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "INFORMATION",
       "expectedRecheck": false,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     },
     {
       "id": "P03-14",
@@ -454,7 +467,8 @@
       "baselineMove": "QUESTION",
       "authorExpectedMove": "QUESTION",
       "expectedRecheck": false,
-      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3"
+      "scope": "FICTIONAL_SEMANTICS_ONLY_NOT_P0_NOT_Z3",
+      "authorResolutionQuote": null
     }
   ]
 }
