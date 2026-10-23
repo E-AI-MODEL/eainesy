@@ -8,6 +8,7 @@ import {fileURLToPath} from "node:url";
 import {makeC2LiveClient,C2_LIVE_MODEL,C2_LIVE_MAX_CALLS}
   from "../research/nesy-abc/c2-live-client.mjs";
 import {observeC2} from "../research/nesy-abc/c2-uncertainty.mjs";
+import {summarizeC2LiveOutcomes} from "../research/nesy-abc/c2-live-metrics.mjs";
 
 const ROOT=resolve(fileURLToPath(new URL("../",import.meta.url)));
 const PATH=join(ROOT,"research/nesy-abc/c2-live-pilot-input-v1.json");
@@ -59,7 +60,7 @@ delete process.env.nesy;
 const client=makeC2LiveClient({apiKey:key});
 const out=join(ROOT,".research-output/nesy-c2-live");
 mkdirSync(out,{recursive:true});
-const rows=[],reviewItems=[];
+const rows=[],reviewItems=[],allModelProposalsForReview=[];
 for(const c of corpus.cases){
   const row={id:c.id,stratum:c.stratum,
     upstreamCompleted:false,jsonParsed:false,claimCount:null,
@@ -77,6 +78,18 @@ for(const c of corpus.cases){
       throw Error("model_schema_violation");
     row.jsonParsed=true;
     row.claimCount=parsed.claims.length;
+    // Save ALL untrusted model proposals for future independent review, even
+    // when an exact-quote / shape gate rejects them. The original run
+    // preserved only accepted proposals, preventing false-rejection analysis.
+    // This is a public, synthetic-only laboratory; never enable for live chats.
+    for(let i=0;i<parsed.claims.length;i++){
+      allModelProposalsForReview.push({
+        reviewId:c.id+"-P"+String(i+1).padStart(2,"0"),
+        history:c.history,current:c.current,proposed:parsed.claims[i],
+        reviewerAssessment:{semanticFit:null,materialUncertainty:null,
+          bestNextMove:null,sourceAccuracy:null,notes:null}
+      });
+    }
     const observed=observeC2({userText:c.current,history:c.history,claims:parsed.claims});
     row.accepted=observed.candidates.length;
     row.rejected=observed.rejected.length;
@@ -107,6 +120,7 @@ for(const c of corpus.cases){
     needsReview:row.accepted,reason:row.parseError}));
 }
 const snap=client.snapshot();
+const outcomes=summarizeC2LiveOutcomes(rows);
 const success=rows.length===10&&snap.requests===10&&snap.successful===10&&
   rows.every(x=>x.jsonParsed===true);
 const result={schema:"nesy-c2-live-epistemic-pilot-v1",
@@ -120,9 +134,17 @@ const result={schema:"nesy-c2-live-epistemic-pilot-v1",
   riskDecisionAuthority:false,productionChanged:false,
   noModelTools:true,openaiStoreDisabled:true,
   caseCount:rows.length,
-  acceptedCandidateCount:rows.reduce((n,x)=>n+x.accepted,0),
-  rejectedCandidateCount:rows.reduce((n,x)=>n+x.rejected,0),
-  noCandidateCases:rows.filter(x=>x.accepted===0&&x.jsonParsed).length,
+  acceptedCandidateCount:outcomes.structurallyAccepted,
+  rejectedCandidateCount:outcomes.structurallyRejected,
+  // Historical field retained for reader compatibility. It includes
+  // cases where a model DID propose something, but all proposals were rejected.
+  noCandidateCases:outcomes.casesWithoutAccepted,
+  noCandidateCasesMeaning:"legacy_no_structurally_accepted_candidates_NOT_model_abstentions",
+  generatedCandidateCount:outcomes.generatedProposals,
+  explicitModelNoProposalCases:outcomes.explicitModelNoProposalCases,
+  casesAllProposalsRejected:outcomes.casesAllProposalsRejected,
+  casesWithBothAcceptedAndRejected:outcomes.casesWithBothAcceptedAndRejected,
+  fullModelProposalsSavedForReview:allModelProposalsForReview.length,
   reviewItems:reviewItems.length,api:snap,cases:rows,
   monetaryCostMeasured:false,timestamp:new Date().toISOString()};
 writeFileSync(join(out,"summary.json"),JSON.stringify(result,null,2)+"\n");
@@ -132,10 +154,18 @@ writeFileSync(join(out,"independent-review-packet.json"),JSON.stringify({
   note:"Synthetic examples; all model-generated claims unverified. Independent reviewers must score without seeing source labels or assistant conclusions.",
   items:reviewItems
 },null,2)+"\n");
+writeFileSync(join(out,"all-model-proposals-for-review.json"),JSON.stringify({
+  schema:"nesy-c2-all-proposals-for-review-v1",
+  status:"UNVERIFIED_GENERATED_PROPOSALS_NO_RATINGS_ASSIGNED",
+  note:"Synthetic cases only. Includes candidates rejected by mechanical gates; no model candidate gets authority. The quality reviewer sees proposed text without a gate verdict.",
+  items:allModelProposalsForReview
+},null,2)+"\n");
 writeFileSync(join(out,"README.md"),[
 "# NeSy C2 independent review packet","",
 "Ten synthetic cases; up to two real GPT-generated candidates each.",
 "Every model candidate is unverified and weightless; accepted means only valid source span and shape.",
+"Review all-model-proposals-for-review.json as well, including mechanically rejected candidates.",
+"Do not confuse no accepted proposal with the model making no proposal.",
 "No independent quality judgments were generated or claimed.","",
 "Review each item: atomic, source correct, semantically supported, useful to investigate, unfounded inference.",
 "Retain disagreement and undecidable items. Review items are not user-facing advice.",""
@@ -149,6 +179,9 @@ if(process.env.GITHUB_STEP_SUMMARY)
     "| OpenAI attempts (hard max 10) | "+snap.requests+" |",
     "| Successful model calls | "+snap.successful+" |",
     "| JSON-parsed cases | "+rows.filter(x=>x.jsonParsed).length+" |",
+    "| All generated proposals | "+outcomes.generatedProposals+" |",
+    "| Genuine model abstentions | "+outcomes.explicitModelNoProposalCases+" |",
+    "| Cases where all proposals were rejected | "+outcomes.casesAllProposalsRejected+" |",
     "| Structurally accepted candidates (not validated truth) | "+result.acceptedCandidateCount+" |",
     "| Rejected candidates | "+result.rejectedCandidateCount+" |",
     "| Human-review items, not yet reviewed | "+result.reviewItems+" |",
@@ -161,6 +194,9 @@ console.log("NESY C2 LIVE "+JSON.stringify({status:result.status,cases:rows.leng
   requests:snap.requests,successes:snap.successful,
   accepted:result.acceptedCandidateCount,rejected:result.rejectedCandidateCount,
   reviewPending:result.reviewItems,
+  proposed:outcomes.generatedProposals,
+  genuineAbstentions:outcomes.explicitModelNoProposalCases,
+  filteredAll:outcomes.casesAllProposalsRejected,
   inputTokens:snap.inputTokens,outputTokens:snap.outputTokens}));
 if(!success)process.exitCode=1;
 
