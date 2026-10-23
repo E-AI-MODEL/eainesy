@@ -46,6 +46,7 @@ De gebruiker heeft één live-DEV-uitvoering aangevraagd; de voor deze uitvoerin
 - Bronbestanden voor de proef: DEV-corpus SHA-256 `5f089cd6f54a348363f90768f7cfb66be2d40c497c30449f5ea0f5451ed58d1c`; vooraf gekozen beperkte R/D-gesprekstapheuristiek SHA-256 `938558d37b747744c9ffffd8e3b5406c0c07c7d0d3b6de3a2b95f041d8a6e276`.
 - Volledig [GitHub-artifact 12473336453](https://github.com/E-AI-MODEL/eainesy/actions/runs/39886784855), `nesy-abc-real-shared-p0-dev-metadata`, met `summary.json` en `proxy-summary.json`, zonder berichttekst of modelantwoorden.
 - 24/24 actuele P0-beurten verwerkten een **echt** GPT-5-mini-model, **echt geïsoleerd Node/Z3** (`sat`), modelcheck, OutputPolicy en het echt opgeslagen laatste beurtcertificaat. **24/24** P0-waarnemingen waren als onveranderd snapshot beschikbaar voor P0/A/B/C.
+- De bestaande P0-controller koos in deze DEV-casussen **20× `CLARIFY`, 3× `PSYCHOEDUCATION` en 1× `ABSTAIN_HITL`**. De echte outputpolicy gaf bij alle 24 beurten `pass`, zonder reparatieronde. Dit schetst de feitelijke relatief terughoudende P0-startpositie van de vergelijking.
 - P0 is in alle vier armen exact dezelfde waarneming: **A/B/C zijn niet live als gebruikersantwoord uitgevoerd**. Het verleden in deze 24 DEV-casussen is vooraf **gescript, niet met Z3 geverifieerd**. Deze proef meet geen klinische veiligheid of behandelkwaliteit.
 
 ### Echt gemeten OpenAI-gebruik per laag
