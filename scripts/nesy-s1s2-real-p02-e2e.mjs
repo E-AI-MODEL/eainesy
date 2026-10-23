@@ -20,6 +20,8 @@ import {fileURLToPath} from "node:url";
 import {fromVerifiedTurn} from "../research/nesy-abc/kernel-bridge.mjs";
 import {compareCooperativeArms} from "../research/nesy-cooperative/coordinator.mjs";
 import {createInjectedS2Rechecker} from "../research/nesy-cooperative/neural-recheck.mjs";
+import {describeP02Eligibility,decideP02Preflight}
+  from "../research/nesy-cooperative/p02-eligibility.mjs";
 const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const CORPUS_PATH=join(ROOT,"research/nesy-cooperative/s1s2-real-p02-corpus.json");
 const bytes=readFileSync(CORPUS_PATH);
@@ -179,10 +181,18 @@ try {
  });
  if(!(await ready()))throw Error("isolated_server_not_ready");
  for(const c of corpus.cases){
+   const preflight=decideP02Preflight(rows);
+   if(preflight.stop){
+     console.log("NESY S1S2 P02 SCOPE ABORT "+JSON.stringify({
+       status:preflight.reason,processed:rows.length,
+       note:"No further paid calls; zero eligible after three P0 turns."
+     }));
+     break;
+   }
   const caseStarted=performance.now();
   const row={id:c.id,stratum:c.stratum,
    P0:{technical:false,modelOutput:false,realZ3:false,action:null,risk:null,move:null},
-   S1:null,S2:null,rechecks:0,modelReplies:0,blindedJudge:null,
+   S1:null,S2:null,eligibility:null,rechecks:0,modelReplies:0,blindedJudge:null,
    error:null,stage:"setup",durationMs:0};
   try{
    const session="s1s2-p02-"+Date.now().toString(36)+"-"+c.id;
@@ -249,8 +259,12 @@ try {
       cert.conversation?.riskMemory==="NONE"&&
       response.action==="THERAPEUTIC_DIALOG"&&
       !frame.riskMarkers?.length;
-   if(!verifiedNeutral || !pair.S1.eligible){
-    row.stage="safe_skip";continue;
+   row.eligibility=describeP02Eligibility({
+     p0Technical:!!p0ok,p0Action:response.action,
+     riskNone:verifiedNeutral,s1GateEligible:pair.S1.eligible
+   });
+   if(!row.eligibility.eligible){
+     row.stage="safe_skip";continue;
    }
    row.stage="reply";
    const moves=[pair.S1.proposedMove,pair.S2.proposedMove];
@@ -306,7 +320,7 @@ try {
       p0Action:row.P0.action,s1:row.S1?.move??null,s2:row.S2?.move??null,
       callsS2:row.rechecks,replies:row.modelReplies,
       judge:row.blindedJudge?.comparison??null,
-      stage:row.stage,error:row.error
+      stage:row.stage,scopeReason:row.eligibility?.reason??null,error:row.error
     }));
     // No cross-case learned seeds. Use separate session and ephemeral DB.
     try{await prisma.seedCandidate.deleteMany();}catch{}
@@ -321,11 +335,13 @@ try {
    try{if(existsSync(dbFile+suf))rmSync(dbFile+suf);}catch{}
  }
 }
+const scopeStop=decideP02Preflight(rows).stop && rows.length<corpus.cases.length;
 const complete=rows.length===10&&rows.every(x=>x.stage==="complete"&&
  x.error===null&&x.P0.technical&&x.P0.realZ3&&x.S1&&x.S2);
 const result={
  schema:"EAINESY-S1S2-P02-GPT5-LIVE-RESULT-V1",
- status:complete?"PASS_REAL_MODEL_EXPLORATORY_UNREVIEWED":"INCOMPLETE_OR_BLOCKED",
+ status:complete?"PASS_REAL_MODEL_EXPLORATORY_UNREVIEWED":
+  scopeStop?"STOPPED_SCOPE_MISMATCH_BEFORE_REMAINING_CALLS":"INCOMPLETE_OR_BLOCKED",
  sourceSha:process.env.GITHUB_SHA||"unknown",
  corpusSha256:hash,
  model:"gpt-5",
@@ -340,7 +356,13 @@ const result={
  differingMoves:rows.filter(x=>x.S1&&x.S2&&x.S1.move!==x.S2.move).length,
  humanReviewItems:humanPackets.length,
  modelJudgeItems:modelJudgePackets.length,
- startupError,
+ startupError,scopeStop,scopePreflight:decideP02Preflight(rows),
+ eligibleCases:rows.filter(x=>x.eligibility?.eligible===true).length,
+ ineligibleActions:rows.reduce((acc,x)=>{
+   if(x.eligibility?.reason==="P0_ACTION_OUTSIDE_S1S2_SCOPE")
+     acc[x.P0.action]=(acc[x.P0.action]||0)+1;
+   return acc;
+ },{}),
  rows
 };
 writeFileSync(join(OUT,"summary.json"),JSON.stringify(result,null,2)+"\n");
