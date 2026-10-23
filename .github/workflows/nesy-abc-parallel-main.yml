@@ -9,6 +9,8 @@ on:
       - "scripts/validate-nesy-abc-pilot.mjs"
       - "scripts/run-nesy-abc-main-offline.mjs"
       - "scripts/run-nesy-abc-review-lab.mjs"
+      - "scripts/run-nesy-openai-sandbox.mjs"
+      - ".github/workflows/nesy-openai-sandbox.yml"
       - "scripts/run-nesy-abc-process-turn-dev.mjs"
       - "tests/nesy-abc-main-bridge.test.ts"
       - "src/lib/eainesy/abc-shadow.ts"
@@ -25,6 +27,8 @@ on:
       - "scripts/validate-nesy-abc-pilot.mjs"
       - "scripts/run-nesy-abc-main-offline.mjs"
       - "scripts/run-nesy-abc-review-lab.mjs"
+      - "scripts/run-nesy-openai-sandbox.mjs"
+      - ".github/workflows/nesy-openai-sandbox.yml"
       - "scripts/run-nesy-abc-process-turn-dev.mjs"
       - "tests/nesy-abc-main-bridge.test.ts"
       - "src/lib/eainesy/abc-shadow.ts"
@@ -54,6 +58,8 @@ jobs:
         run: node scripts/run-nesy-abc-main-offline.mjs
       - name: Test B/C reviewer callbacks through local-only HTTP (scripted fixture, not an LLM)
         run: node scripts/run-nesy-abc-review-lab.mjs --ci-stub
+      - name: Validate OpenAI sandbox in free, keyless mode
+        run: node scripts/run-nesy-openai-sandbox.mjs --dry-run
       - name: Set up Bun for offline application pipeline tests
         uses: oven-sh/setup-bun@v2
       - name: Install locked dependencies without external model access
@@ -83,5 +89,6 @@ jobs:
             .research-output/nesy-abc-main/
             .research-output/nesy-abc/
             .research-output/nesy-abc-review-lab/
+            .research-output/nesy-openai-sandbox/
           if-no-files-found: warn
           retention-days: 30
