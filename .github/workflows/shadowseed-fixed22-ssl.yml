@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: shadowseed-fixed22-ssl-once-20261023
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   ssl:
@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: E-AI-MODEL/shadowseed-pro
-          ref: e76e33f704e6b05c718b348a3ff3379179646e78
+          ref: 387de08f0308b25e07f71b7b0a10a76b13f16806
           path: shadowseed-pro
           persist-credentials: false
       - name: Set up Python 3.12
@@ -49,7 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "e76e33f704e6b05c718b348a3ff3379179646e78"
+          test "$(git rev-parse HEAD)" = "387de08f0308b25e07f71b7b0a10a76b13f16806"
           sha256sum src/shadowseed/data/ssl_session_suite.json
           sha256sum scripts/research_controlled_pair_run.py
           python -m py_compile scripts/research_controlled_pair_run.py
