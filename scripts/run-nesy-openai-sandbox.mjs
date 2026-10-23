@@ -66,7 +66,7 @@ if(mode==="connect"){
   assert(process.env.NESY_SANDBOX_EXPLICIT_CONSENT==="TWO_CALLS_AUTHORIZED",
     "explicit two-request consent is required");
   // ONLY source of the API key. Never print, log, store, hash, or commit it.
-  const key=process.env.NESY_OPENAI_SANDBOX_API_KEY;
+  const key=process.env.NESY_OPENAI_API_KEY;
   client=makeOpenAISandboxClient({apiKey:key,model:OPENAI_SANDBOX_MODEL});
 }
 const complete=mode==="connect" ? client.complete : async()=>{
