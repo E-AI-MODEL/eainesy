@@ -17,11 +17,6 @@ on:
         default: "NO"
         required: true
         options: ["NO", "YES"]
-  # ONE user-approved test on an exact squash merge prefix; remove afterwards.
-  push:
-    branches: [main]
-    paths: [".github/workflows/nesy-abc-real-dev-comparison.yml"]
-
 permissions:
   contents: read
 
@@ -54,11 +49,7 @@ jobs:
           test "$NESY_ABC_LIVE_APPROVED" = "" || exit 1
 
   real-abc:
-    if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES')
-      || (github.event_name == 'push' &&
-          startsWith(github.event.head_commit.message,
-            'test(nesy): A B C shared real DEV'))
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES' }}
     name: Genuine P0, real Z3, real B C reviewers, A deterministic, 24 DEV cases
     runs-on: ubuntu-latest
     timeout-minutes: 25
