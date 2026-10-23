@@ -37,7 +37,7 @@ Kan één gericht neuraal heronderzoek bij een symbolisch relevant verklaarde on
 - Hard maximaal **64 externe GPT-5-aanroepen**, inclusief echte P0-beurten, S2, researchantwoorden en optionele automatische beoordeling; per fase aanvullende lagere limieten. Geen extra toolcalls, streaming, URL-redirects of client-side retries; OpenAI `store:false`.
 - Modellimiet per request: maximaal 1.600 gegenereerde tokens voor P0; 900 voor heronderzoek; 1.100 voor researchantwoorden en 1.400 voor de modelbeoordelaar. Het programma registreert echte tokenaantallen, niet het exacte geldbedrag.
 - Als P0/Z3 niet slaagt, wordt S1/S2 niet toegepast; ontbrekende resultaten, model-fouten en beperkingen worden expliciet gerapporteerd. Niet aanpassen of herstellen door de corpusinhoud te herschrijven na de modeluitkomst.
-- Deze specifieke push-trigger wordt direct na de poging verwijderd. Latere betaalde proeven vereisen afzonderlijke handmatige autorisatie; bestaande workflows voor eerdere onderzoeken blijven ongewijzigd.
+- De éénmalige push-trigger is gebruikt om GitHub Actions-run #39893997337 op mergecommit 8e0e154780ff8819f3ca785b5f89ddfc6e397e98 te starten. Daarna is de trigger uit de workflow verwijderd. Nieuwe betaalde proeven vereisen afzonderlijke handmatige workflow_dispatch met confirm_api_costs=YES; bestaande onderzoeksworkflows blijven ongewijzigd.
 - Uitsluitend de geïsoleerde `research/nesy-cooperative`-modules. Geen productiecode, sessies, regelmotor of Z3-policy gewijzigd.
 
 ## Gekoppelde, controleerbare output
