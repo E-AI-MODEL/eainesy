@@ -49,7 +49,8 @@ jobs:
           node scripts/nesy-s1s2-real-p02-e2e.mjs --check-cases
           node --test research/nesy-cooperative/*.test.mjs
   real:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'research(nesy): S1S2 GPT-5 one-shot P02-2026-10-23')) }}
+    if: >-
+      ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'research(nesy): S1S2 GPT-5 one-shot P02-2026-10-23')) }}
     needs: offline
     name: Genuine GPT-5, real NeSy P0 and Node/Z3, paired S1/S2 blind review packet
     runs-on: ubuntu-latest
