@@ -10,6 +10,7 @@
 import { describe, expect, test, beforeEach } from 'bun:test';
 import { applyRecurrence, applyVerdict, pointOfUse, AUTHORITY_POLICY, type SeedView } from '../src/lib/eainesy/seed-authority';
 import { processTurn } from '../src/lib/eainesy/orchestrator';
+import { findMatchingSeed, normalizeSeedText } from '../src/lib/eainesy/hitl-seeds';
 import type { Frame } from '../src/lib/eainesy/types';
 import type { FakeDb } from './support/fake-db';
 
@@ -95,6 +96,40 @@ describe('end to end through the pipeline', () => {
     const risky = await liveTurn('chat-3', novel, `${text} en ik zie het niet meer zitten`);
     expect(risky.certificate.humanConfirmed).toBeUndefined();
     expect(['SAFETY_RESPONSE', 'CRISIS_PROTOCOL']).toContain(risky.action);
+  });
+
+  test('opposite meaning and changed time never reuse accepted recognition', async () => {
+    const original = 'Ik wil tips voor dat moeilijke gesprek';
+    const negated = 'Ik wil geen tips voor dat moeilijke gesprek';
+    const historical = 'Ik wilde vroeger tips voor dat moeilijke gesprek';
+    await liveTurn('first-message', novel, original);
+    const candidate = (await fake.seedCandidate.findMany())[0];
+    expect(candidate).toBeDefined();
+    await fake.seedCandidate.update({ where: { id: candidate.id }, data: { status: 'accepted', weight: 0.6 } });
+    expect(await findMatchingSeed(negated)).toBeNull();
+    expect(await findMatchingSeed(historical)).toBeNull();
+    const denied = await liveTurn('opposite-message', novel, negated);
+    const past = await liveTurn('past-message', novel, historical);
+    expect(denied.certificate.humanConfirmed).toBeUndefined();
+    expect(past.certificate.humanConfirmed).toBeUndefined();
+    expect(denied.certificate.rulesFired[0].id).toBe('P21');
+    expect(past.certificate.rulesFired[0].id).toBe('P21');
+    expect((await fake.seedCandidate.findMany()).length).toBe(3);
+    expect((await fake.seedCandidate.findMany()).find(x => x.id === candidate.id)?.weight).toBe(0.6);
+  });
+
+  test('orthographic normalization still recognizes genuinely repeated utterances', async () => {
+    const first = 'IK WIL TIPS VOOR DAT MOEILIJKE GESPREK!';
+    const second = 'ik wil tips voor dat moeilijke gesprek.';
+    expect(normalizeSeedText(first)).toBe(normalizeSeedText(second));
+    await liveTurn('first-case', novel, first);
+    const before = (await fake.seedCandidate.findMany())[0];
+    expect(await findMatchingSeed(second)).not.toBeNull();
+    await liveTurn('repeat-case', novel, second);
+    const rows = await fake.seedCandidate.findMany();
+    expect(rows.length).toBe(1);
+    expect(rows[0].id).toBe(before.id);
+    expect(rows[0].recurrence).toBe(2);
   });
 
   test('test runs neither use nor create learned patterns', async () => {
