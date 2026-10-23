@@ -36,7 +36,11 @@ zolang er geen apart projectsecret en expliciete handmatige uitvoering zijn.
 4. Voeg binnen die environment (dus geen repository-breed secret) een
    Environment secret toe met PRECIES deze naam:
 
-   NESY_OPENAI_SANDBOX_API_KEY
+   NESY_OPENAI_API_KEY
+
+   De GitHub Actions-workflow leest deze bestaande secretnaam en geeft de
+   waarde binnen de afgeschermde teststap door als procesvariabele
+   NESY_OPENAI_SANDBOX_API_KEY. Je hoeft de sleutel niet opnieuw op te slaan.
 
 5. Plak de OpenAI-projectsleutel uitsluitend in het Secret value-veld van
    GitHub en sla het secret op. Deel de sleutel niet via chat, PR, issue,
@@ -45,7 +49,7 @@ zolang er geen apart projectsecret en expliciete handmatige uitvoering zijn.
    benodigde goedkeuring in voor toegang tot de environment. Beperk de
    API-projectrechten en monitor het werkelijke verbruik bij OpenAI.
 
-Zonder deze stappen is de betaalde verbinding niet bruikbaar. De huidige
+Zonder deze stappen is de betaalde verbinding niet bruikbaar. Als de secretnaam ontbreekt, toont de workflow voortaan een foutmelding zonder de waarde uit te schrijven. De huidige
 GitHub-connector heeft geen actie om een environment-secret veilig namens
 een gebruiker aan te maken of om het secret in deze chat aan te nemen.
 

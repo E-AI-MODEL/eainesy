@@ -65,9 +65,15 @@ jobs:
       - name: Connect two sandbox reviewers with environment-scoped key
         if: ${{ inputs.mode == 'connect' }}
         env:
-          NESY_OPENAI_SANDBOX_API_KEY: ${{ secrets.NESY_OPENAI_SANDBOX_API_KEY }}
+          NESY_OPENAI_SANDBOX_API_KEY: ${{ secrets.NESY_OPENAI_API_KEY }}
           NESY_SANDBOX_EXPLICIT_CONSENT: TWO_CALLS_AUTHORIZED
-        run: node scripts/run-nesy-openai-sandbox.mjs --connect
+        run: |
+          # Never display the secret or test it with shell tracing.
+          if [ -z "$NESY_OPENAI_SANDBOX_API_KEY" ]; then
+            echo "::error::GitHub environment secret NESY_OPENAI_API_KEY is missing from nesy-openai-sandbox."
+            exit 1
+          fi
+          node scripts/run-nesy-openai-sandbox.mjs --connect
 
       - name: Attach key-free, text-free sandbox report
         if: always()
