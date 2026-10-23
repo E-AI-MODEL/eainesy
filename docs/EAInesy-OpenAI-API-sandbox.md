@@ -36,11 +36,14 @@ zolang er geen apart projectsecret en expliciete handmatige uitvoering zijn.
 4. Voeg binnen die environment (dus geen repository-breed secret) een
    Environment secret toe met PRECIES deze naam:
 
-   NESY_OPENAI_API_KEY
+   nesy
 
    De GitHub Actions-workflow en het onderzoeksprogramma gebruiken allebei
-   direct NESY_OPENAI_API_KEY. Er is geen tweede naam of interne alias.
+   direct nesy. Er is geen tweede naam of interne alias.
    Je hoeft de sleutel niet opnieuw op te slaan.
+   GitHub slaat secretnamen intern met hoofdletters op. Verwijzen via
+   `secrets.nesy` blijft geldig, omdat GitHub secretverwijzingen niet
+   hoofdlettergevoelig zijn.
 
 5. Plak de OpenAI-projectsleutel uitsluitend in het Secret value-veld van
    GitHub en sla het secret op. Deel de sleutel niet via chat, PR, issue,
