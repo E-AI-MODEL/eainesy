@@ -1,0 +1,51 @@
+name: NeSy S1 S2 cooperative research - free offline checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/nesy-cooperative/**"
+      - "scripts/run-nesy-s1s2-offline.mjs"
+      - ".github/workflows/nesy-s1s2-cooperative.yml"
+      - "docs/NeSy-S1-S2-cooperative-protocol-2026-10-23.md"
+  push:
+    branches: [main]
+    paths:
+      - "research/nesy-cooperative/**"
+      - "scripts/run-nesy-s1s2-offline.mjs"
+      - ".github/workflows/nesy-s1s2-cooperative.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  engineering:
+    name: Paired P0/S1/S2 DEV, all guards, no model and no secret
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout commit without persisting credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify all cooperative modules without provider access
+        run: |
+          node --check research/nesy-cooperative/coordinator.mjs
+          node --check research/nesy-cooperative/neural-recheck.mjs
+          node --check scripts/run-nesy-s1s2-offline.mjs
+          node --test research/nesy-cooperative/*.test.mjs
+      - name: Paired frozen engineering comparison
+        run: node scripts/run-nesy-s1s2-offline.mjs --dev
+      - name: Preserve auditable script-only comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesy-s1s2-free-dev-paired-results
+          path: .research-output/nesy-s1s2-dev/
+          if-no-files-found: warn
+          retention-days: 30
