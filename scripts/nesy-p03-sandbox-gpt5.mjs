@@ -200,6 +200,13 @@ const measures={
   genuineModelHttpCalls:client.snapshot().calls,
   differentMoves:rows.filter(r=>r.moveDiffers).length,
   validReplyPairs:masked.length,
+  callbackOrJsonFailureCases:rows.filter(r=>
+    r.checkReason==="neural_callback_failed_no_retry").length,
+  sourceOrShapeRejectedCases:rows.filter(r=>
+    ["no_latest_source_for_claimed_resolution","invalid_neural_recheck_shape"]
+      .includes(r.checkReason)).length,
+  neuralExplicitAbstentions:rows.filter(r=>
+    r.checkReason==="neural_abstained").length,
   predictedTaskMatchS1:rows.filter(r=>r.S1===r.authorExpectedMove).length,
   predictedTaskMatchS2:rows.filter(r=>r.S2===r.authorExpectedMove).length,
   unresolvedCorrectlyClarifiedS2:rows.filter(r=>
@@ -210,7 +217,8 @@ const measures={
 };
 const completed=rows.length===14&&
   measures.actualRechecks===8&&
-  rows.every(r=>!r.error)&&client.snapshot().failed===0;
+  rows.every(r=>!r.error)&&client.snapshot().failed===0&&
+  measures.callbackOrJsonFailureCases===0;
 const report={
  schema:"nesy-p03-sandbox-gpt5-result-v1",
  status:completed?"REAL_MODEL_EXPLORATORY_UNREVIEWED":"INCOMPLETE_EXPLORATORY_RUN",
