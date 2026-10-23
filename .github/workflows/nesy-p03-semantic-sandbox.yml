@@ -8,10 +8,6 @@ on:
       - "research/nesy-cooperative/p03-*"
       - "scripts/nesy-p03-sandbox-gpt5.mjs"
       - "docs/NeSy-P03-semantische-samenwerking-2026-10-23.md"
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/nesy-p03-semantic-sandbox.yml"
   workflow_dispatch:
     inputs:
       confirm_api_costs:
@@ -49,8 +45,7 @@ jobs:
           node scripts/nesy-p03-sandbox-gpt5.mjs --preflight
 
   live:
-    if: >-
-      ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'research(nesy): P03 GPT-5 one-shot sandbox 2026-10-23')) }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES' }}
     needs: offline
     name: Real GPT-5 on fictional sandbox; save separate blind-review packet
     runs-on: ubuntu-latest
