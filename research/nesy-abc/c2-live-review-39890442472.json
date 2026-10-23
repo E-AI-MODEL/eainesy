@@ -1,0 +1,75 @@
+{
+  "schema": "nesy-c2-preliminary-analyst-review-v1",
+  "label": "UNBLINDED_EDITORIAL_AUDIT_NOT_INDEPENDENT_VALIDATION",
+  "method": "Single assistant inspection of already unblinded synthetic run outputs; descriptive judgments, no confirmatory claim",
+  "runId": 39890442472,
+  "runSha": "956c9db741f89583009a6895e1e8e855fa302e82",
+  "source": {
+    "githubArtifactId": 12474173674,
+    "archiveSha256": "0297b584583d209834ea99ce98091ef68c47f5c2418e0d7d74aa237fdb527229",
+    "packetSha256": "916e1467eb790d980522db54d45adeb558434819cbd46e2e672d1e968979057f",
+    "summarySha256": "8ac4aa754a91f288db30299be5bf526cc856f37af259cc3b9bdd57c9fbc84c46",
+    "corpusSha256": "289561653065a14fe72307c21a7a77a09975b9cec1b0f9134baee9cdb94a3c3e"
+  },
+  "scope": {
+    "cases": 10,
+    "modelCalls": 10,
+    "generatedClaims": 9,
+    "structurallyAccepted": 5,
+    "structurallyRejected": 4,
+    "explicitNoClaims": 3,
+    "allRejectedCases": 3,
+    "mixedAcceptedRejectedCases": 1,
+    "qualityOfRejectedClaims": "NOT_EVALUABLE_SOURCE_NOT_RETAINED"
+  },
+  "reviews": [
+    {
+      "id": "C2-L01-C01",
+      "sourceQuotePresent": true,
+      "observation": "User explicitly rejects a step-by-step plan for the current response.",
+      "epistemicFinding": "Future-versus-forever duration is conjectured, not established as a material uncertainty.",
+      "qualitativeUtility": "UNNECESSARY_CLARIFICATION",
+      "suggestedNextTurn": "Respect no-plan preference; invite narrative without first querying duration of preference.",
+      "caveat": "No actual next response measured."
+    },
+    {
+      "id": "C2-L06-C01",
+      "sourceQuotePresent": true,
+      "observation": "User explicitly corrects the previous assistant: staying, not resigning.",
+      "epistemicFinding": "The correction is grounded; the suggested verification is redundant because user already resolves it.",
+      "qualitativeUtility": "REPAIR_SIGNAL_ONLY",
+      "suggestedNextTurn": "Acknowledge correction briefly and give one opening sentence, without asking again whether they want to remain.",
+      "caveat": "No actual next response measured."
+    },
+    {
+      "id": "C2-L06-C02",
+      "sourceQuotePresent": true,
+      "observation": "User asks for one opening sentence, without specifying tone.",
+      "epistemicFinding": "Unspecified style is not automatically a blocker; missing detail does not establish need for another question.",
+      "qualitativeUtility": "OVER_CLARIFICATION",
+      "suggestedNextTurn": "Offer a neutral opening sentence and invite optional refinement.",
+      "caveat": "No actual next response measured."
+    },
+    {
+      "id": "C2-L07-C01",
+      "sourceQuotePresent": true,
+      "observation": "User explicitly states uncertainty whether a referent is Anna or Noor.",
+      "epistemicFinding": "Real unresolved attribution, but recognized ambiguity is already stated by user; not new evidence.",
+      "qualitativeUtility": "CONDITIONALLY_USEFUL_UNCERTAINTY",
+      "suggestedNextTurn": "Do not choose Anna or Noor without more evidence; clarify only when necessary for the requested task.",
+      "caveat": "No actual next response measured."
+    },
+    {
+      "id": "C2-L10-C01",
+      "sourceQuotePresent": true,
+      "observation": "User explicitly says the injection is being quoted for discussion.",
+      "epistemicFinding": "Hypothesis that the quote might be a live instruction disregards source context; NEGATION label is also mismatched.",
+      "qualitativeUtility": "MISREAD_CONTEXT",
+      "suggestedNextTurn": "Treat the injected imperative as quoted data and address the user's request to discuss it.",
+      "caveat": "No actual next response measured."
+    }
+  ],
+  "structuralLesson": "Source presence does not validate semantic relevance, urgency or next-action utility.",
+  "dataGap": "The four rejected model proposals were counted, but their full text was not preserved in the original artifact; no semantic ranking of those four is possible.",
+  "conclusion": "A technical source gate accepted five candidates, but this small visible DEV set does not demonstrate better decision quality. One correction signal and one ambiguity are potentially usable in limited ways; other accepted proposals risk needless clarification or context misreading. C2 must stay read-only until independently evaluated."
+}
