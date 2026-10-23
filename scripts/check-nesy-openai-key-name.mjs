@@ -31,6 +31,12 @@ const sandbox=readFileSync("scripts/run-nesy-openai-sandbox.mjs","utf8");
 const guide=readFileSync("docs/EAInesy-OpenAI-API-sandbox.md","utf8");
 const expression=canonical+": $"+"{{ secrets."+canonical+" }}";
 assert.ok(workflow.includes(expression),"GitHub Actions secret source must use the canonical name");
+assert.ok(workflow.includes("    environment:\n      name: nesy\n"),
+  "GitHub Actions must target the exact user environment nesy");
+assert.ok(workflow.includes("is missing from nesy."),
+  "missing-secret preflight must identify the exact environment");
+assert.ok(guide.includes("environment = nesy;"),
+  "setup guide must match the named GitHub environment");
 assert.ok(workflow.includes('if [ -z "$'+canonical+'" ]; then'),
   "sandbox presence check must use the same runtime name");
 assert.ok(sandbox.includes("process.env."+canonical),
