@@ -10,6 +10,8 @@ on:
       - "scripts/run-nesy-abc-main-offline.mjs"
       - "scripts/run-nesy-abc-review-lab.mjs"
       - "scripts/run-nesy-openai-sandbox.mjs"
+      - "scripts/check-nesy-openai-key-name.mjs"
+      - "docs/EAInesy-OpenAI-API-sandbox.md"
       - ".github/workflows/nesy-openai-sandbox.yml"
       - "scripts/run-nesy-abc-process-turn-dev.mjs"
       - "tests/nesy-abc-main-bridge.test.ts"
@@ -28,6 +30,8 @@ on:
       - "scripts/run-nesy-abc-main-offline.mjs"
       - "scripts/run-nesy-abc-review-lab.mjs"
       - "scripts/run-nesy-openai-sandbox.mjs"
+      - "scripts/check-nesy-openai-key-name.mjs"
+      - "docs/EAInesy-OpenAI-API-sandbox.md"
       - ".github/workflows/nesy-openai-sandbox.yml"
       - "scripts/run-nesy-abc-process-turn-dev.mjs"
       - "tests/nesy-abc-main-bridge.test.ts"
@@ -58,6 +62,8 @@ jobs:
         run: node scripts/run-nesy-abc-main-offline.mjs
       - name: Test B/C reviewer callbacks through local-only HTTP (scripted fixture, not an LLM)
         run: node scripts/run-nesy-abc-review-lab.mjs --ci-stub
+      - name: Scan tracked repository for stale OpenAI sandbox key names
+        run: node scripts/check-nesy-openai-key-name.mjs
       - name: Validate OpenAI sandbox in free, keyless mode
         run: node scripts/run-nesy-openai-sandbox.mjs --dry-run
       - name: Set up Bun for offline application pipeline tests
