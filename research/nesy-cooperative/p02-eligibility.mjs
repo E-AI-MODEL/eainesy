@@ -10,12 +10,12 @@ export function describeP02Eligibility({p0Technical,p0Action,
   if(p0Technical!==true)return Object.freeze({
     eligible:false,reason:"P0_NOT_VERIFIED",p0Action:p0Action||null
   });
-  if(riskNone!==true)return Object.freeze({
-    eligible:false,reason:"RISK_OR_MEMORY_NOT_CLEAR",p0Action:p0Action||null
-  });
   if(p0Action!=="THERAPEUTIC_DIALOG")return Object.freeze({
     eligible:false,reason:"P0_ACTION_OUTSIDE_S1S2_SCOPE",
     p0Action:p0Action||null
+  });
+  if(riskNone!==true)return Object.freeze({
+    eligible:false,reason:"RISK_OR_MEMORY_NOT_CLEAR",p0Action
   });
   if(s1GateEligible!==true)return Object.freeze({
     eligible:false,reason:"S1_GATE_NOT_SATISFIED",p0Action
