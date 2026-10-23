@@ -1,6 +1,6 @@
 # NeSy P0 versus A, B en C — echte ontwikkelproef (23 oktober 2026)
 
-**Vóór de eerste live-run vastgelegd. Status: ONBEKEND.**
+**Vooraf geregistreerd vóór de eerste modelrun; uitgevoerd op 23 oktober 2026. Status: PASS_EXPLORATORY_WIRING_ONLY, geen inhoudelijke winnaar.**
 
 ## Waarom deze test volgt op P0
 
@@ -38,7 +38,55 @@ Het formele [P01-protocol voor A/B/C](EAInesy-architecture-ABC-preregistered-pro
 
 Werkelijke OpenAI-verzoeken lopen alleen via dezelfde afgeschermde lokaal gebonden proxy als de geslaagde P0-test. GitHub Environment en secret heten beiden `nesy`. Model: `gpt-5-mini`; Chat Completions, `store:false`. Totaalmaximum **128 betaalde upstream HTTP-pogingen**, inclusief **alle** retries van P0 en **alle** B/C-reviewcalls. Generator/parsing maximaal **1.600 completion tokens per request**, reviewers maximaal **800**; maximaal één reviewerrequest per toegestane arm/casus. De proxy telt calls vóór het verzenden; geen onbeperkte retries. Dit is een **aanroeplimiet, geen hard geldplafond**.
 
-Eén expliciet door de gebruiker aangevraagde live-run mag op `main` via de exact afgebakende eenmalige merge-trigger plaatsvinden. Daarna wordt de push-trigger **verplicht verwijderd**; voortaan alleen handmatig `workflow_dispatch` met expliciet `YES`. In een PR wordt uitsluitend lokaal getest, zonder sleutel of API-kosten.
+De gebruiker heeft één live-DEV-uitvoering aangevraagd; de voor deze uitvoering gebruikte eenmalige `push`-trigger is inmiddels verwijderd. Nieuwe betaalde runs vereisen uitsluitend `workflow_dispatch` met expliciet `YES`. PR-validaties blijven gratis en zonder sleutel.
+
+## Werkelijke resultaten van de enige live-DEV-run
+
+- Uitvoering: [GitHub Actions-run 39886784855](https://github.com/E-AI-MODEL/eainesy/actions/runs/39886784855), commit `5eda9f6`, workflow **completed/success**.
+- Bronbestanden voor de proef: DEV-corpus SHA-256 `5f089cd6f54a348363f90768f7cfb66be2d40c497c30449f5ea0f5451ed58d1c`; vooraf gekozen beperkte R/D-gesprekstapheuristiek SHA-256 `938558d37b747744c9ffffd8e3b5406c0c07c7d0d3b6de3a2b95f041d8a6e276`.
+- Volledig [GitHub-artifact 12473336453](https://github.com/E-AI-MODEL/eainesy/actions/runs/39886784855), `nesy-abc-real-shared-p0-dev-metadata`, met `summary.json` en `proxy-summary.json`, zonder berichttekst of modelantwoorden.
+- 24/24 actuele P0-beurten verwerkten een **echt** GPT-5-mini-model, **echt geïsoleerd Node/Z3** (`sat`), modelcheck, OutputPolicy en het echt opgeslagen laatste beurtcertificaat. **24/24** P0-waarnemingen waren als onveranderd snapshot beschikbaar voor P0/A/B/C.
+- P0 is in alle vier armen exact dezelfde waarneming: **A/B/C zijn niet live als gebruikersantwoord uitgevoerd**. Het verleden in deze 24 DEV-casussen is vooraf **gescript, niet met Z3 geverifieerd**. Deze proef meet geen klinische veiligheid of behandelkwaliteit.
+
+### Echt gemeten OpenAI-gebruik per laag
+
+| Laag | HTTP 200 / verzoeken | Inputtokens | Outputtokens | Totaal |
+| --- | ---: | ---: | ---: | ---: |
+| P0-parser | 24/24 | 43.877 | 2.771 | 46.648 |
+| P0-generator | 24/24 | 7.819 | 1.386 | 9.205 |
+| A (deterministisch) | 0 | 0 | 0 | 0 |
+| B-supervisor achteraf | 23/23 | 13.500 | 3.948 | 17.448 |
+| C-orchestrator op trigger | 6/6 | 3.299 | 887 | 4.186 |
+| **Totaal** | **77/77** | **68.495** | **8.992** | **77.487** |
+
+Geen HTTP-fouten, geen budgetoverschrijding (limiet 128), geen niet-geautoriseerde modellen, geen extra providerretries waargenomen. Deze tokenwaarden komen rechtstreeks uit de providerresponsen. Modelrekening/tarief is niet in dit artifact aangetoond. De test heeft geen per-arm end-to-end p95-vertraging en niet de kosten van echt gewijzigde, opnieuw gegenereerde antwoorden gemeten.
+
+### Werkelijk verschil tussen de vier architecturen
+
+| Maatstaf (DEV) | P0 | A | B | C |
+| --- | ---: | ---: | ---: | ---: |
+| Bestaande veiligheid liet voorstel toe | 23/24 | 23/24 | 23/24 | 23/24 |
+| **Geselecteerde** gesprekstap anders dan P0 | 0 | 10 | 0 | 10 |
+| Echte extra model-reviewcalls | 0 | 0 | 23 | 6 |
+| Match met vooraf vastgezette *auteurheuristiek*, op 15 toegestane R/D-casussen | **2/15** | **10/15** | **2/15** | **10/15** |
+| Door validator geaccepteerde supervisie-*wijzigingen* | niet van toepassing | niet van toepassing | **0** | **0** |
+| Afgewezen modelreviews | niet van toepassing | niet van toepassing | **8** | **3** |
+
+Er zijn **16** bekende R/D-heuristiekgevallen, waarvan **één** (`DEV-D05`, P0-action `ABSTAIN_HITL`) door de al bestaande safety lock is uitgesloten. De bovenstaande 15 vormen géén onafhankelijke gold labels. Alle acht U-casussen (betrokkene/tijd/inhoud) zijn *niet* met deze gespreksstapheuristiek gescoord.
+
+De tien door A geselecteerde aanpassingen betroffen onder meer `REPAIR` bij uitgesproken correcties, `REFLECTION` bij het weigeren van tips en `INFORMATION` bij een expliciet gevraagd voorbeeld. Dat is een mogelijke ontwikkelindicatie, **geen gemeten winst in antwoordbetekenis of zelfstandig menselijk oordeel**.
+
+De B-reviewer werd 23 keer echt aangeroepen, maar gaf geen enkele gevalideerde `REVISE` of `VETO`. **15** reviews resulteerden in geaccepteerd `KEEP` en **8** werden door het verplichte reviewcontract afgewezen: **6** ongeldige issue/reason, **1** ontbrekende bronverankering in de gebruikerszin en **1** kandidaatrevisie zonder verplichte planinhoud. Geen review leidde tot een toegestane andere stap.
+
+C kreeg slechts **6** aanvullende calls: **vijf** gevallen met trigger `T2` (expliciete correctie) en **één** met `T4` (gesprek heropenen). Triggers `T1` en `T3` kwamen hier niet als extra call voor en zijn daardoor niet inhoudelijk geëvalueerd. C gaf **3** gevalideerde `KEEP`-beoordelingen en **3** afgewezen reviews (twee ongeankerde bewijsfragmenten, één ongeldig issue/reason). De werkelijk geselecteerde C-bewegingen waren in **alle 24 gevallen identiek aan A**, dus voor deze proef is **geen marginale winst van de extra zes modelcalls aangetoond**.
+
+### Rapportconsistentie en beperkingen
+
+Een veldenverschil in de twee onderzoeksrapporten verdient vermelding: `summary.json` bevestigt **`persistedIsolated: 24`** en `PASS_EXPLORATORY_WIRING_ONLY`. In hetzelfde artifact vermeldt de proxy `persistedCertificatesVerified: false`, omdat de naar de ouder doorgestuurde **samenvattingsregel** het veld `persistedIsolated` niet bevatte. Dit is een **metadata-overdrachtsfout**, geen vastgesteld ontbrekend certificaat: de kindrunner heeft wel 24 opgeslagen certificaten gecontroleerd en de volledige technische run is geslaagd. De transmissie wordt voor **volgende** runs gecorrigeerd door dat getal ook in de logsamenvatting op te nemen; er is **geen betaalde herhaling** uitgevoerd om het oude artifact mooier te maken.
+
+We zagen uitsluitend bestaande **zichtbare DEV-fixtures**, opgesteld voor de huidige A/B/C-labontwikkeling. Geen geblindeerde onafhankelijke beoordelaars, geen 300-casus confirmatoire corpus, geen gebalanceerde gegenereerde/uitgevoerde eindantwoorden per arm en geen klinische validatie. P0 was oorspronkelijk gebouwd voor een andere veiligheidstaak; de huidige onderzoeksvoorstellen gaan alleen over **volgende gesprekbewegingen** en mogen de P0-fusie/risicoregel niet veranderen. De vier semantische problemen uit de onafhankelijke P0-nulmeting zijn hier dus **niet** gerepareerd of formeel weerlegd.
+
+**Onderzoeksconclusie:** A heeft in deze ontwikkelset het sterkste *signaal voor verdere toetsing* per extra token: tien vooraf passende bewegingen zonder extra modelcall. B toont hier geen geaccepteerd netto-effect ondanks 23 betaalde reviews. C volgt A exact, met zes extra calls zonder bewezen winst. Dat is **geen formele winnaar**: geen enkele architectuur is op basis van deze proef vrijgegeven, noch mogen nu automatisch P0-antwoorden door A/B/C worden vervangen.
 
 ## Vooraf gespecificeerde interpretatie
 
