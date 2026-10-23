@@ -1,0 +1,104 @@
+name: NeSy P0 independent live baseline - no A B C
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/nesy-p0-independent-baseline.yml"
+      - "scripts/nesy-p0-baseline-e2e.mjs"
+      - "scripts/nesy-full-chain-live-once.mjs"
+      - "research/nesy-abc/p0-independent-baseline-cases.json"
+  workflow_dispatch:
+    inputs:
+      confirm_api_costs:
+        description: "YES explicitly authorizes up to 48 capped API requests for 14 fictional P0 turns"
+        type: choice
+        default: "NO"
+        required: true
+        options: ["NO", "YES"]
+  # ONE-TIME activation only on the approved frozen-corpus merge.
+  # Must be removed immediately after interpreting the first live result.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/nesy-p0-independent-baseline.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nesy-p0-baseline-live
+  cancel-in-progress: false
+
+jobs:
+  offline-contract:
+    name: Validate independent corpus and runners WITHOUT any API key
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --check scripts/nesy-p0-baseline-e2e.mjs
+      - run: node --check scripts/nesy-full-chain-live-once.mjs
+      - run: node scripts/nesy-p0-baseline-e2e.mjs --check-cases
+      - name: Confirm P0-only, isolated sessions, no preset frames in runner
+        run: |
+          if grep -E "selectArchitecture|presetFrame|run-nesy-abc-review-lab" scripts/nesy-p0-baseline-e2e.mjs; then
+            echo "::error::P0 baseline must use the unmodified live NeSy route, not an A/B/C or preset-frame path."
+            exit 1
+          fi
+
+  real-p0:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES')
+      || (github.event_name == 'push' &&
+          startsWith(github.event.head_commit.message,
+            'test(nesy): P0 first independent baseline'))
+    name: REAL P0-only NeSy, gpt-5-mini, isolated sessions and Z3
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    environment:
+      name: nesy
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NESY_FULLCHAIN_APPROVED: ONE_SHOT_LIVE_APPROVED
+      NESY_P0_BASELINE_ALLOWED: APPROVED
+      EAINESY_ABC_SHADOW_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Locked installation
+        run: bun install --frozen-lockfile
+      - name: Preflight frozen P0-only corpus, no costs
+        run: |
+          node --check scripts/nesy-p0-baseline-e2e.mjs
+          node --check scripts/nesy-full-chain-live-once.mjs
+          node scripts/nesy-p0-baseline-e2e.mjs --check-cases
+      - name: Real-model NeSy P0 baseline, max 48 paid API attempts
+        env:
+          nesy: ${{ secrets.nesy }}
+        run: |
+          if [ -z "$nesy" ]; then
+            echo "::error::GitHub Environment nesy requires a secret also named nesy."
+            exit 1
+          fi
+          node scripts/nesy-full-chain-live-once.mjs --live --accept-costs --p0-baseline
+      - name: Attach ONLY structured outcomes and aggregate API usage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesy-p0-independent-baseline-metadata
+          path: .research-output/nesy-p0-baseline/
+          if-no-files-found: warn
+          retention-days: 30
