@@ -1,47 +1,52 @@
 /**
- * CI contract: one OpenAI sandbox environment-secret name, everywhere.
- *
- * Scans the entire tracked repository (not just the three known integration
- * files). The previous key name is assembled from fragments to avoid
- * falsely matching itself. No secret values are ever read or printed.
- *
- * This is safe and free to run on every PR and manual sandbox dry run.
+ * CI contract: GitHub Environment and Secret are both named nesy.
+ * Walk every tracked repository file for obsolete sandbox API key names.
+ * Do not read or display any secret value.
  */
 import assert from "node:assert/strict";
 import {execFileSync} from "node:child_process";
 import {readFileSync} from "node:fs";
 
-const canonical="NESY_OPENAI_API_KEY";
-const previous=["NESY","OPENAI","SANDBOX","API","KEY"].join("_");
+const canonical="nesy";
+const obsoleteNames=[
+  ["NESY","OPENAI","API","KEY"].join("_"),
+  ["NESY","OPENAI","SANDBOX","API","KEY"].join("_")
+];
 const paths=execFileSync("git",["ls-files","-z"],{encoding:"buffer"})
   .toString("utf8").split("\0").filter(Boolean);
-
 assert.ok(paths.length>100,"expected full tracked repository checkout");
 const obsolete=[];
 for(const path of paths){
   const bytes=readFileSync(path);
-  if(bytes.includes(0))continue; // non-text binary
+  if(bytes.includes(0))continue;
   const content=bytes.toString("utf8");
-  if(content.includes(previous))obsolete.push(path);
+  for(const name of obsoleteNames){
+    if(content.includes(name))obsolete.push(path);
+  }
 }
-assert.deepEqual(obsolete,[],"obsolete OpenAI sandbox secret name found in: "+obsolete.join(", "));
+assert.deepEqual([...new Set(obsolete)],[],
+  "obsolete sandbox API key name found in: "+obsolete.join(", "));
 
 const workflow=readFileSync(".github/workflows/nesy-openai-sandbox.yml","utf8");
 const sandbox=readFileSync("scripts/run-nesy-openai-sandbox.mjs","utf8");
 const guide=readFileSync("docs/EAInesy-OpenAI-API-sandbox.md","utf8");
-const expression=canonical+": $"+"{{ secrets."+canonical+" }}";
-assert.ok(workflow.includes(expression),"GitHub Actions secret source must use the canonical name");
-assert.ok(workflow.includes("    environment:\n      name: nesy\n"),
-  "GitHub Actions must target the exact user environment nesy");
-assert.ok(workflow.includes("is missing from nesy."),
-  "missing-secret preflight must identify the exact environment");
-assert.ok(guide.includes("environment = nesy;"),
-  "setup guide must match the named GitHub environment");
+const expression="          "+canonical+": $"+"{{ secrets."+canonical+" }}";
+assert.ok(workflow.includes("    environment:\n      name: "+canonical+"\n"),
+  "workflow must target GitHub Environment nesy");
+assert.ok(workflow.includes(expression),
+  "workflow must read the nesy environment secret into nesy");
 assert.ok(workflow.includes('if [ -z "$'+canonical+'" ]; then'),
-  "sandbox presence check must use the same runtime name");
+  "preflight must verify the nesy runtime variable");
+assert.ok(workflow.includes("GitHub environment secret nesy is missing from nesy."),
+  "missing-secret message must identify both names");
 assert.ok(sandbox.includes("process.env."+canonical),
-  "sandbox script must read only the canonical runtime variable");
-assert.ok(guide.includes(canonical),"setup guide must name the matching secret");
-assert.ok(!sandbox.includes("process.env."+previous),"obsolete runtime variable in sandbox");
-console.log("PASS NeSy API sandbox secret-name contract: "+canonical+
-  "; "+paths.length+" tracked files scanned; no obsolete aliases.");
+  "sandbox must read only the nesy runtime variable");
+for(const oldName of obsoleteNames)
+  assert.ok(!sandbox.includes("process.env."+oldName),
+    "obsolete runtime variable in sandbox");
+assert.ok(guide.includes("environment = nesy;"),
+  "guide must name the nesy environment");
+assert.ok(guide.includes("   nesy\n"),
+  "guide must name the nesy environment secret");
+console.log("PASS NeSy sandbox naming contract: environment=nesy secret=nesy; "+
+  paths.length+" tracked files scanned; no obsolete aliases.");
