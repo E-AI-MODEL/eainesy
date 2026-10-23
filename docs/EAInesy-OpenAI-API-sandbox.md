@@ -29,9 +29,9 @@ zolang er geen apart projectsecret en expliciete handmatige uitvoering zijn.
    https://platform.openai.com/api-keys
 2. Open in de repository:
    https://github.com/E-AI-MODEL/eainesy/settings/environments
-3. Maak een environment met PRECIES deze naam:
+3. Gebruik een environment met PRECIES deze naam:
 
-   nesy-openai-sandbox
+   nesy
 
 4. Voeg binnen die environment (dus geen repository-breed secret) een
    Environment secret toe met PRECIES deze naam:
@@ -87,7 +87,7 @@ of terugkerende betaalde modelaanroepen.
 
 - Alleen handmatige workflow_dispatch; geen cron, push of PR die het
   OpenAI-secret kan lezen of de betaalde flow kan starten.
-- environment = nesy-openai-sandbox; read-only GITHUB_TOKEN;
+- environment = nesy; read-only GITHUB_TOKEN;
   checkout zonder opgeslagen Git-credentials.
 - Het API-secret wordt pas in de ene betaalde uitvoerstap als environment
   variable geïnjecteerd. In dry-run wordt het niet gebruikt.
