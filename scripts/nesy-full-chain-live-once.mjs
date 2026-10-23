@@ -21,11 +21,15 @@ import {resolve,join} from "node:path";
 const flags=process.argv.slice(2);
 const p0Baseline=flags.includes("--p0-baseline");
 const abcDev=flags.includes("--abc-dev");
-if((p0Baseline && abcDev) ||
-   flags.length!==(p0Baseline||abcDev?3:2) ||
+const s1s2Pilot=flags.includes("--s1s2-pilot");
+if((Number(p0Baseline)+Number(abcDev)+Number(s1s2Pilot)>1) ||
+   flags.length!==(p0Baseline||abcDev||s1s2Pilot?3:2) ||
    !flags.includes("--live") || !flags.includes("--accept-costs") ||
-   flags.some(x=>!["--live","--accept-costs","--p0-baseline","--abc-dev"].includes(x)))
-  throw Error("Live test requires --live --accept-costs [--p0-baseline|--abc-dev]");
+   flags.some(x=>!["--live","--accept-costs","--p0-baseline","--abc-dev","--s1s2-pilot"].includes(x)))
+  throw Error("Live test requires --live --accept-costs [--p0-baseline|--abc-dev|--s1s2-pilot]");
+if(s1s2Pilot && (process.env.NESY_S1S2_P02_ALLOWED!=="S1S2_P02_ONE_SHOT" ||
+                 process.env.EAINESY_ABC_SHADOW_ENABLED!=="false"))
+  throw Error("S1S2 pilot needs fixed synthetic-only approval");
 if(abcDev && (process.env.NESY_ABC_LIVE_APPROVED!=="APPROVED" ||
               process.env.EAINESY_ABC_SHADOW_ENABLED!=="false"))
   throw Error("ABC test needs exact DEV-only consent and disabled production shadow");
@@ -36,9 +40,12 @@ if(typeof key!=="string" || !key.startsWith("sk-") || key.length<30)
   throw Error("Missing or malformed GitHub Environment secret nesy");
 delete process.env.nesy; // real key is held ONLY by the parent/proxy
 
-const MODEL="gpt-5-mini"; // same model as the earlier successful B/C connection
-const MAX_CALLS=abcDev?128:p0Baseline?48:12; // hard total incl. reviewer and all retries
+const MODEL=s1s2Pilot?"gpt-5":"gpt-5-mini"; // P02 full GPT-5; earlier modes unchanged
+const MAX_CALLS=s1s2Pilot?64:abcDev?128:p0Baseline?48:12; // bounded including retries
 const MAX_COMPLETION_TOKENS=1600; // hard per-request generated-token limit
+const S1S2_PHASE_CAPS=Object.freeze({
+  P0_PARSE:16,P0_GENERATE:16,S2_RECHECK:4,S1S2_REPLY:20,S1S2_JUDGE:10
+});
 const MAX_INPUT_BYTES=90_000; // bounded prompt bytes, no attachments or tools
 const MAX_RESPONSE_BYTES=300_000;
 const LOCAL_BEARER="nesy-local-fixture-no-secret";
@@ -47,7 +54,7 @@ const metrics={
   model:MODEL,maxCalls:MAX_CALLS,maxCompletionTokens:MAX_COMPLETION_TOKENS,
   requests:0,successful:0,budgetDenied:0,transportErrors:0,
   statusCodes:{},promptTokens:0,completionTokens:0,
-  byPhase:Object.fromEntries(["P0_PARSE","P0_GENERATE","B","C","UNKNOWN"].map(k=>
+  byPhase:Object.fromEntries(["P0_PARSE","P0_GENERATE","B","C","S2_RECHECK","S1S2_REPLY","S1S2_JUDGE","UNKNOWN"].map(k=>
     [k,{calls:0,success:0,inputTokens:0,outputTokens:0}]))
 };
 function reply(res,status,reason){
@@ -79,6 +86,18 @@ const proxy=createServer(async(req,res)=>{
     let phase=first.startsWith("You are the semantic parser")?"P0_PARSE":
       (first.startsWith("Je bent EAInesy")||first.startsWith("You are EAInesy"))?"P0_GENERATE":
       review&&["B","C"].includes(announced)?announced:"UNKNOWN";
+    if(s1s2Pilot){
+      const tag=req.headers["x-nesy-research-phase"];
+      const known={S2_RECHECK:"You are a one-step source-aware RECHECKER",
+        S1S2_REPLY:"You are the S1S2 paired research reply generator",
+        S1S2_JUDGE:"You are the blind S1S2 dialogue evaluator"};
+      if(typeof tag==="string" && Object.hasOwn(known,tag) &&
+         first.startsWith(known[tag]))phase=tag;
+      if(!Object.hasOwn(S1S2_PHASE_CAPS,phase))
+        return reply(res,403,"unknown_s1s2_research_request");
+      if(metrics.byPhase[phase].calls>=S1S2_PHASE_CAPS[phase])
+        return reply(res,403,"s1s2_phase_call_budget_exhausted");
+    }
     if(abcDev && phase==="UNKNOWN")
       return reply(res,403,"unknown_abc_research_request");
     if(metrics.requests>=MAX_CALLS){
@@ -98,8 +117,11 @@ const proxy=createServer(async(req,res)=>{
         // that parameter. Do not pass through temperature or unknown fields.
         body:JSON.stringify({model:MODEL,messages:input.messages,
           reasoning_effort:"minimal",
-          max_completion_tokens:phase==="B"||phase==="C"?800:MAX_COMPLETION_TOKENS,
-          ...(review?{response_format:{type:"json_object"}}:{}),
+          max_completion_tokens:phase==="B"||phase==="C"?800:
+             phase==="S2_RECHECK"?900:phase==="S1S2_REPLY"?1100:
+             phase==="S1S2_JUDGE"?1400:MAX_COMPLETION_TOKENS,
+          ...(review||["S2_RECHECK","S1S2_REPLY","S1S2_JUDGE"].includes(phase)
+              ?{response_format:{type:"json_object"}}:{}),
           store:false,n:1,stream:false})
       });
     }catch{
@@ -143,17 +165,33 @@ const env={...process.env,
   EAINESY_MODEL_API_KEY:LOCAL_BEARER
 };
 const ROOT=resolve(import.meta.dirname,"..");
-const childScript=abcDev?"scripts/nesy-abc-real-dev-e2e.mjs":
+const childScript=s1s2Pilot?"scripts/nesy-s1s2-real-p02-e2e.mjs":
+  abcDev?"scripts/nesy-abc-real-dev-e2e.mjs":
   p0Baseline?"scripts/nesy-p0-baseline-e2e.mjs":"scripts/live-http-e2e.mjs";
 const child=spawn(process.execPath,[childScript,"--live","--accept-costs"],{
   cwd:ROOT,env,stdio:["ignore","pipe","pipe"]
 });
 const turns=[];
 const p0Events=[];
-const abcEvents=[];
-let p0Summary=null,abcSummary=null;
+const abcEvents=[],s1s2Events=[];
+let p0Summary=null,abcSummary=null,s1s2Summary=null;
 let safePassSummary=false,buffer="";
 function parseSafeLine(line){
+  if(s1s2Pilot){
+    if(line.startsWith("NESY S1S2 P02 CASE ")){
+      try{
+        const x=JSON.parse(line.slice("NESY S1S2 P02 CASE ".length));
+        if(/^P02-[0-9]{2}$/.test(x.id))
+          s1s2Events.push({id:x.id,technical:x.verified===true,
+            realZ3:x.z3===true,stage:x.stage,
+            callsS2:x.callsS2,modelReplyCount:x.replies});
+      }catch{}
+    }else if(line.startsWith("NESY S1S2 P02 RESULT ")){
+      try{s1s2Summary=JSON.parse(line.slice("NESY S1S2 P02 RESULT ".length));}
+      catch{}
+    }
+    return;
+  }
   if(abcDev){
     if(line.startsWith("NESY ABC LIVE CASE ")){
       try{
@@ -218,7 +256,13 @@ const outcome=await new Promise(resolve=>{
   child.once("error",()=>resolve({code:1,signal:"spawn_error"}));
 });
 await new Promise(resolve=>proxy.close(resolve));
-const passed=abcDev?
+const passed=s1s2Pilot?
+  (outcome.code===0 && s1s2Events.length===10 &&
+   s1s2Events.every(x=>x.technical&&x.realZ3&&x.stage==="complete") &&
+   s1s2Summary?.status==="PASS_REAL_MODEL_EXPLORATORY_UNREVIEWED" &&
+   metrics.requests>0 && metrics.requests<=MAX_CALLS &&
+   metrics.byPhase.S2_RECHECK.calls===s1s2Summary?.S2Calls) :
+  abcDev?
   (outcome.code===0 && abcEvents.length===24 &&
    abcEvents.every(x=>x.technical&&x.realZ3&&x.comparable) &&
    abcSummary?.status==="PASS_EXPLORATORY_WIRING_ONLY" &&
@@ -234,31 +278,32 @@ const passed=abcDev?
    turns.every(t=>t.ok && t.z3==="sat" && !t.failClosed) &&
    metrics.requests>0 && metrics.requests<=MAX_CALLS);
 const result={
-  schema:abcDev?"nesy-abc-live-proxy-v1":p0Baseline?"nesy-p0-proxy-v1":"nesy-real-model-real-z3-one-shot-v1",
+  schema:s1s2Pilot?"nesy-s1s2-p02-live-proxy-v1":abcDev?"nesy-abc-live-proxy-v1":p0Baseline?"nesy-p0-proxy-v1":"nesy-real-model-real-z3-one-shot-v1",
   status:passed?"PASS":"FAIL",
   model:MODEL,
   route:"real Next.js API > GLM parser > controller > isolated Z3 > generator > output policy",
   realExternalModel:true,isolatedNodeZ3Used:true,
   syntheticCasesOnly:true,clinicalValidation:false,productionChanged:false,
-  baselineOnly:p0Baseline,abcArmsInvoked:abcDev,
+  baselineOnly:p0Baseline,abcArmsInvoked:abcDev,s1s2Exploratory:s1s2Pilot,
   api:{...metrics},
-  turns:abcDev?abcEvents:p0Baseline?p0Events:turns,
-  persistedCertificatesVerified:abcDev?abcSummary?.persistedIsolated===24:
+  turns:s1s2Pilot?s1s2Events:abcDev?abcEvents:p0Baseline?p0Events:turns,
+  persistedCertificatesVerified:s1s2Pilot?null:abcDev?abcSummary?.persistedIsolated===24:
     p0Baseline?p0Summary?.persistencePass===13:safePassSummary,
   childExitCode:outcome.code,
   secretsLogged:false,
   promptOrReplyTextStoredInReport:false,
   timestamp:new Date().toISOString()
 };
-const output=join(ROOT,".research-output",abcDev?"nesy-abc-live-dev":
+const output=join(ROOT,".research-output",s1s2Pilot?"nesy-s1s2-p02":abcDev?"nesy-abc-live-dev":
   p0Baseline?"nesy-p0-baseline":"nesy-full-chain-live");
 mkdirSync(output,{recursive:true});
-writeFileSync(join(output,abcDev||p0Baseline?"proxy-summary.json":"summary.json"),
+writeFileSync(join(output,abcDev||p0Baseline||s1s2Pilot?"proxy-summary.json":"summary.json"),
   JSON.stringify(result,null,2)+"\n");
-console.log((abcDev?"NESY ABC LIVE PROXY ":p0Baseline?"NESY P0 PROXY ":"NESY FULL CHAIN ")+
+console.log((s1s2Pilot?"NESY S1S2 P02 PROXY ":abcDev?"NESY ABC LIVE PROXY ":p0Baseline?"NESY P0 PROXY ":"NESY FULL CHAIN ")+
   result.status+" "+JSON.stringify({
-  cases:abcDev?abcEvents.length:p0Baseline?p0Events.length:turns.length,
-  realZ3Sat:abcDev?abcEvents.filter(x=>x.realZ3).length:
+  cases:s1s2Pilot?s1s2Events.length:abcDev?abcEvents.length:p0Baseline?p0Events.length:turns.length,
+  realZ3Sat:s1s2Pilot?s1s2Events.filter(x=>x.realZ3).length:
+    abcDev?abcEvents.filter(x=>x.realZ3).length:
     (p0Baseline?p0Events:turns).filter(x=>x.z3==="sat").length,
   upstreamCalls:metrics.requests,httpStatuses:metrics.statusCodes,
   tokens:{input:metrics.promptTokens,output:metrics.completionTokens},
