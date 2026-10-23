@@ -1,0 +1,80 @@
+name: Research - Shadowseed fixed 22 SSL arm
+
+# Independent from the no-SSL control run. Runs real Shadowseed pipeline.
+# Existing API secret remains in EAInesy environment nesy; it is never copied.
+on:
+  push:
+    branches: [research/shadowseed-fixed22-ssl-20261023]
+    paths:
+      - .github/workflows/shadowseed-fixed22-ssl.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shadowseed-fixed22-ssl-once-20261023
+  cancel-in-progress: false
+
+jobs:
+  ssl:
+    name: With Shadowseed / ${{ matrix.model }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment:
+      name: nesy
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [gpt-5, gpt-6.1-sol]
+    env:
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout identical pinned public Shadowseed research protocol
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: E-AI-MODEL/shadowseed-pro
+          ref: e76e33f704e6b05c718b348a3ff3379179646e78
+          path: shadowseed-pro
+          persist-credentials: false
+      - name: Set up Python 3.12
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.8.14"
+      - name: Lock questions and compile exact same runner
+        working-directory: shadowseed-pro
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "e76e33f704e6b05c718b348a3ff3379179646e78"
+          sha256sum src/shadowseed/data/ssl_session_suite.json
+          sha256sum scripts/research_controlled_pair_run.py
+          python -m py_compile scripts/research_controlled_pair_run.py
+          uv sync --locked --extra openai --extra test
+      - name: Run actual SSL arm and record candidate/Gate/TTL/TrTL diagnostics
+        working-directory: shadowseed-pro
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.nesy }}
+        run: |
+          set -euo pipefail
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::Environment nesy secret nesy missing. No provider calls made."
+            exit 1
+          fi
+          uv run --no-sync python scripts/research_controlled_pair_run.py \
+            --arm ssl \
+            --model "${{ matrix.model }}" \
+            --suite src/shadowseed/data/ssl_session_suite.json \
+            --out "results/fixed22/ssl_${{ matrix.model }}.json"
+      - name: Upload separate treatment output and exact provenance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fixed22-ssl-${{ matrix.model }}-${{ github.run_id }}
+          path: shadowseed-pro/results/fixed22/ssl_*.json
+          if-no-files-found: warn
+          retention-days: 14
