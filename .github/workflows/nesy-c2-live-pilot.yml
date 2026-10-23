@@ -49,7 +49,7 @@ jobs:
 
   live:
     if: >-
-      ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES') || (github.event_name == 'push' && github.event.head_commit.message == 'research(nesy): C2 live one-shot P02-2026-10-23') }}
+      ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES') || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'research(nesy): C2 live one-shot P02-2026-10-23')) }}
     needs: offline
     name: Generate ten genuine, untrusted C2 candidates with GPT-5-mini
     runs-on: ubuntu-latest

@@ -37,7 +37,7 @@ const PROMPT=[
 "Each candidate must quote an EXACT contiguous span of the specified source text.",
 "Sources: current_user, prior_user, prior_assistant. Kinds:",
 "PERSON, TIME, NEGATION, ALTERNATIVE, CONTRADICTION, MISSING_INFORMATION.",
-"For each candidate: kind, source, evidence, hypothesis, question (use empty string if none).",
+"For each candidate: kind, source, evidence, hypothesis. Optional question: OMIT if none.",
 "Be selective: candidates are optional observations, not a checklist.",
 "Return one JSON object with exactly one field 'claims', an array of zero to two candidates.",
 "An example shape is {\"claims\":[]}. Do not include any other fields."
