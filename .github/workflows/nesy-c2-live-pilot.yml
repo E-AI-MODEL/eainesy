@@ -1,0 +1,83 @@
+name: NeSy C2 true-model candidate pilot
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/nesy-abc/c2-live*"
+      - "scripts/nesy-c2-live-one-shot.mjs"
+      - ".github/workflows/nesy-c2-live-pilot.yml"
+      - "docs/NeSy-C2-live-pilot-2026-10-23.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/nesy-c2-live-pilot.yml"
+      - "scripts/nesy-c2-live-one-shot.mjs"
+  workflow_dispatch:
+    inputs:
+      confirm_api_costs:
+        type: choice
+        description: "YES: run exactly 10 fictional GPT-5-mini candidates, max 1600 completion tokens each"
+        default: "NO"
+        required: true
+        options: ["NO", "YES"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nesy-c2-live-one-at-a-time
+  cancel-in-progress: false
+
+jobs:
+  offline:
+    name: Check fixed corpus, client cap, source gate and dry-run (no key)
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Strict offline contract checks
+        run: |
+          node --check scripts/nesy-c2-live-one-shot.mjs
+          node --test research/nesy-abc/c2-live-client.test.mjs research/nesy-abc/c2-uncertainty.test.mjs research/nesy-abc/c2-source-fixtures.test.mjs
+          node scripts/nesy-c2-live-one-shot.mjs --dry-run
+
+  live:
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES') || (github.event_name == 'push' && github.event.head_commit.message == 'research(nesy): C2 live one-shot P02-2026-10-23') }}
+    needs: offline
+    name: Generate ten genuine, untrusted C2 candidates with GPT-5-mini
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    environment:
+      name: nesy
+    env:
+      NESY_C2_EXPLICIT_CONSENT: C2_ONE_SHOT_TEN_CALLS
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Produce ten research-only candidate observations with hard call/token bounds
+        env:
+          nesy: ${{ secrets.nesy }}
+        run: |
+          if [ -z "$nesy" ]; then
+            echo "::error::GitHub Environment secret nesy is missing."
+            exit 1
+          fi
+          node scripts/nesy-c2-live-one-shot.mjs --live --accept-costs
+      - name: Save synthetic candidate packet and metadata for independent reviewers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesy-c2-live-model-candidates-review-packet
+          path: .research-output/nesy-c2-live/
+          if-no-files-found: warn
+          retention-days: 30
