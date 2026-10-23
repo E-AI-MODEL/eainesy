@@ -234,7 +234,7 @@ try {
    row.stage="S1S2";
    const injected=createInjectedS2Rechecker({complete:async({system,user,maxOutputTokens})=>{
     row.rechecks++;
-    return await modelCall("S2_RECHECK",system,user,Math.min(700,Math.max(350,maxOutputTokens||350)));
+    return await modelCall("S2_RECHECK",system,user,Math.min(900,Math.max(750,maxOutputTokens||350)));
    }});
    const pair=await compareCooperativeArms(comparisonInput,{recheck:injected.recheck});
    assert.equal(JSON.stringify(bridged.input),frozen);
