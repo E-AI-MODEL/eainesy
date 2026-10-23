@@ -1,0 +1,117 @@
+{
+  "schema": "nesy-abc-dev-author-scored-move-heuristic-v1",
+  "status": "DEV_VISIBLE_NON_BLINDED_NON_CLINICAL",
+  "origin": "Author's fixed heuristic translation of existing fictional DEV-R and DEV-D case references; does not grade answer truth, quality, safety or actual changes",
+  "qualityScoreDefined": false,
+  "safetyLabelsDefined": false,
+  "unscored": "Eight DEV-U cases are attribution/content-dependent, cannot be graded by dialogue move alone",
+  "method": "Compare selectedMove only; locked cases are NOT penalized as semantic mistakes. Report unlocked-case alignment and locked counts separately.",
+  "cases": [
+    {
+      "id": "DEV-R01",
+      "allowed": [
+        "REPAIR"
+      ]
+    },
+    {
+      "id": "DEV-R02",
+      "allowed": [
+        "REPAIR"
+      ]
+    },
+    {
+      "id": "DEV-R03",
+      "allowed": [
+        "REPAIR"
+      ]
+    },
+    {
+      "id": "DEV-R04",
+      "allowed": [
+        "REFLECTION",
+        "REPAIR"
+      ]
+    },
+    {
+      "id": "DEV-R05",
+      "allowed": [
+        "REPAIR",
+        "REFLECTION"
+      ]
+    },
+    {
+      "id": "DEV-R06",
+      "allowed": [
+        "REPAIR"
+      ]
+    },
+    {
+      "id": "DEV-R07",
+      "allowed": [
+        "REPAIR",
+        "INFORMATION"
+      ]
+    },
+    {
+      "id": "DEV-R08",
+      "allowed": [
+        "REPAIR"
+      ]
+    },
+    {
+      "id": "DEV-D01",
+      "allowed": [
+        "REFLECTION",
+        "AFFIRMATION"
+      ]
+    },
+    {
+      "id": "DEV-D02",
+      "allowed": [
+        "INFORMATION",
+        "SUGGESTION"
+      ]
+    },
+    {
+      "id": "DEV-D03",
+      "allowed": [
+        "REFLECTION",
+        "QUESTION"
+      ]
+    },
+    {
+      "id": "DEV-D04",
+      "allowed": [
+        "QUESTION",
+        "INFORMATION"
+      ]
+    },
+    {
+      "id": "DEV-D05",
+      "allowed": [
+        "CLARIFY",
+        "QUESTION"
+      ]
+    },
+    {
+      "id": "DEV-D06",
+      "allowed": [
+        "INFORMATION"
+      ]
+    },
+    {
+      "id": "DEV-D07",
+      "allowed": [
+        "INFORMATION",
+        "SUGGESTION"
+      ]
+    },
+    {
+      "id": "DEV-D08",
+      "allowed": [
+        "AFFIRMATION",
+        "SUMMARY"
+      ]
+    }
+  ]
+}

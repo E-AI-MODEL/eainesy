@@ -1,0 +1,105 @@
+name: NeSy A B C real-model shared-P0 DEV comparison
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/nesy-abc-real-dev-comparison.yml"
+      - "scripts/nesy-abc-real-dev-e2e.mjs"
+      - "scripts/nesy-full-chain-live-once.mjs"
+      - "research/nesy-abc/abc-dev-move-expectations-v1.json"
+      - "docs/NeSy-ABC-real-DEV-2026-10-23.md"
+  workflow_dispatch:
+    inputs:
+      confirm_api_costs:
+        description: "YES authorizes a 24-case fictional DEV test, bounded to 128 OpenAI HTTP attempts including P0, B, C"
+        type: choice
+        default: "NO"
+        required: true
+        options: ["NO", "YES"]
+  # ONE user-approved test on an exact squash merge prefix; remove afterwards.
+  push:
+    branches: [main]
+    paths: [".github/workflows/nesy-abc-real-dev-comparison.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nesy-abc-live-dev-one-at-a-time
+  cancel-in-progress: false
+
+jobs:
+  offline-contract:
+    name: Validate frozen DEV study and all four research arms without cost
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax and frozen case-set checks, no secret
+        run: |
+          node --check scripts/nesy-abc-real-dev-e2e.mjs
+          node --check scripts/nesy-full-chain-live-once.mjs
+          node scripts/nesy-abc-real-dev-e2e.mjs --check-cases
+      - name: Existing four-arm and content reviewer regression tests
+        run: node --test research/nesy-abc/*.test.mjs
+      - name: Never permit model activation in PR checks
+        if: github.event_name == 'pull_request'
+        run: |
+          test "$NESY_ABC_LIVE_APPROVED" = "" || exit 1
+
+  real-abc:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_api_costs == 'YES')
+      || (github.event_name == 'push' &&
+          startsWith(github.event.head_commit.message,
+            'test(nesy): A B C shared real DEV'))
+    name: Genuine P0, real Z3, real B C reviewers, A deterministic, 24 DEV cases
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: nesy
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NESY_FULLCHAIN_APPROVED: ONE_SHOT_LIVE_APPROVED
+      NESY_ABC_LIVE_APPROVED: APPROVED
+      EAINESY_ABC_SHADOW_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.4"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Resolve frozen dependencies
+        run: bun install --frozen-lockfile
+      - name: Confirm research-only corpus, no costs
+        run: |
+          node --check scripts/nesy-abc-real-dev-e2e.mjs
+          node --check scripts/nesy-full-chain-live-once.mjs
+          node scripts/nesy-abc-real-dev-e2e.mjs --check-cases
+      - name: Execute 24 matched real P0 snapshots A B C with bounded GPT-5 mini
+        env:
+          nesy: ${{ secrets.nesy }}
+        run: |
+          if [ -z "$nesy" ]; then
+            echo "::error::GitHub Environment nesy needs secret nesy."
+            exit 1
+          fi
+          node scripts/nesy-full-chain-live-once.mjs --live --accept-costs --abc-dev
+      - name: Upload only enum metadata and measured token counters
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nesy-abc-real-shared-p0-dev-metadata
+          path: .research-output/nesy-abc-live-dev/
+          if-no-files-found: warn
+          retention-days: 30
