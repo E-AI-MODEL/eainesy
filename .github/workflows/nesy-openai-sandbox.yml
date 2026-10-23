@@ -45,6 +45,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Validate single OpenAI key name in every tracked repository file
+        run: node scripts/check-nesy-openai-key-name.mjs
+
       - name: Test sandbox client without a secret or network
         run: node --test research/nesy-abc/openai-sandbox-client.test.mjs
 
@@ -65,11 +68,11 @@ jobs:
       - name: Connect two sandbox reviewers with environment-scoped key
         if: ${{ inputs.mode == 'connect' }}
         env:
-          NESY_OPENAI_SANDBOX_API_KEY: ${{ secrets.NESY_OPENAI_API_KEY }}
+          NESY_OPENAI_API_KEY: ${{ secrets.NESY_OPENAI_API_KEY }}
           NESY_SANDBOX_EXPLICIT_CONSENT: TWO_CALLS_AUTHORIZED
         run: |
           # Never display the secret or test it with shell tracing.
-          if [ -z "$NESY_OPENAI_SANDBOX_API_KEY" ]; then
+          if [ -z "$NESY_OPENAI_API_KEY" ]; then
             echo "::error::GitHub environment secret NESY_OPENAI_API_KEY is missing from nesy-openai-sandbox."
             exit 1
           fi
