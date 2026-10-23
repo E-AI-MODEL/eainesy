@@ -12,7 +12,7 @@ Neither the model prompt nor the input includes prewritten hypothesis labels or 
 
 ## Invocation and cost
 
-The GitHub workflow nesy-c2-live-pilot.yml has a manual YES control and a narrow one-shot push-start with exact squash-merge commit title: research(nesy): C2 live one-shot P02-2026-10-23. Remove the push activation immediately after the first verified attempt. Future paid repeats require manual confirmation.
+The one-shot push activation was used only for GitHub Actions run 39890442472 at merge commit 956c9db741f89583009a6895e1e8e855fa302e82. The workflow no longer accepts paid push activation: later model calls require a manual workflow_dispatch with confirm_api_costs = YES. Pull requests run the key-free offline suite only.
 
 One call per case, hard maximum 10 HTTP attempts to the exact OpenAI Chat Completions endpoint. gpt-5-mini, reasoning_effort=minimal, max_completion_tokens=1600, max 12 KB input per request; no retries, redirects, tools, extra models or storage (store:false). The key comes exclusively from GitHub Environment nesy secret nesy and is never logged. Billing total is not measured in currency; provider-reported token counts are saved.
 
