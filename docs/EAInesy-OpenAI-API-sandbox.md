@@ -38,9 +38,9 @@ zolang er geen apart projectsecret en expliciete handmatige uitvoering zijn.
 
    NESY_OPENAI_API_KEY
 
-   De GitHub Actions-workflow leest deze bestaande secretnaam en geeft de
-   waarde binnen de afgeschermde teststap door als procesvariabele
-   NESY_OPENAI_SANDBOX_API_KEY. Je hoeft de sleutel niet opnieuw op te slaan.
+   De GitHub Actions-workflow en het onderzoeksprogramma gebruiken allebei
+   direct NESY_OPENAI_API_KEY. Er is geen tweede naam of interne alias.
+   Je hoeft de sleutel niet opnieuw op te slaan.
 
 5. Plak de OpenAI-projectsleutel uitsluitend in het Secret value-veld van
    GitHub en sla het secret op. Deel de sleutel niet via chat, PR, issue,
