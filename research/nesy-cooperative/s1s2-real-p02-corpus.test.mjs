@@ -22,5 +22,5 @@ test("corpus declares P0 actual output separate from matched S1/S2 unverified su
  assert.match(corpus.comparison.baseline,/real P0/);
  assert.match(corpus.comparison.S1,/symbolic/);
  assert.match(corpus.comparison.S2,/recheck/);
- assert.match(corpus.comparison.scoring,/not independent humans/i);
+ assert.match(corpus.comparison.scoring,/no independent humans/i);
 });
