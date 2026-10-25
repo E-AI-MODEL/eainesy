@@ -5,8 +5,9 @@
  */
 import { describe, expect, test } from 'bun:test';
 import { decide } from '../src/lib/eainesy/controller';
+import { cannedReplyFor, verifyOutput } from '../src/lib/eainesy/outputpolicy';
 import { runModelCheck } from '../src/lib/eainesy/modelchecker';
-import { enumerateControllerInputs, type ControllerInput } from '../src/lib/eainesy/types';
+import { enumerateControllerInputs, type ControllerInput, type Plan } from '../src/lib/eainesy/types';
 
 const REFERRAL_OR_STRICTER = ['REFERRAL', 'SAFETY_RESPONSE', 'CRISIS_PROTOCOL'];
 const n06: ControllerInput = {
@@ -58,5 +59,35 @@ describe('medication question always ends in a referral (N06)', () => {
     const inv = mc.invariants.find((x) => x.id === 'INV-29');
     expect(inv?.pass).toBe(true);
     expect(inv?.violations).toBe(0);
+  });
+
+  // The referral must reach the shipped text, not only the action label (OP-18).
+  describe('output policy enforces the referral in the reply', () => {
+    const planFor = (input: ControllerInput, language: 'nl' | 'en'): Plan => {
+      const d = decide(input);
+      return { ...d.planTemplate, action: d.action, ruleId: d.ruleId, language, kgCitations: [], crisisResources: [] };
+    };
+    for (const input of [n06, { ...n06, piiState: 'PII_DETECTED' as const }, { ...n06, distressLevel: 'ACUTE' as const }]) {
+      const rule = decide(input).ruleId;
+      test(`${rule}: a reply without prescriber/GP is rejected`, () => {
+        const r = verifyOutput('Ik begrijp dat dit je bezighoudt. Wat maakt dat je dit nu vraagt?', planFor(input, 'nl'));
+        expect(r.violations.map((v) => v.ruleId)).toContain('OP-18');
+      });
+      test(`${rule}: a reply naming the GP passes OP-18`, () => {
+        const r = verifyOutput('Ik begrijp dat dit je bezighoudt. Over je medicatie beslist je huisarts of voorschrijver; bespreek het vandaag nog met hen.', planFor(input, 'nl'));
+        expect(r.violations.map((v) => v.ruleId)).not.toContain('OP-18');
+      });
+      for (const language of ['nl', 'en'] as const) {
+        test(`${rule}: the canned fallback (${language}) passes OP-18`, () => {
+          const plan = planFor(input, language);
+          const r = verifyOutput(cannedReplyFor(plan), plan);
+          expect(r.violations.map((v) => v.ruleId)).not.toContain('OP-18');
+        });
+      }
+    }
+    test('OP-18 does not apply to plans without a medication referral', () => {
+      const plan = planFor({ ...n06, intent: 'WORK_STRESS', novelty: 'KNOWN' }, 'nl');
+      expect(verifyOutput('Wat maakt dat je dit nu vraagt?', plan).violations.map((v) => v.ruleId)).not.toContain('OP-18');
+    });
   });
 });
