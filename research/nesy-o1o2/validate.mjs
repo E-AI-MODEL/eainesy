@@ -79,7 +79,8 @@ export function validateLabels(doc,corpusBytes){
   if(doc.kind==="labels_raw"&&(typeof doc.rater!=="string"||!doc.rater))errs.push("rater");
   if(doc.kind==="labels_final"){
     const raw=doc.rawLabelSha256s;
-    if(!raw||Object.keys(raw).length<2||!Object.values(raw).every(h=>HEX64.test(h)))errs.push("rawLabelSha256s");
+    // at least two independent raters: two distinct raw-label files
+    if(!raw||!Object.values(raw).every(h=>HEX64.test(h))||new Set(Object.values(raw)).size<2)errs.push("rawLabelSha256s");
   }
   if(!Array.isArray(doc.labels)||doc.labels.length===0)return [...errs,"labels"];
   const ids=new Set();
@@ -92,6 +93,9 @@ export function validateLabels(doc,corpusBytes){
   if(corpusBytes){
     if(sha256(corpusBytes)!==doc.corpusSha256)errs.push("corpusSha256 does not match the corpus file");
     const corpus=JSON.parse(corpusBytes.toString("utf8"));
+    const corpusErrs=validateCorpus(corpus);
+    if(corpusErrs.length)return [...errs,...corpusErrs.map(e=>"corpus file: "+e)];
+    if(corpus.protocol!==doc.protocol||corpus.corpus!==doc.corpus)errs.push(`corpus file is ${corpus.corpus}, labels are for ${doc.corpus}`);
     const want=new Set(corpus.cases.map(c=>c.id));
     for(const id of want)if(!ids.has(id))errs.push(`missing label for ${id}`);
     for(const id of ids)if(!want.has(id))errs.push(`label for unknown case ${id}`);
@@ -101,7 +105,7 @@ export function validateLabels(doc,corpusBytes){
 
 if(import.meta.url===`file://${process.argv[1]}`){
   const [file,flag,corpusFile]=process.argv.slice(2);
-  if(!file||(flag&&flag!=="--corpus"))throw Error("usage: validate.mjs <file.json> [--corpus <corpus.json>]");
+  if(!file||(flag!==undefined&&(flag!=="--corpus"||!corpusFile)))throw Error("usage: validate.mjs <file.json> [--corpus <corpus.json>]");
   const bytes=readFileSync(file);
   const doc=JSON.parse(bytes.toString("utf8"));
   const errs=doc.kind==="corpus"?validateCorpus(doc):validateLabels(doc,corpusFile?readFileSync(corpusFile):undefined);
