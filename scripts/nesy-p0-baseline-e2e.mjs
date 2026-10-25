@@ -18,6 +18,10 @@ const ROOT=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const fixturePath=join(ROOT,"research/nesy-abc/p0-independent-baseline-cases.json");
 const fixtureBytes=readFileSync(fixturePath);
 const fixtureHash=createHash("sha256").update(fixtureBytes).digest("hex");
+// The P0 rerun must use the byte-identical corpus of the first baseline
+// (run 39884213356, commit 996bc8b). Any edit fails before costs are possible.
+const FROZEN_FIXTURE_SHA256="76f568d650ab456c23863e2665bdaa4d69d369f712042daf06d669eb12170d51";
+if(fixtureHash!==FROZEN_FIXTURE_SHA256)throw Error("frozen_corpus_hash_mismatch");
 const corpus=JSON.parse(fixtureBytes.toString("utf8"));
 
 function validateCorpus() {
