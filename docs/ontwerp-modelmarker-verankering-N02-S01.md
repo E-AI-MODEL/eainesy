@@ -60,7 +60,7 @@ Nieuw in `lexicon.ts`: een expliciete **ontkenningswaarneming** `collectLexicalD
 ### 3.4 Beslisregel in de fusie
 ```
 neuralAccepted = modelmarkers  minus  {m : m ∈ {SI, SH, PLAN} ∧ (m = UNGROUNDED ∨ m = NEGATED)}
-neuralLevel'   = scoreToRiskLevel(som gewichten neuralAccepted)
+neuralLevel'   = scoreToRiskLevel(som gewichten van de UNIEKE typen in neuralAccepted)   # zoals orchestrator.ts nu (Set)
 fused'         = max(neuralLevel', lexicalLevel)
 
 if fused' < origineel fused:                       # de controle verlaagt iets
@@ -71,11 +71,13 @@ if fused' < origineel fused:                       # de controle verlaagt iets
 ```
 - Bestaande regels blijven gelden: zonder bruikbaar frame blijft het UNKNOWN.
 - **Na een recente crisismelding (`riskMemory = ACTIVE`, S01) zakt het nooit onder ELEVATED**, ook niet bij een lexicale ontkenning. Een ontkenning direct na een onthulling is klinisch dubbelzinnig (intrekken, schaamte). De gesprekslaag (CI-1/CI-2) blijft daarnaast ongewijzigd beperkend.
-- ELEVATED leidt in de controller tot de veiligheidsfamilie (INV-3: `SAFETY_RESPONSE`/`CRISIS_PROTOCOL`), met 113 in het plan. **Het slechtst denkbare effect van een foute verlaging is dus een veiligheidsantwoord met 113 in plaats van het crisisprotocol, nooit een gewoon gesprek.**
+- Het herberekende niveau telt, net als de huidige fusie in `orchestrator.ts`, elk markertype maar één keer (`Set`). Anders zouden twee geaccepteerde `HOPELESSNESS`-markers 5,0 (CRISIS) scoren in plaats van 2,5 (ELEVATED), en zou de controle het risico kunnen **verhogen**, in strijd met E2. Aanvullend: `fused' = min(fused', origineel fused)`.
+- **Zonder `LEXICAL_DENIAL`**, of bij `riskMemory = ACTIVE`, is de vloer ELEVATED. ELEVATED leidt in de controller tot de veiligheidsfamilie (INV-3: `SAFETY_RESPONSE`/`CRISIS_PROTOCOL`), met 113 in het plan. In dit geval is het slechtst denkbare effect van een foute verlaging een veiligheidsantwoord met 113 in plaats van het crisisprotocol.
+- **Met `LEXICAL_DENIAL` en zonder actief risicogeheugen** mag het risico naar het lexicale niveau zakken, en dat kan NONE zijn. Dit is **bewust** zo, want het is het doel voor N02 (een gewoon gesprek op "ik wil niet dood"). Maar het betekent ook dat in dat geval **wél een gewoon gesprek mogelijk is** als de verlaging onterecht was. Een voorbeeld: het model classificeert een echte crisis als `GENERAL_VENT` en het lexicon ziet ten onrechte alleen een ontkenning. Die uitzondering hangt dus volledig af van de juistheid van `collectLexicalDenials` (3.3), met name de ambivalentielijst. Wil de eigenaar dat restrisico niet, dan is de strengere variant: vloer ELEVATED bij **elke** verlaging. N02 komt dan uit op SAFETY_RESPONSE met 113 in plaats van een gewoon gesprek. **Dit is een keuze voor de eigenaar.**
 
 ### 3.5 Formele borging
 - De beslisregel van 3.4 is een pure functie `groundedFusion(neural, lexical, grounding, lexicalDenial, riskMemory)` over eindige domeinen (5 niveaus × 5 niveaus × enkele vlaggen). Die wordt **uitputtend** gecontroleerd, net als de controller, met een nieuwe invariant:
-  `fused' < fused ⇒ fused' ≥ ELEVATED ∨ (LEXICAL_DENIAL ∧ riskMemory ≠ ACTIVE ∧ fused' = lexicalLevel)`.
+  `fused' ≤ fused ∧ (fused' < fused ⇒ fused' ≥ ELEVATED ∨ (LEXICAL_DENIAL ∧ riskMemory ≠ ACTIVE ∧ fused' = lexicalLevel))`.
 - Zo'n bewijs zegt niets over de vraag of het model of de regex de taal goed leest. Het bewijst alleen dat de **vloer** nooit doorbroken wordt.
 
 ## 4. Foutrichtingen
