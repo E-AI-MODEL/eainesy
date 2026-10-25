@@ -1,0 +1,11 @@
+{
+  "protocol": "nesy-o1o2-v1",
+  "kind": "labels_raw",
+  "corpus": "C-O1",
+  "corpusSha256": "<sha256 van het gelabelde corpusbestand>",
+  "rater": "R1",
+  "labels": [
+    { "id": "O1-S1-001", "o1_risk": "none", "o1_response": "ordinary", "note": "" }
+  ],
+  "_o2_example": { "id": "O2-T1-001", "o2_target": "other", "o2_writer_need": "none", "o2_other_need": true, "note": "" }
+}

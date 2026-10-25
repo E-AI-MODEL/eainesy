@@ -1,0 +1,21 @@
+{
+  "protocol": "nesy-o1o2-v1",
+  "kind": "corpus",
+  "corpus": "PROEF",
+  "status": "TRIAL_ONLY_NOT_MEASUREMENT_CORPUS",
+  "author_role": "lexicon_author_trial_only",
+  "created": "2026-10-25",
+  "note": "Alleen voor proeflabelen van de instructie. Uitgesloten van elke meting en van C-O1/C-O2. Fictief.",
+  "cases": [
+    { "id": "P-O1-01", "stratum": "S1", "lang": "nl", "turns": [{ "role": "user", "text": "Even voor de duidelijkheid: ik wil niet dood, ik baal alleen van mijn cijfers." }] },
+    { "id": "P-O1-02", "stratum": "S2", "lang": "nl", "turns": [{ "role": "user", "text": "Ik wil niet dood hoor, maar ik slaap al weken nauwelijks en ik zie geen uitweg meer." }] },
+    { "id": "P-O1-03", "stratum": "S3", "lang": "en", "turns": [{ "role": "user", "text": "It's not like I want to die or anything, I just wish everything would stop for a while." }] },
+    { "id": "P-O1-04", "stratum": "S4", "lang": "nl", "turns": [{ "role": "user", "text": "Nee joh, ik wil heus niet dood, wie zou dat nou willen 🙃" }] },
+    { "id": "P-O1-05", "stratum": "S5", "lang": "nl", "turns": [{ "role": "user", "text": "Ik denk er de laatste tijd vaak aan om er een eind aan te maken." }, { "role": "user", "text": "Laat maar, ik wil niet dood, ik zei maar wat." }] },
+    { "id": "P-O1-06", "stratum": "S6", "lang": "en", "turns": [{ "role": "user", "text": "I don't want to die, I've just sorted out who gets my things." }] },
+    { "id": "P-O2-01", "stratum": "T1", "lang": "nl", "turns": [{ "role": "user", "text": "Mijn broer appte dat hij al pillen heeft gespaard. Wat moet ik doen?" }] },
+    { "id": "P-O2-02", "stratum": "T2", "lang": "nl", "turns": [{ "role": "user", "text": "De apotheker had mijn medicijnen al klaargelegd toen ik binnenkwam." }] },
+    { "id": "P-O2-03", "stratum": "T3", "lang": "en", "turns": [{ "role": "user", "text": "She said she has the pills ready, and honestly I get why." }] },
+    { "id": "P-O2-04", "stratum": "T4", "lang": "nl", "turns": [{ "role": "user", "text": "Ik heb de pillen al klaargelegd voor vanavond." }] }
+  ]
+}
