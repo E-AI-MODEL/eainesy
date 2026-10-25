@@ -21,15 +21,27 @@ Beide vragen hieronder worden niet op gevoel beantwoord. Ze worden beantwoord me
 - Variant **B-eerste-persoon:** alleen eerste persoon escaleert. Derde persoon geeft geen marker.
 - Variant **B-ander:** derde persoon geeft een apart signaal `OTHER_AT_RISK`. Daarbij hoort een verwijzing voor de ander met 113-informatie, maar geen crisisprotocol voor de gebruiker. Dit vereist het onderwerp-veld uit het voorstel in #39 en wordt alleen gemeten als ontwerp-simulatie.
 
-## 2. Wat de literatuur al zegt (te controleren vóór vastlegging)
+## 2. Wat de literatuur al zegt (gecontroleerd op 25-10-2026)
 
-De volgende bronnen zijn uit het geheugen van de opsteller genoemd en zijn **nog niet geverifieerd**. Iemand moet ze tegen de originele publicaties controleren voordat dit protocol wordt vastgelegd:
-- Busch, Fawcett & Jacobs (2003), *Journal of Clinical Psychiatry*. Een groot deel van de opgenomen patiënten die door suïcide overleden, ontkende bij het laatste contact suïcidale gedachten.
-- McHugh, Corderoy, Ryan, Hickie & Large (2019), *BJPsych Open*, meta-analyse. Ongeveer 60% van de mensen die door suïcide overleden, had bij navraag ideatie ontkend.
+Gecontroleerd via de pagina's van het tijdschrift en de geïndexeerde abstracts. De volledige teksten zaten achter een betaalmuur of waren vanuit de controle-omgeving niet bereikbaar, dus **alleen de abstract-gegevens zijn geverifieerd**.
 
-**Betekenis voor O1:** een ontkenning is volgens deze bronnen een zwakke voorspeller van afwezig risico. Dat ondersteunt A-streng als **standaard** (nulhypothese). A-soepel moet zich bewijzen.
+- **Busch KA, Fawcett J, Jacobs DG (2003).** Clinical correlates of inpatient suicide. *J Clin Psychiatry* 64(1):14–19.
+  - Opzet: dossieronderzoek bij 76 patiënten die tijdens opname of direct na ontslag door suïcide overleden.
+  - 30 van de 76 (39%) waren opgenomen vanwege suïcidale ideatie. **Van die 30** ontkende 78% bij de laatste communicatie hierover suïcidale ideatie.
+  - Let op: de 78% geldt dus voor die subgroep van 30, niet voor alle 76 patiënten.
+  - Verder had 79% ernstige of extreme angst of agitatie. De auteurs concluderen dat standaard risico-inschatting hier van beperkte waarde was.
+- **McHugh CM, Corderoy A, Ryan CJ, Hickie IB, Large MM (2019).** Association between suicidal ideation and suicide: meta-analyses of odds ratios, sensitivity, specificity and positive predictive value. *BJPsych Open* 5(2):e18, doi:10.1192/bjo.2018.88. Er is een erratum, maar dat corrigeert alleen het artikelnummer en niet de cijfers.
+  - Gepoolde sensitiviteit van geuite suïcidale ideatie voor latere suïcide: 41% (95%-BI 35–48). Specificiteit: 86% (76–92). De heterogeniteit tussen studies is groot.
+  - Psychiatrische setting: sensitiviteit 46%, specificiteit 81%. Niet-psychiatrische setting: 22% en 96%. De positief voorspellende waarde is laag (ongeveer 3,9% psychiatrisch, 0,3% niet-psychiatrisch).
+  - Daaruit volgt dat ongeveer 60% van de mensen die later door suïcide overleden, vooraf **geen** suïcidale ideatie had **geuit of gerapporteerd**.
+  - **Correctie op de eerdere versie van dit protocol:** dat is níet hetzelfde als "bij navraag ontkend". Het omvat ook mensen aan wie het nooit gevraagd is.
 
-**Grens:** deze studies gaan over klinische contacten en suïcide als uitkomst, niet over korte chatberichten of het gedrag van een taalmodel. Ze zeggen niets over O2.
+**Betekenis voor O1:**
+- Afwezigheid of ontkenning van geuite ideatie sluit later risico niet uit. Busch et al. laten dit specifiek zien voor ontkenning bij opgenomen patiënten; McHugh et al. voor het ontbreken van gerapporteerde ideatie.
+- Dat ondersteunt A-streng als **standaard** (nulhypothese). A-soepel moet zich bewijzen.
+- De lage positief voorspellende waarde uit McHugh et al. laat ook zien dat escaleren op elke uiting veel fout-positieven geeft. Die afweging zit in §7.
+
+**Grens:** beide studies gaan over klinische contacten en suïcide als uitkomst op langere termijn. Ze gaan niet over korte chatberichten, de reactie binnen één gesprek of het gedrag van een taalmodel. Ze zeggen niets over O2. Ze rechtvaardigen een voorzichtige standaard, geen kwantitatieve drempel voor dit systeem.
 
 ## 3. Corpora (fictief, nieuw, nooit eerder gezien)
 
