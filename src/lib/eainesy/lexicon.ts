@@ -88,6 +88,8 @@ const RULES: LexicalRule[] = [
       // Passive death wish without "wil": "soms hoop ik dat ik niet meer wakker word".
       /\b(?:hoop|wens)\s+ik\s+(?:soms\s+)?dat\s+ik\s+niet\s+(?:meer\s+)?wakker\s+(?:te\s+)?word/i,
       /\bhoeft?\s+(voor\s+mij\s+)?niet\s+meer\s+wakker/i,
+      // "ik wil slapen en nooit meer wakker worden" / "ik wil nooit meer wakker worden"
+      /\b(?:wil|hoop|wens)\s+(?:(?:gewoon|soms|echt|alleen)\s+)?(?:(?:gaan\s+)?slapen\s+en\s+)?nooit\s+meer\s+wakker\s+(?:te\s+)?worden/i,
       /\bhet\s+hoeft\s+(voor\s+mij\s+)?(allemaal\s+)?niet\s+meer\b/i,
       /(rustig|fijn|beter|kalm|vredig|prettig|mooi)\s+zijn\s+als\s+ik\s+er\s+((?!even\b)\w+\s+)?niet\s+meer\s+(was|ben|word)/i,
       /(denk|droom|overweeg|plan)\w*\s+(ik\s+)?(er)?over\s+om\s+niet\s+meer\s+terug\s+te\s+komen\b(?!\s+(bij|op|in|naar|voor|over)\b)/i,
@@ -105,6 +107,7 @@ const RULES: LexicalRule[] = [
       // Allow adverbs ("I wish I just would not wake up").
       /\b(?:wish|hope)\s+i\s+(?:just\s+)?(?:would\s+not|wouldn't|won't|didn't)\s+wake\s+up/i,
       /\bno\s+reason\s+to\s+(wake|live|go\s+on)/i,
+      /\b(?:want|wish|hope)\s+to\s+(?:go\s+to\s+)?sleep\s+and\s+never\s+wake\s+up/i,
     ],
   },
   {
@@ -126,8 +129,8 @@ const RULES: LexicalRule[] = [
     type: 'AGENCY_PLAN',
     weight: MARKER_WEIGHTS.AGENCY_PLAN,
     patterns: [
-      /\bpillen\s+(geslagen|geslikt|ingemaakt|ingepakt|gespaard|verzameld|opgespaard|klaargelegd|klaarliggen)/i,
-      /\b(heb|heeft)\s+(al\s+)?(de\s+)?(pillen|een\s+touw|een\s+mes|alles)\s+(gekocht|klaar(gelegd|liggen)?|liggen|geregeld)/i,
+      /\bpillen\s+(al\s+|alvast\s+)?(geslagen|geslikt|ingemaakt|ingepakt|gespaard|verzameld|opgespaard|klaargelegd|klaarliggen)/i,
+      /\b(heb|heeft)\s+(al\s+)?(de\s+)?(pillen|een\s+touw|een\s+mes|alles)\s+(al\s+|alvast\s+)?(gekocht|klaar(gelegd|liggen)?|liggen|geregeld)/i,
       /\bplan\s+gemaakt\s+voor/i,
       /\bheeft\s+een\s+plan/i,
       /\bhoe\s+ik\s+het\s+ga\s+doen/i,
@@ -137,13 +140,17 @@ const RULES: LexicalRule[] = [
       /\bvanavond\s+nog\b/i,
       /\bbinnenkast|in\s+de\s+kast\s+gelegd/i,
       /\bvan\s+(een|de)\s+(brug|flat|toren|gebouw|dak)\s+(af\s+)?(te\s+)?springen/i,
+      // "vanavond spring ik van de brug" — no negator allowed in the gap
+      /\bspring(?:\s+ik)?\s+(?:(?!(?:niet|nooit|geen)\b)\w+\s+){0,2}(?:van|vanaf)\s+(?:een|de|het)\s+(?:brug|flat|toren|gebouw|dak|viaduct)\b/i,
       /\bvoor\s+(de|een)\s+trein\s+(te\s+)?(springen|gaan\s+staan|lopen)/i,
       /\b(overdosis|overdose)\b/i,
       /\bhow\s+to\s+do\s+it\b/i,
       /\b(saved\s+up|stockpil\w*|collected)\s+(my\s+|the\s+)?(pills|meds|medication)/i,
       /\bjump(ing)?\s+(off|from)\s+(a|the)\s+(bridge|building|roof)/i,
       /\bin\s+front\s+of\s+a\s+train\b/i,
-      /\b(goodbye|suicide)\s+(letter|note)\b/i,
+      /\b(goodbye|suicide|farewell)\s+(letters?|notes?)\b/i,
+      /\b(?:have|got|'ve\s+got)\s+(?:the\s+|my\s+|some\s+)?(?:pills|meds|tablets)\s+(?:all\s+)?(?:ready|lined\s+up|counted\s+out|set\s+aside)\b/i,
+      /\b(?:bought|purchased|got)\s+(?:a|the|some)\s+rope\b(?!\s+(?:for|to)\s+(?:climb|camp|hik|sail|the\s+(?:boat|tent|garden)|my\s+(?:boat|tent|dog|garden)))/i,
     ],
   },
   {
@@ -361,6 +368,27 @@ function isResolvedHistoricalIdeation(text: string, index: number, evidence: str
   return true;
 }
 
+/**
+ * Narrow scoping for a clearly marked fictional quote: the match lies wholly
+ * inside double quotes AND the same sentence names a fictional work or
+ * character before the opening quote ("In mijn roman zegt het personage:
+ * \"…\""). Unquoted fiction framing is NOT trusted (a known evasion
+ * wrapper), "verhaal"/"story" are excluded (also "my own story"), and text
+ * outside the quotes is scanned normally. The neural channel still sees the
+ * whole message (max-fusion).
+ */
+const FICTION_WORK = /\b(roman|boek|film|serie|toneelstuk|gedicht|songtekst|liedtekst|personage|hoofdpersoon|script|novel|book|movie|series|poem|lyrics|character|protagonist)\b/i;
+function isInsideFictionQuote(text: string, index: number, length: number): boolean {
+  for (const q of text.matchAll(/["“„]([^"“”„\n]{1,400})["”]/g)) {
+    const start = (q.index ?? 0) + 1;
+    const end = start + q[1].length;
+    if (index < start || index + length > end) continue;
+    const sentence = text.slice(0, q.index ?? 0).split(/[.!?\n]/).at(-1) ?? '';
+    return FICTION_WORK.test(sentence);
+  }
+  return false;
+}
+
 /** A schema marker label does not itself establish an experienced symptom. */
 function isSchemaMarkerName(evidence: string): boolean {
   return evidence.toUpperCase() === 'SUICIDAL_IDEATION';
@@ -382,6 +410,7 @@ export function collectLexicalMarkers(text: string): { markers: RiskMarker[]; ne
             (isSchemaMarkerName(m[0]) || isResolvedHistoricalIdeation(text, m.index, m[0]))) {
           continue;
         }
+        if (isInsideFictionQuote(text, m.index, m[0].length)) continue;
         markers.push({ type: rule.type, evidence: m[0].slice(0, 120) });
         break; // one marker per rule type is enough
       }
