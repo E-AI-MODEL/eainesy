@@ -28,7 +28,7 @@ Deze versie bouwt EAInesy om van een systeem dat **losse berichten** veilig bean
 
 ### C. Gespreksregie (`conversation.ts`)
 
-Bovenop de 67 beslisregels per bericht staan 19 gespreksregels. Ze plaatsen elke beurt in het gesprek:
+Bovenop de 68 beslisregels per bericht staan 19 gespreksregels. Ze plaatsen elke beurt in het gesprek:
 
 - **fasen**: contact maken → verkennen → focus kiezen → één stap → afronden (Hill; ESConv; Althoff et al. 2016; MI);
 - **strategie per beurt**: open vraag, herformuleren, gevoel reflecteren, bevestigen, samenvatten/focus, één suggestie, informatie, herstel (ESConv-set, zónder zelfonthulling);
@@ -39,7 +39,7 @@ Bovenop de 67 beslisregels per bericht staan 19 gespreksregels. Ze plaatsen elke
 
 De gesprekslaag mag **alleen inperken**. De model check bewijst dat voor elke combinatie (CI-2/CI-3): een veiligheidsantwoord blijft een veiligheidsantwoord, en niets wordt dieper dan de kern toestond.
 
-**Model check**: 21.600 berichtsituaties (de oude 17.280 plus ONBEKEND) en 141.120 gesprekssituaties, in totaal 162.720 toestanden, tegen 43 invarianten (28 + 15). Het bewijs hoort bij de regelset: het draait één keer per proces, en de SHA-256 van de regelset staat in elk certificaat. (v1 draaide het bij elk bericht, terwijl de uitkomst altijd gelijk was.)
+**Model check**: 21.600 berichtsituaties (de oude 17.280 plus ONBEKEND) en 145.920 gesprekssituaties, in totaal 167.520 toestanden, tegen 44 invarianten (29 + 15). Het bewijs hoort bij de regelset: het draait één keer per proces, en de SHA-256 van de regelset staat in elk certificaat. (v1 draaide het bij elk bericht, terwijl de uitkomst altijd gelijk was.)
 
 ### D. Leren met gezag (Shadowseed-model, `seed-authority.ts`)
 

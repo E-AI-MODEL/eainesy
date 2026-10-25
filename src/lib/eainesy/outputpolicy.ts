@@ -3,7 +3,7 @@
  *
  * The generator is neural and therefore untrusted. Before anything reaches
  * the user, the reply is checked against the plan and the global safety
- * policy (17 rules). Violations trigger one constrained regeneration; a
+ * policy (18 rules). Violations trigger one constrained regeneration; a
  * second failure degrades to a canned, human-written safe response (fail-closed).
  */
 import type { Plan, OutputViolation, SupportStrategy } from './types';
@@ -215,6 +215,16 @@ const RULES: OutputRule[] = [
     check: (text) => {
       const m = text.match(/\b(dat heb ik (zelf )?ook (gehad|meegemaakt)|toen ik (zelf )?(jong|student|depressief|ziek) was|ik ken dat gevoel uit eigen ervaring|i('ve| have) been (there|through that) (myself|too)|when i was (young|a student|depressed)|from my own experience)\b/i);
       return m ? { ruleId: 'OP-17', description: 'invented personal experience (self-disclosure) detected', excerpt: m[0] } : null;
+    },
+  },
+  {
+    id: 'OP-18',
+    description: 'A plan that requires a referral to the prescriber or GP (medication questions) names that professional in the reply',
+    applies: (plan) => plan.mustInclude.some((m) => /prescriber or GP/.test(m)),
+    check: (text) => {
+      return /\b(huisarts|voorschrijver|arts|apotheker|psychiater|prescriber|GP|doctor|pharmacist|psychiatrist)\b/i.test(text)
+        ? null
+        : { ruleId: 'OP-18', description: 'referral to the prescriber or GP missing from a medication reply', excerpt: text.slice(0, 60) };
     },
   },
 ];

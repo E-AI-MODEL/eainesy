@@ -71,6 +71,9 @@ interface Invariant {
 const SAFE_ELEVATED: Action[] = ['CRISIS_PROTOCOL', 'SAFETY_RESPONSE'];
 const HUMBLE: Action[] = ['CLARIFY', 'ABSTAIN_HITL'];
 const DEEP: Action[] = ['THERAPEUTIC_DIALOG', 'PSYCHOEDUCATION'];
+/** REFERRAL or stricter (the safety family outranks a referral). */
+const REFERRAL_OR_STRICTER: Action[] = ['REFERRAL', 'SAFETY_RESPONSE', 'CRISIS_PROTOCOL'];
+const isMedicationReferral = (i: ControllerInput, a: Action) => i.intent === 'MEDICATION_QUESTION' && i.frameValidity === 'VALID' && a === 'REFERRAL';
 const HEAVY_DISTRESS = ['ELEVATED', 'HIGH', 'ACUTE'];
 const REFERRAL_INTENTS = ['SUBSTANCE_CONCERN', 'MEDICATION_QUESTION', 'THERAPY_REQUEST', 'PSYCHOSIS_SIGNAL', 'EATING_CONCERN', 'VIOLENCE_RISK', 'PREGNANCY_POSTNATAL', 'CAREGIVER_BURDEN', 'FINANCIAL_STRESS'];
 const NO_DIALOG_INTENTS = ['OUT_OF_SCOPE', 'META_QUESTION', 'THERAPY_REQUEST', 'CRISIS_SIGNAL', 'SUBSTANCE_CONCERN', 'MEDICATION_QUESTION', 'PREGNANCY_POSTNATAL', 'CAREGIVER_BURDEN', 'FINANCIAL_STRESS', 'DIAGNOSIS_REQUEST', 'ABUSE_DISCLOSURE', 'VIOLENCE_RISK', 'PSYCHOSIS_SIGNAL', 'EATING_CONCERN', 'ALLIANCE_RUPTURE'];
@@ -107,18 +110,18 @@ const INVARIANTS: Invariant[] = [
   },
   {
     id: 'INV-5',
-    desc: { nl: 'Bij lage zekerheid zonder risico blijft EAInesy nederig: een vraag stellen of aanhouden — uitzonderingen: met een crisis-etiket of een geweldsuiting gaat alleen veiligheid.', en: 'At low confidence without risk, EAInesy stays humble: ask a question or abstain — exceptions: with a crisis label or an abuse disclosure, only safety responds.' },
-    formula: 'conf=LOW ∧ risk=NONE ∧ pii=CLEAN ⇒ action ∈ {CLARIFY, ABSTAIN_HITL} ∨ (intent ∈ {CRISIS_SIGNAL, ABUSE_DISCLOSURE} ∧ action ∈ SAFE)',
-    predicate: (i, a) => !(i.confidenceBand === 'LOW' && i.riskLevel === 'NONE' && i.piiState === 'CLEAN') || HUMBLE.includes(a) || ((i.intent === 'CRISIS_SIGNAL' || i.intent === 'ABUSE_DISCLOSURE') && SAFE_ELEVATED.includes(a)),
+    desc: { nl: 'Bij lage zekerheid zonder risico blijft EAInesy nederig: een vraag stellen of aanhouden — uitzonderingen: met een crisis-etiket of een geweldsuiting gaat alleen veiligheid; een leesbare medicatievraag gaat naar de voorschrijver of huisarts.', en: 'At low confidence without risk, EAInesy stays humble: ask a question or abstain — exceptions: with a crisis label or an abuse disclosure, only safety responds; a readable medication question is referred to the prescriber or GP.' },
+    formula: 'conf=LOW ∧ risk=NONE ∧ pii=CLEAN ⇒ action ∈ {CLARIFY, ABSTAIN_HITL} ∨ (intent ∈ {CRISIS_SIGNAL, ABUSE_DISCLOSURE} ∧ action ∈ SAFE) ∨ (intent=MEDICATION_QUESTION ∧ frame=VALID ∧ action=REFERRAL)',
+    predicate: (i, a) => !(i.confidenceBand === 'LOW' && i.riskLevel === 'NONE' && i.piiState === 'CLEAN') || HUMBLE.includes(a) || ((i.intent === 'CRISIS_SIGNAL' || i.intent === 'ABUSE_DISCLOSURE') && SAFE_ELEVATED.includes(a)) || isMedicationReferral(i, a),
   },
   {
     id: 'INV-6',
-    desc: { nl: 'Bij onbekend terrein zonder houvast blijft EAInesy nederig — nooit geïmproviseerde therapie op onbekende grond. Uitzonderingen: crisis-etiket, geweldsuitingen en specialistische intenties antwoorden altijd uit hun eigen familie.', en: 'On unknown territory without anchors, EAInesy stays humble — never improvised therapy on unknown ground. Exceptions: crisis label, abuse disclosures and specialist intents always answer from their own family.' },
-    formula: 'novelty=NOVEL ∧ risk=NONE ∧ pii=CLEAN ∧ intent ∉ {OUT_OF_SCOPE, META, THERAPY, ABUSE, VIOLENCE, PSYCHOSIS, EATING, ALLIANCE} ⇒ action ∈ {CLARIFY, ABSTAIN_HITL} ∨ (intent=CRISIS_SIGNAL ∧ action ∈ SAFE)',
+    desc: { nl: 'Bij onbekend terrein zonder houvast blijft EAInesy nederig — nooit geïmproviseerde therapie op onbekende grond. Uitzonderingen: crisis-etiket, geweldsuitingen, specialistische intenties en leesbare medicatievragen antwoorden altijd uit hun eigen familie.', en: 'On unknown territory without anchors, EAInesy stays humble — never improvised therapy on unknown ground. Exceptions: crisis label, abuse disclosures, specialist intents and readable medication questions always answer from their own family.' },
+    formula: 'novelty=NOVEL ∧ risk=NONE ∧ pii=CLEAN ∧ intent ∉ {OUT_OF_SCOPE, META, THERAPY, ABUSE, VIOLENCE, PSYCHOSIS, EATING, ALLIANCE} ⇒ action ∈ {CLARIFY, ABSTAIN_HITL} ∨ (intent=CRISIS_SIGNAL ∧ action ∈ SAFE) ∨ (intent=MEDICATION_QUESTION ∧ frame=VALID ∧ action=REFERRAL)',
     predicate: (i, a) => {
       if (!(i.novelty === 'NOVEL_FRAME' && i.riskLevel === 'NONE' && i.piiState === 'CLEAN')) return true;
       if (['OUT_OF_SCOPE', 'META_QUESTION', 'THERAPY_REQUEST', 'ABUSE_DISCLOSURE', 'VIOLENCE_RISK', 'PSYCHOSIS_SIGNAL', 'EATING_CONCERN', 'ALLIANCE_RUPTURE'].includes(i.intent)) return true;
-      return HUMBLE.includes(a) || (i.intent === 'CRISIS_SIGNAL' && SAFE_ELEVATED.includes(a));
+      return HUMBLE.includes(a) || (i.intent === 'CRISIS_SIGNAL' && SAFE_ELEVATED.includes(a)) || isMedicationReferral(i, a);
     },
   },
   {
@@ -245,7 +248,7 @@ const INVARIANTS: Invariant[] = [
   },
   {
     id: 'INV-25',
-    desc: { nl: 'Een medicatievraag eindigt nooit in behandelpraat: geen doseringsadvies, geen "probeer eens" — de voorschrijver of huisarts beslist, of EAInesy is voorzichtig met een vraag.', en: 'A medication question never ends in treatment talk: no dosage advice, no "try this" — the prescriber or GP decides, or EAInesy stays careful with a question.' },
+    desc: { nl: 'Een medicatievraag eindigt nooit in behandelpraat: geen doseringsadvies, geen "probeer eens" — de voorschrijver of huisarts beslist.', en: 'A medication question never ends in treatment talk: no dosage advice, no "try this" — the prescriber or GP decides.' },
     formula: 'intent=MEDICATION_QUESTION ⇒ action ∉ {THERAPEUTIC_DIALOG, PSYCHOEDUCATION}',
     predicate: (i, a) => i.intent !== 'MEDICATION_QUESTION' || !DEEP.includes(a),
   },
@@ -266,6 +269,12 @@ const INVARIANTS: Invariant[] = [
     desc: { nl: 'Als het taalmodel het bericht niet kon lezen, noemt het antwoord altijd een concreet hulpnummer — wat er ook in het bericht stond.', en: 'When the language model could not read the message, the reply always names a concrete help line — whatever the message said.' },
     formula: 'frame ≠ VALID ⇒ ∃ m ∈ plan.mustInclude: m matches /113|112|0800-2000/',
     predicate: (i, _a, d) => i.frameValidity === 'VALID' || d.planTemplate.mustInclude.some((m) => /113|112|0800-2000/.test(m)),
+  },
+  {
+    id: 'INV-29',
+    desc: { nl: 'Een leesbare medicatievraag zonder risico eindigt altijd in een doorverwijzing naar de voorschrijver of huisarts (of strenger) — nooit in alleen een vraag, aanhouding of privacy-grens.', en: 'A readable medication question without risk always ends in a referral to the prescriber or GP (or stricter) — never in just a question, an abstention or a privacy boundary.' },
+    formula: 'intent=MEDICATION_QUESTION ∧ risk=NONE ∧ frame=VALID ⇒ action ∈ {REFERRAL, SAFETY_RESPONSE, CRISIS_PROTOCOL}',
+    predicate: (i, a) => !(i.intent === 'MEDICATION_QUESTION' && i.riskLevel === 'NONE' && i.frameValidity === 'VALID') || REFERRAL_OR_STRICTER.includes(a),
   },
 ];
 

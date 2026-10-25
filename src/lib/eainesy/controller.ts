@@ -266,6 +266,37 @@ export const DECISION_RULES: DecisionRule[] = [
     plan: { tone: 'warm', allowedMoves: ['say something was unclear', 'invite the user to say more in their own words', 'mention 113 in one short line in case it is about safety'], forbiddenMoves: [NO_DIAGNOSIS, 'no guessing at emotions', 'no technique suggestions'], mustInclude: ['one concrete clarifying invitation', '113 Zelfmoordpreventie: bel 113 of 0800-0113'], maxSentences: 5 },
   },
 
+  // ── F11-medicatie · altijd doorverwijzen (vóór privacy en nederigheid) ───
+  // A readable medication question at risk NONE always ends in a referral to
+  // the prescriber/GP. These rules sit after F6 (unreadable input keeps its
+  // fail-closed 113 path) but before F7/F8, so low confidence, a novel frame
+  // or personal data can no longer turn it into CLARIFY/ABSTAIN/BOUNDARY
+  // (P0 deviation N06). Higher risk is already handled by F1–F4 above.
+  {
+    id: 'P68', family: 'F11',
+    description: 'Medication question with personal data: referral to the prescriber, privacy note, never repeat the data.',
+    desc: { nl: 'Medicatievraag met persoonlijke gegevens: doorverwijzen naar de voorschrijver of huisarts, met privacynotitie — de gegevens komen nooit terug.', en: 'Medication question with personal data: referral to the prescriber or GP, with a privacy note — the data never returns.' },
+    guard: (i) => i.intent === 'MEDICATION_QUESTION' && i.piiState === 'PII_DETECTED',
+    action: 'REFERRAL',
+    plan: { tone: 'warm', allowedMoves: ['validate that wanting clarity about medication makes sense', 'say clearly that medication questions belong with the prescriber or GP', 'note kindly that contact details are not needed here'], forbiddenMoves: ['never repeat the PII back', 'never confirm or repeat the details', 'no medication or dosage advice of any kind', 'no suggestion to change, skip or stop medication', NO_DIAGNOSIS], mustInclude: ['a referral to the prescriber or GP for every medication decision', 'privacy note: contact details are not needed here'], maxSentences: 6 },
+  },
+  {
+    id: 'P51', family: 'F11',
+    description: 'Medication question with heavy distress: referral urgency, prescriber first — no dosage talk at all.',
+    desc: { nl: 'Medicatievraag onder zware spanning: doorverwijzen met urgentie — eerst de voorschrijver of huisarts, nul doseringspraat.', en: 'Medication question under heavy distress: referral with urgency — prescriber or GP first, zero dosage talk.' },
+    guard: (i) => i.intent === 'MEDICATION_QUESTION' && (i.distressLevel === 'ACUTE' || i.distressLevel === 'ELEVATED'),
+    action: 'REFERRAL',
+    plan: { tone: 'calm', allowedMoves: ['acknowledge that the question comes from wanting to feel better', 'say clearly that medication questions belong with the prescriber or GP — today if the pressure is high', 'offer crisis resources if the pressure spikes'], forbiddenMoves: ['no medication or dosage advice of any kind', 'no suggestion to change, skip or stop medication', NO_DIAGNOSIS, NO_MINIMIZING], mustInclude: ['a referral to the prescriber or GP for every medication decision', 'acknowledgment of how heavy this is'], maxSentences: 6 },
+  },
+  {
+    id: 'P52', family: 'F11',
+    description: 'Medication question: kind, firm scope boundary — never dosage advice, always the prescriber.',
+    desc: { nl: 'Medicatievraag: vriendelijk maar vast binnen de competentiegrens — nooit doseringsadvies, altijd de voorschrijver of huisarts.', en: 'Medication question: kind but firm scope boundary — never dosage advice, always the prescriber or GP.' },
+    guard: (i) => i.intent === 'MEDICATION_QUESTION',
+    action: 'REFERRAL',
+    plan: { tone: 'warm', allowedMoves: ['validate that wanting clarity about medication makes sense', 'explain kindly that this demo gives no medication or dosage advice — that decision belongs with the prescriber or GP', 'offer to keep listening to what is behind the question'], forbiddenMoves: ['no medication or dosage advice of any kind', 'no suggestion to change, skip or stop medication', 'no side-effect reassurance or scare', NO_DIAGNOSIS], mustInclude: ['a referral to the prescriber or GP for every medication decision'], maxSentences: 6 },
+  },
+
   // ── F7 · privacy (wijkt voor F2 bij geweldsuitingen) ─────────────────────
   {
     id: 'P17', family: 'F7',
@@ -422,23 +453,6 @@ export const DECISION_RULES: DecisionRule[] = [
     action: 'REFERRAL',
     plan: { tone: 'validating', allowedMoves: ['validate the struggle without judgment', 'name addiction care and the GP as low-threshold doors', 'offer to keep listening now'], forbiddenMoves: [NO_DIAGNOSIS, NO_MINIMIZING, 'no moralizing about use'], mustInclude: ['a referral nudge framed as care, not rejection'], maxSentences: 7 },
   },
-  {
-    id: 'P51', family: 'F11',
-    description: 'Medication question with heavy distress: referral urgency, prescriber first — no dosage talk at all.',
-    desc: { nl: 'Medicatievraag onder zware spanning: doorverwijzen met urgentie — eerst de voorschrijver of huisarts, nul doseringspraat.', en: 'Medication question under heavy distress: referral with urgency — prescriber or GP first, zero dosage talk.' },
-    guard: (i) => i.intent === 'MEDICATION_QUESTION' && (i.distressLevel === 'ACUTE' || i.distressLevel === 'ELEVATED'),
-    action: 'REFERRAL',
-    plan: { tone: 'calm', allowedMoves: ['acknowledge that the question comes from wanting to feel better', 'say clearly that medication questions belong with the prescriber or GP — today if the pressure is high', 'offer crisis resources if the pressure spikes'], forbiddenMoves: ['no medication or dosage advice of any kind', 'no suggestion to change, skip or stop medication', NO_DIAGNOSIS, NO_MINIMIZING], mustInclude: ['a referral to the prescriber or GP for every medication decision'], maxSentences: 6 },
-  },
-  {
-    id: 'P52', family: 'F11',
-    description: 'Medication question: kind, firm scope boundary — never dosage advice, always the prescriber.',
-    desc: { nl: 'Medicatievraag: vriendelijk maar vast binnen de competentiegrens — nooit doseringsadvies, altijd de voorschrijver of huisarts.', en: 'Medication question: kind but firm scope boundary — never dosage advice, always the prescriber or GP.' },
-    guard: (i) => i.intent === 'MEDICATION_QUESTION',
-    action: 'REFERRAL',
-    plan: { tone: 'warm', allowedMoves: ['validate that wanting clarity about medication makes sense', 'explain kindly that this demo gives no medication or dosage advice — that decision belongs with the prescriber or GP', 'offer to keep listening to what is behind the question'], forbiddenMoves: ['no medication or dosage advice of any kind', 'no suggestion to change, skip or stop medication', 'no side-effect reassurance or scare', NO_DIAGNOSIS], mustInclude: ['a referral to the prescriber or GP for every medication decision'], maxSentences: 6 },
-  },
-
   {
     id: 'P58', family: 'F11',
     description: 'Perinatal distress at manageable load: referral to perinatal-informed care — never dismissal, never medication talk.',
