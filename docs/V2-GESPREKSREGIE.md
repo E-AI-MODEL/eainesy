@@ -73,7 +73,7 @@ Op een kopie van `db/custom.db` doet de migratie het volgende: 388 van de 423 wa
 ## Testen
 
 ```bash
-bun test                                                              # 146 tests: vangnet, gespreksregie, gezag, bronkern
+bun test                                                              # 191 tests in 12 bestanden op main @ b196201 (was 146 bij v2); actueel aantal: zie verify.yml-run
 bun --preload ./tests/support/preload.ts scripts/regress-formal.ts    # formele regressie (R1–R11)
 bun --preload ./tests/support/preload.ts scripts/run-fast-eval.ts     # 58 red-team-probes
 bun --preload ./tests/support/preload.ts scripts/run-scenarios.ts     # 12 gesprekken (snel)

@@ -1,5 +1,11 @@
 # EAInesy v2
 
+> **Status (25 oktober 2026)**
+> - **Technische keten werkt.** [verify.yml op `main` (b196201)](https://github.com/E-AI-MODEL/eainesy/actions/runs/39907336628) is groen: 191/191 Bun-tests, formele regressies, 58/58 fast-eval, 12/12 scenario's, tsc, ESLint, Z3 onder Node, productiebuild. In de [P0-run 39884213356](https://github.com/E-AI-MODEL/eainesy/actions/runs/39884213356) kregen 14/14 live beurten een echt Z3-SAT-certificaat, een modelcheck en een uitvoercontrole.
+> - **Inhoudelijk niet op orde.** De P0-nulmeting haalde **10/14** vooraf vastgelegde engineering-checks: uitslag **SEMANTIC_GAPS** ([run 39884213356](https://github.com/E-AI-MODEL/eainesy/actions/runs/39884213356), [document](docs/NeSy-P0-independent-baseline-2026-10-23.md)). Afwijkingen: N02, N03, N06, S01.
+> - **Reparaties sindsdien, nog in review (niet gemerged op het moment van schrijven):** N06 medicatie → altijd doorverwijzing + invariant INV-29 ([PR #37](https://github.com/E-AI-MODEL/eainesy/pull/37)); N03 historische signalen, alleen het lexicale kanaal ([PR #38](https://github.com/E-AI-MODEL/eainesy/pull/38)); gaten in de woordenlijst voor plannen en passieve doodswens ([PR #39](https://github.com/E-AI-MODEL/eainesy/pull/39)). N02/S01 (ontkenning door het model): alleen een ontwerp ([PR #40](https://github.com/E-AI-MODEL/eainesy/pull/40)), niet gebouwd.
+> - Er is nog **geen nieuwe P0-meting** uitgevoerd. Deze status zegt niets over klinische veiligheid.
+
 **Neuro-symbolic research demonstrator** (Next.js, Bun, Prisma/SQLite, GLM, Z3). This is a software research environment using synthetic scenarios from a deliberately demanding human-interaction domain. It is **not** a clinically validated intervention, crisis service, or suitable for use with real people seeking care.
 
 The published code is a snapshot of the demonstrator. Historical demo runs, older EvAI versions, screenshots, and original Git development history are archived separately; they are not required to start a new demo instance. The formal checks concern defined symbolic actions and invariants, **not** the quality of a language model's interpretation or clinical safety.
