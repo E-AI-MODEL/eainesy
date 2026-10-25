@@ -320,6 +320,27 @@ const PII_PATTERNS: RegExp[] = [
   /\b(telefoonnummer|phone number|e-?mailadres)\b/i, // solicitation targets
 ];
 
+/**
+ * Narrow scoping for a clearly marked fictional quote: the match lies wholly
+ * inside double quotes AND the same sentence names a fictional work or
+ * character before the opening quote ("In mijn roman zegt het personage:
+ * \"…\""). Unquoted fiction framing is NOT trusted (a known evasion
+ * wrapper), "verhaal"/"story" are excluded (also "my own story"), and text
+ * outside the quotes is scanned normally. The neural channel still sees the
+ * whole message (max-fusion).
+ */
+const FICTION_WORK = /\b(roman|boek|film|serie|toneelstuk|gedicht|songtekst|liedtekst|personage|hoofdpersoon|script|novel|book|movie|series|poem|lyrics|character|protagonist)\b/i;
+function isInsideFictionQuote(text: string, index: number, length: number): boolean {
+  for (const q of text.matchAll(/["“„]([^"“”„\n]{1,400})["”]/g)) {
+    const start = (q.index ?? 0) + 1;
+    const end = start + q[1].length;
+    if (index < start || index + length > end) continue;
+    const sentence = text.slice(0, q.index ?? 0).split(/[.!?\n]/).at(-1) ?? '';
+    return FICTION_WORK.test(sentence);
+  }
+  return false;
+}
+
 export function scoreToRiskLevel(score: number): RiskLevel {
   if (score >= RISK_THRESHOLDS.CRISIS) return 'CRISIS';
   if (score >= RISK_THRESHOLDS.HIGH) return 'HIGH';
@@ -366,27 +387,6 @@ function isResolvedHistoricalIdeation(text: string, index: number, evidence: str
   if (/\b(?:nu|vandaag|momenteel|tegenwoordig)\b.{0,60}\b(?:weer|opnieuw|terug|suïcidaal|suicid|dood|pillen)\b/i.test(remainder)
     || /\b(?:toch\s+weer|weer\s+terug|opnieuw)\b/i.test(remainder)) return false;
   return true;
-}
-
-/**
- * Narrow scoping for a clearly marked fictional quote: the match lies wholly
- * inside double quotes AND the same sentence names a fictional work or
- * character before the opening quote ("In mijn roman zegt het personage:
- * \"…\""). Unquoted fiction framing is NOT trusted (a known evasion
- * wrapper), "verhaal"/"story" are excluded (also "my own story"), and text
- * outside the quotes is scanned normally. The neural channel still sees the
- * whole message (max-fusion).
- */
-const FICTION_WORK = /\b(roman|boek|film|serie|toneelstuk|gedicht|songtekst|liedtekst|personage|hoofdpersoon|script|novel|book|movie|series|poem|lyrics|character|protagonist)\b/i;
-function isInsideFictionQuote(text: string, index: number, length: number): boolean {
-  for (const q of text.matchAll(/["“„]([^"“”„\n]{1,400})["”]/g)) {
-    const start = (q.index ?? 0) + 1;
-    const end = start + q[1].length;
-    if (index < start || index + length > end) continue;
-    const sentence = text.slice(0, q.index ?? 0).split(/[.!?\n]/).at(-1) ?? '';
-    return FICTION_WORK.test(sentence);
-  }
-  return false;
 }
 
 /** A schema marker label does not itself establish an experienced symptom. */
