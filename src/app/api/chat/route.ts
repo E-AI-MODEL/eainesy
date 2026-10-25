@@ -7,6 +7,18 @@ import { ModelProviderUnavailable } from '@/lib/eainesy/model-provider';
 
 export const maxDuration = 120;
 
+/** Returns an existing session id, or creates the session (keeping a client-supplied id). */
+async function resolveSessionId(requested: string | undefined): Promise<string> {
+  if (requested) {
+    const exists = await db.session.findUnique({ where: { id: requested }, select: { id: true } });
+    if (exists) return requested;
+  }
+  const session = await db.session.create({
+    data: requested ? { id: requested, label: `chat-${Date.now()}` } : { label: `chat-${Date.now()}` },
+  });
+  return session.id;
+}
+
 export async function POST(req: NextRequest) {
   let body: unknown;
   let parsed: ReturnType<typeof ChatRequestSchema.safeParse> | null = null;
@@ -20,17 +32,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 });
     }
-    let sessionId = parsed.data.sessionId;
-    if (!sessionId) {
-      const session = await db.session.create({ data: { label: `chat-${Date.now()}` } });
-      sessionId = session.id;
-    } else {
-      const exists = await db.session.findUnique({ where: { id: sessionId }, select: { id: true } });
-      if (!exists) {
-        const session = await db.session.create({ data: { id: sessionId, label: `chat-${Date.now()}` } });
-        sessionId = session.id;
-      }
-    }
+    const sessionId = await resolveSessionId(parsed.data.sessionId);
     const result = await processTurn(sessionId, parsed.data.message, { steer: parsed.data.steer });
     return NextResponse.json(result);
   } catch (err) {
