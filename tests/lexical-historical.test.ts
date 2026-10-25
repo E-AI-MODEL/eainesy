@@ -18,6 +18,9 @@ describe('resolved history (years ago, explicitly closed) does not escalate', ()
     'Fictieve casus: twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij. Ik wil nu niet dood en voel me veilig.',
     'Jaren geleden had ik suïcidale gedachten, maar die zijn al lang voorbij.',
     'Vroeger had ik suïcidale gedachten, maar die zijn verdwenen.',
+    // recovery wording and a return to a place are not recurrence
+    'Twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij. Ik voel me weer goed.',
+    'Twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij en ik ben terug op school.',
   ]) {
     test(text, () => {
       const r = observed(text);
@@ -40,6 +43,12 @@ describe('current or recurrent ideation keeps escalating to CRISIS', () => {
     'Twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij. Ik wil niet meer leven.',
     'Twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij. Vandaag denk ik weer aan zelfmoord.',
     'Twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij. Nu gaat het niet goed, ik denk weer aan de dood.',
+    // pronominal recurrence (review #38)
+    'Twee jaar geleden had ik suïcidale gedachten, maar die waren voorbij. Sinds gisteren heb ik ze weer.',
+    'Twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij. Sinds gisteren zijn ze er weer.',
+    'Twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij. Nu keren ze terug.',
+    'Twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij. Ze zijn er sinds vorige week weer.',
+    'Twee jaar geleden had ik suïcidale gedachten, maar die zijn voorbij. Ik voel me weer goed, maar sinds gisteren zijn ze er weer.',
   ]) {
     test(text, () => {
       const r = observed(text);

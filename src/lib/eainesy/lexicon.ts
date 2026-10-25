@@ -365,17 +365,23 @@ function isResolvedHistoricalIdeation(text: string, index: number, evidence: str
 }
 
 /**
- * Recurrence after a "resolved" history disables the exception. A hit is
- * only dismissed when its target word is itself directly negated ("ik wil
- * nu niet dood"); anything else ("nu weer", "ze zijn terug", "opnieuw")
- * counts as recurrence.
+ * Recurrence after a "resolved" history disables the exception. A
+ * now-then-target hit is only dismissed when its target word is itself
+ * directly negated ("ik wil nu niet dood"). "opnieuw", "toch weer", "komen
+ * terug" always count; "weer/terug" also counts in any clause that refers
+ * back to the thoughts ("heb ik ze weer", "zijn ze er weer", "keren ze
+ * terug"), except recovery wording ("weer goed") or a return to a place.
  */
 function mentionsRecurrence(remainder: string): boolean {
   const NOW_THEN_TARGET = /\b(?:nu|vandaag|momenteel|tegenwoordig)\b.{0,60}?\b(?:weer|opnieuw|terug|suïcidaal|suicid|dood|pillen)\b/gi;
   for (const m of remainder.matchAll(NOW_THEN_TARGET)) {
     if (!/\b(?:niet|geen|nooit)\s+(?:meer\s+)?(?:dood|suïcidaal|suicid)$/i.test(m[0])) return true;
   }
-  return /\b(?:toch\s+weer|weer\s+terug|opnieuw|zijn\s+terug|is\s+terug|komen\s+terug|kwamen\s+terug)\b/i.test(remainder);
+  if (/\b(?:toch\s+weer|weer\s+terug|opnieuw|zijn\s+terug|is\s+terug|komen\s+terug|kwamen\s+terug)\b/i.test(remainder)) return true;
+  const RECOVERY = /\b(?:weer\s+(?:(?:helemaal|een\s+stuk|veel|wat)\s+)?(?:goed|beter|prima|rustig|veilig|blij|gelukkig|lekker|op\s+de\s+rails)|terug\s+(?:op|naar|bij|in|aan)\b)/gi;
+  return remainder.split(/[.!?;,:\n]|\b(?:maar|en)\b/i).some((clause) =>
+    /\b(?:ze|zij|die|deze|gedachten|gevoelens|neigingen)\b/i.test(clause) &&
+    /\b(?:weer|terug)\b/i.test(clause.replace(RECOVERY, ' ')));
 }
 
 /** A schema marker label does not itself establish an experienced symptom. */
