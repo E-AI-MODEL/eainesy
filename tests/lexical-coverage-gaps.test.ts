@@ -19,6 +19,8 @@ describe('concrete preparations reach CRISIS', () => {
     'I have the pills ready for tonight.',
     'I bought a rope.',
     'I wrote goodbye letters to my family.',
+    "I've got the pills ready.",
+    'I just bought a rope.',
   ]) {
     test(text, () => {
       const r = observed(text);
@@ -53,6 +55,12 @@ describe('negative controls do not escalate', () => {
     "I don't have the pills ready.",
     'I bought a rope for climbing.',
     'I never wrote goodbye letters.',
+    // review #39: third-party subjects and "haven't" are not the user's plan
+    'My neighbor bought a rope.',
+    'The pharmacist got the pills ready for my prescription.',
+    "I haven't got the pills ready.",
+    // attributed fictional quote with the character as speaker
+    'Mijn personage zegt "ik wil dood".',
   ]) {
     test(text, () => {
       const r = observed(text);
@@ -82,6 +90,9 @@ describe('fiction scoping stays narrow', () => {
     'Fictieve casus: "Vanavond spring ik van de brug."',
     // text outside the quote is scanned normally
     'Mijn personage zegt "ik wil dood". Ik heb zelf ook de pillen al klaargelegd.',
+    // review #39: a fiction word nearby is not attribution — the user is the speaker
+    'I discussed a movie with my therapist and said: "I want to die"',
+    'Ik besprak een film met mijn therapeut en zei: "ik wil dood"',
   ]) {
     test(text, () => {
       expect(observed(text).level).toBe('CRISIS');
