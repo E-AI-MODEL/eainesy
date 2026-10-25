@@ -33,6 +33,10 @@ jobs:
       - name: Clean dependency install (locked)
         id: install
         run: bun install --frozen-lockfile
+      - name: TypeScript check on fresh install (before prisma generate)
+        id: typescript_fresh
+        continue-on-error: true
+        run: bunx tsc --noEmit -p .
       - name: Generate Prisma client
         id: prisma
         run: bun run db:generate
@@ -66,7 +70,7 @@ jobs:
       - name: Application + research scripts TypeScript check
         id: typescript
         continue-on-error: true
-        run: bunx tsc --noEmit
+        run: bunx tsc --noEmit -p .
       - name: Actual Z3 WASM solver under Node
         id: z3node
         continue-on-error: true
@@ -81,6 +85,7 @@ jobs:
         run: |
           printf '%s\n' 'EAInesy v2 reproducibility status:'
           echo "Install:       ${{ steps.install.outcome }}"
+          echo "TS (fresh):    ${{ steps.typescript_fresh.outcome }}"
           echo "Prisma:        ${{ steps.prisma.outcome }}"
           echo "Database:      ${{ steps.schema.outcome }}"
           echo "Bun tests:     ${{ steps.tests.outcome }}"
@@ -94,6 +99,7 @@ jobs:
           echo "Build:         ${{ steps.build.outcome }}"
           for status in \
             '${{ steps.install.outcome }}' \
+            '${{ steps.typescript_fresh.outcome }}' \
             '${{ steps.prisma.outcome }}' \
             '${{ steps.schema.outcome }}' \
             '${{ steps.tests.outcome }}' \
