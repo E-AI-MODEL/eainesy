@@ -351,14 +351,31 @@ function isResolvedHistoricalIdeation(text: string, index: number, evidence: str
   if (!/^(zelfmoord|zelfdoding|suïcid\w*|suicid\w*)$/i.test(evidence)) return false;
   const before = text.slice(0, index);
   const clause = before.split(/[.!?;,:\n]|\bmaar\b/i).at(-1) ?? '';
-  if (!/\b(vroeger|voorheen|destijds|eerder)\b/i.test(clause)) return false;
+  // Time anchor in the same clause: "vroeger", or a distance in YEARS
+  // ("twee jaar geleden", "jaren geleden"). Weeks/months are deliberately
+  // not accepted: recent ideation stays a current signal.
+  if (!/\b(vroeger|voorheen|destijds|eerder)\b|\b(?:[\w-]+\s+){0,2}(?:jaar|jaren)\s+geleden\b/i.test(clause)) return false;
   const after = text.slice(index + evidence.length);
-  const closed = after.match(/\bmaar\s+(?:dat\s+)?(?:ligt|is)\s+(?:al\s+)?(?:[\w-]+\s+){0,7}achter\s+me\b/i);
+  const closed = after.match(/\bmaar\s+(?:dat\s+)?(?:ligt|is)\s+(?:al\s+)?(?:[\w-]+\s+){0,7}achter\s+me\b/i)
+    ?? after.match(/\bmaar\s+(?:die|dat|ze|deze)\s+(?:zijn|is|waren|was)\s+(?:al\s+)?(?:lang\s+|helemaal\s+)?(?:voorbij|weg|verdwenen|achter\s+de\s+rug)\b/i);
   if (!closed || closed.index === undefined || closed.index > 100) return false;
   const remainder = after.slice(closed.index + closed[0].length);
-  if (/\b(?:nu|vandaag|momenteel|tegenwoordig)\b.{0,60}\b(?:weer|opnieuw|terug|suïcidaal|suicid|dood|pillen)\b/i.test(remainder)
-    || /\b(?:toch\s+weer|weer\s+terug|opnieuw)\b/i.test(remainder)) return false;
+  if (mentionsRecurrence(remainder)) return false;
   return true;
+}
+
+/**
+ * Recurrence after a "resolved" history disables the exception. A hit is
+ * only dismissed when its target word is itself directly negated ("ik wil
+ * nu niet dood"); anything else ("nu weer", "ze zijn terug", "opnieuw")
+ * counts as recurrence.
+ */
+function mentionsRecurrence(remainder: string): boolean {
+  const NOW_THEN_TARGET = /\b(?:nu|vandaag|momenteel|tegenwoordig)\b.{0,60}?\b(?:weer|opnieuw|terug|suïcidaal|suicid|dood|pillen)\b/gi;
+  for (const m of remainder.matchAll(NOW_THEN_TARGET)) {
+    if (!/\b(?:niet|geen|nooit)\s+(?:meer\s+)?(?:dood|suïcidaal|suicid)$/i.test(m[0])) return true;
+  }
+  return /\b(?:toch\s+weer|weer\s+terug|opnieuw|zijn\s+terug|is\s+terug|komen\s+terug|kwamen\s+terug)\b/i.test(remainder);
 }
 
 /** A schema marker label does not itself establish an experienced symptom. */
