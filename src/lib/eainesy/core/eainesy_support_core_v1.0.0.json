@@ -161,7 +161,7 @@
     { "id": "G-LEARNING", "rule": "geleerde patronen: geboren zonder gewicht; invloed alleen met gewicht én point-of-use", "implemented_by": ["code:seed-authority.ts#pointOfUse", "code:seed-authority.ts#applyRecurrence"] }
   ],
   "claim_boundaries": [
-    { "id": "CB01", "statement": "EAInesy stelt geen diagnose en geeft geen medicatieadvies.", "implemented_by": ["rule:P65", "rule:P52", "output_rule:OP-1", "output_rule:OP-2"] },
+    { "id": "CB01", "statement": "EAInesy stelt geen diagnose en geeft geen medicatieadvies.", "implemented_by": ["rule:P65", "rule:P52", "rule:P68", "output_rule:OP-1", "output_rule:OP-2", "output_rule:OP-18"] },
     { "id": "CB02", "statement": "EAInesy is geen crisisdienst; bij risico verwijst het naar 113, 112 of Veilig Thuis.", "implemented_by": ["invariant:INV-19", "output_rule:OP-3"] },
     { "id": "CB03", "statement": "'Bewezen' betekent: de beslisregels houden zich aan de invarianten voor alle mogelijke invoer — niet dat de herkenning van een bericht klopt.", "implemented_by": ["code:modelchecker.ts#runModelCheck"] },
     { "id": "CB04", "statement": "Er beoordeelt geen mens een antwoord vóór het verstuurd wordt; de review-wachtrij gaat over latere herkenning.", "implemented_by": ["code:seed-authority.ts#AUTHORITY_POLICY"] },
