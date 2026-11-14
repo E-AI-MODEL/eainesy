@@ -54,14 +54,14 @@ export function groundMarker(marker: RiskMarker, lastUserText: string, earlierUs
   const start = Math.max(message.lastIndexOf('.', at), message.lastIndexOf('!', at), message.lastIndexOf('?', at)) + 1;
   const endHits = ['.', '!', '?'].map((c) => message.indexOf(c, at + quote.length)).filter((i) => i >= 0);
   const sentence = message.slice(start, endHits.length ? Math.min(...endHits) : message.length);
-  const negated = DENIAL_FORMS.some((p) => {
-    const m = sentence.match(p);
-    if (!m || m.index === undefined) return false;
-    const denialStart = start + m.index;
+  // Every occurrence of every denial form: a later repeat may be the one that touches the quote.
+  const negated = DENIAL_FORMS.some((p) => [...sentence.matchAll(new RegExp(p.source, 'gi'))].some((m) => {
+    const local = m.index ?? 0;
+    const denialStart = start + local;
     const denialEnd = denialStart + m[0].length;
     const touches = denialStart < at + quote.length && denialEnd >= at - 1;
-    return touches && !isAmbivalentDenial(sentence, m.index, m[0].length);
-  });
+    return touches && !isAmbivalentDenial(sentence, local, m[0].length);
+  }));
   return { type: marker.type, status: negated ? 'GROUNDED_NEGATED' : 'GROUNDED_AFFIRMED' };
 }
 

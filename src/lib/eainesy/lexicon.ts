@@ -473,11 +473,11 @@ const AMBIVALENCE = [
   /\bweet\s+(?:het\s+)?niet\b/i, /\bdon'?t\s+know\b/i, /\bheus\b/i, /\bhoor\b/i,
 ];
 /** A denial followed by a turn ("maar", "but") and a risk word in the same sentence. */
-const DENIAL_THEN_TURN = /(?:maar|toch|eigenlijk|but|though|yet)\b[^.!?\n]*\b(?:niet\s+meer|kan\s+niet|dood|leven|ophouden|stoppen|can'?t|any\s*more|go\s+on|end\s+it)\b/i;
+const DENIAL_THEN_TURN = /\b(?:maar|toch|eigenlijk|en|want|but|though|yet|and|because)\b[^.!?\n]*\b(?:niet\s+meer|kan\s+niet|dood|leven|ophouden|stoppen|can'?t|any\s*more|go\s+on|end\s+it)\b/i;
 
 /** An outer negation before the denial makes it affirmative ("not true that I don't want to die"). */
 const OUTER_NEGATION = /\b(?:not\s+true|isn'?t\s+true|not\s+the\s+case|it'?s\s+not\s+that|niet\s+waar|niet\s+zo\s+dat|niet\s+dat|geen\s+sprake\s+van)\b[^.!?\n]*$/i;
-const CLAUSE_SPLIT = /[,;:()\n—–]|\b(?:maar|toch|eigenlijk|but|though|however)\b/gi;
+const CLAUSE_SPLIT = /[,;:()\n—–]|\s-\s|\b(?:maar|en|want|omdat|dus|eigenlijk|alleen|toch|but|and|because|so|though|however|actually)\b/gi;
 
 /**
  * Is the denial at [start, start+length) in `sentence` ambivalent? Ambivalence
@@ -509,10 +509,10 @@ export function collectLexicalDenials(raw: string): { denial: boolean; forms: st
   let ambivalent = false;
   for (const sentence of text.split(/[.!?\n]+/)) {
     for (const p of DENIAL_FORMS) {
-      const m = sentence.match(p);
-      if (!m || m.index === undefined) continue;
-      forms.push(m[0]);
-      if (isAmbivalentDenial(sentence, m.index, m[0].length)) ambivalent = true;
+      for (const m of sentence.matchAll(new RegExp(p.source, 'gi'))) {
+        forms.push(m[0]);
+        if (isAmbivalentDenial(sentence, m.index ?? 0, m[0].length)) ambivalent = true;
+      }
     }
   }
   const affirmed = collectLexicalMarkers(text).markers.some((m) => ['SUICIDAL_IDEATION', 'SELF_HARM', 'AGENCY_PLAN', 'HARM_OTHERS'].includes(m.type));

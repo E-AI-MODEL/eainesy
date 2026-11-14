@@ -56,6 +56,9 @@ describe('grounding a model marker in the LAST user message', () => {
   test('ambivalence wording in the denial\'s own clause still blocks it', () => {
     expect(groundMarker(SI('ik wil niet dood'), 'ik wil niet dood hoor').status).toBe('GROUNDED_AFFIRMED');
   });
+  test('a repeated denial form: the occurrence touching the quote counts', () => {
+    expect(groundMarker(SI('want to die now'), "I don't want to die, and I don't want to die now.").status).toBe('GROUNDED_NEGATED');
+  });
   test('an outer negation makes the denial affirmative (not negated)', () => {
     expect(groundMarker(SI("i don't want to die"), "It is not true that I don't want to die.").status).toBe('GROUNDED_AFFIRMED');
   });
@@ -78,6 +81,8 @@ describe('the lexical channel\'s own denial observation', () => {
     ['Ik weet niet wat te zeggen, maar ik wil niet dood.', true], // ambivalence in another clause
     ['ik wil niet dood hoor', false], // ambivalence in the denial's clause
     ["It is not true that I don't want to die.", false], // review #45: double negation
+    ['Ik weet niet wat te zeggen en ik wil niet dood.', true], // review #45: "en" closes the clause
+    ['ik wil niet dood en ik kan niet meer', false], // denial + "en" + risk word
     ['Het is niet waar dat ik niet dood wil.', false], // no denial form; stays affirmed-ambiguous
     ['I don’t want to die. I feel safe.', true], // typographic apostrophe
   ])('%s → %p', (text, expected) => {
