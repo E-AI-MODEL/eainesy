@@ -473,7 +473,7 @@ const AMBIVALENCE = [
   /\bweet\s+(?:het\s+)?niet\b/i, /\bdon'?t\s+know\b/i, /\bheus\b/i, /\bhoor\b/i,
 ];
 /** A denial followed by a turn ("maar", "but") and a risk word in the same sentence. */
-const DENIAL_THEN_TURN = /\b(?:maar|toch|eigenlijk|en|want|but|though|yet|and|because)\b[^.!?\n]*\b(?:niet\s+meer|kan\s+niet|dood|leven|ophouden|stoppen|can'?t|any\s*more|go\s+on|end\s+it)\b/i;
+const DENIAL_THEN_TURN = /\b(?:maar|toch|eigenlijk|en|want|but|though|yet|and|because)\b[^.!?\n]*\b(?:niet\s+meer|kan\s+niet|dood|ophouden|stoppen|can'?t|any\s*more|go\s+on|end\s+it)\b/i;
 
 /** An outer negation before the denial makes it affirmative ("not true that I don't want to die"). */
 const OUTER_NEGATION = /\b(?:not\s+true|isn'?t\s+true|not\s+the\s+case|it'?s\s+not\s+that|niet\s+waar|niet\s+zo\s+dat|niet\s+dat|geen\s+sprake\s+van)\b[^.!?\n]*$/i;
@@ -494,7 +494,7 @@ export function isAmbivalentDenial(sentence: string, start: number, length: numb
   }
   const clause = sentence.slice(clauseStart, clauseEnd);
   return AMBIVALENCE.some((p) => p.test(clause)) || DENIAL_THEN_TURN.test(sentence.slice(start))
-    || OUTER_NEGATION.test(sentence.slice(0, start));
+    || OUTER_NEGATION.test(sentence.slice(clauseStart, start));
 }
 
 /**

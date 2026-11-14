@@ -83,6 +83,8 @@ describe('the lexical channel\'s own denial observation', () => {
     ["It is not true that I don't want to die.", false], // review #45: double negation
     ['Ik weet niet wat te zeggen en ik wil niet dood.', true], // review #45: "en" closes the clause
     ['ik wil niet dood en ik kan niet meer', false], // denial + "en" + risk word
+    ['ik wil niet dood, want ik wil leven', true], // review #45: wanting to live is not a risk turn
+    ["It isn't true that my friend is ill, but I don't want to die.", true], // outer negation in another clause
     ['Het is niet waar dat ik niet dood wil.', false], // no denial form; stays affirmed-ambiguous
     ['I don’t want to die. I feel safe.', true], // typographic apostrophe
   ])('%s → %p', (text, expected) => {
