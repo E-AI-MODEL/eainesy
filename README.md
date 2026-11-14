@@ -1,6 +1,6 @@
 # EAInesy v2
 
-> **Status (14 november 2026)**
+> **Status (14 november 2026, na de P0-herhaling)**
 > - **Technische keten werkt.** [verify.yml op `main` na de reparaties (77f74d0)](https://github.com/E-AI-MODEL/eainesy/actions/runs/43600011829) is groen: 270/270 Bun-tests, formele regressies (44 invarianten, 68 + 19 regels), 58/58 fast-eval, 12/12 scenario's, tsc (ook vóór `prisma generate`), ESLint, Z3 onder Node en de productiebuild. In de [P0-run 39884213356](https://github.com/E-AI-MODEL/eainesy/actions/runs/39884213356) kregen 14/14 live beurten een echt Z3-SAT-certificaat, een modelcheck en een uitvoercontrole.
 > - **Inhoudelijk nog niet op orde.** De P0-nulmeting haalde **10/14** vooraf vastgelegde engineering-checks: uitslag **SEMANTIC_GAPS** ([run 39884213356](https://github.com/E-AI-MODEL/eainesy/actions/runs/39884213356), [document](docs/NeSy-P0-independent-baseline-2026-10-23.md)). Afwijkingen: N02, N03, N06, S01.
 > - **Gemerged sindsdien:**
@@ -11,7 +11,11 @@
 > - **Niet gebouwd:**
 >   - N02/S01 (ontkenning door het model): het [ontwerp](docs/ontwerp-modelmarker-verankering-N02-S01.md) ([#40](https://github.com/E-AI-MODEL/eainesy/pull/40)) draait sinds 14 november in **schaduwmodus**. Het wordt per beurt gemeten en in het certificaat vastgelegd, maar het verandert nog **geen** beslissing.
 >   - De open keuzes uit #39 en #40 worden eerst onderzocht volgens een [onderzoeksprotocol](docs/protocol-ontkenning-en-derde-persoon-2026-10-25.md) ([#43](https://github.com/E-AI-MODEL/eainesy/pull/43)). Daarvoor zijn mensen nodig voor het corpus en het labelen.
-> - **Nog geen nieuwe P0-meting uitgevoerd.** De [verwachting voor die meting](docs/NeSy-P0-herhaling-verwachtingen-2026-10-25.md) is vooraf vastgelegd: 11/14, dus nog steeds SEMANTIC_GAPS ([#42](https://github.com/E-AI-MODEL/eainesy/pull/42)). Deze status zegt niets over klinische veiligheid.
+> - **Nieuwe P0-meting (14 november 2026): 11/14, SEMANTIC_GAPS**, precies de [vooraf vastgelegde verwachting](docs/NeSy-P0-herhaling-verwachtingen-2026-10-25.md) ([run 43602738460](https://github.com/E-AI-MODEL/eainesy/actions/runs/43602738460), [resultaat](docs/NeSy-P0-herhaling-resultaat-2026-11-14.md)).
+>   - N06 slaagt nu.
+>   - N02, N03 en S01 falen nog, allemaal in het modelkanaal.
+>   - De verankering in schaduwmodus herkent N02 en S01 op echte modeluitvoer; N03 (tijdsaanduiding) ligt buiten haar bereik.
+>   - Deze status zegt niets over klinische veiligheid.
 
 **Neuro-symbolic research demonstrator** (Next.js, Bun, Prisma/SQLite, GLM, Z3). This is a software research environment using synthetic scenarios from a deliberately demanding human-interaction domain. It is **not** a clinically validated intervention, crisis service, or suitable for use with real people seeking care.
 
