@@ -9,7 +9,7 @@
  * (docs/protocol-ontkenning-en-derde-persoon-2026-10-25.md), not here.
  */
 import type { RiskLevel, RiskMarker, RiskMemory } from './types';
-import { DENIAL_FORMS, MARKER_WEIGHTS, isAmbivalentDenialContext, scoreToRiskLevel } from './lexicon';
+import { DENIAL_FORMS, MARKER_WEIGHTS, isAmbivalentDenial, scoreToRiskLevel } from './lexicon';
 
 export type GroundingStatus = 'GROUNDED_AFFIRMED' | 'GROUNDED_NEGATED' | 'UNGROUNDED';
 
@@ -48,19 +48,21 @@ export function groundMarker(marker: RiskMarker, lastUserText: string, earlierUs
     return { type: marker.type, status: 'UNGROUNDED', ...(fromHistory ? { fromHistory } : {}) };
   }
   if (!GROUNDABLE.includes(marker.type)) return { type: marker.type, status: 'GROUNDED_AFFIRMED' };
-  // The sentence that holds the quote: denial forms must cover the quote itself.
+  // The sentence that holds the quote: a denial form must overlap the quote or
+  // end right before it ("heb geen plannen om | mezelf pijn te doen").
   const at = message.indexOf(quote);
   const start = Math.max(message.lastIndexOf('.', at), message.lastIndexOf('!', at), message.lastIndexOf('?', at)) + 1;
   const endHits = ['.', '!', '?'].map((c) => message.indexOf(c, at + quote.length)).filter((i) => i >= 0);
   const sentence = message.slice(start, endHits.length ? Math.min(...endHits) : message.length);
-  const denied = DENIAL_FORMS.some((p) => {
+  const negated = DENIAL_FORMS.some((p) => {
     const m = sentence.match(p);
     if (!m || m.index === undefined) return false;
     const denialStart = start + m.index;
     const denialEnd = denialStart + m[0].length;
-    return denialStart < at + quote.length && denialEnd > at; // overlaps the quote
+    const touches = denialStart < at + quote.length && denialEnd >= at - 1;
+    return touches && !isAmbivalentDenial(sentence, m.index, m[0].length);
   });
-  return { type: marker.type, status: denied && !isAmbivalentDenialContext(sentence) ? 'GROUNDED_NEGATED' : 'GROUNDED_AFFIRMED' };
+  return { type: marker.type, status: negated ? 'GROUNDED_NEGATED' : 'GROUNDED_AFFIRMED' };
 }
 
 export interface GroundedFusionInput {

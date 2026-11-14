@@ -43,6 +43,19 @@ describe('grounding a model marker in the LAST user message', () => {
   test('a denial elsewhere in the message does not negate a different affirmed quote', () => {
     expect(groundMarker(SI('ik heb de pillen al klaargelegd'), 'Ik wil niet dood. Ik heb de pillen al klaargelegd.').status).toBe('GROUNDED_AFFIRMED');
   });
+  // review #45
+  test('a denial ending right before the quoted predicate is negated', () => {
+    expect(groundMarker({ type: 'SELF_HARM', evidence: 'mezelf pijn te doen' }, 'Ik heb geen plannen om mezelf pijn te doen.').status).toBe('GROUNDED_NEGATED');
+  });
+  test('"ik wil niet meer dood" is a denial form', () => {
+    expect(groundMarker(SI('ik wil niet meer dood'), 'Ik wil niet meer dood, het gaat beter.').status).toBe('GROUNDED_NEGATED');
+  });
+  test('ambivalence wording in another clause does not taint the denial', () => {
+    expect(groundMarker(SI('ik wil niet dood'), 'Ik weet niet wat te zeggen, maar ik wil niet dood.').status).toBe('GROUNDED_NEGATED');
+  });
+  test('ambivalence wording in the denial\'s own clause still blocks it', () => {
+    expect(groundMarker(SI('ik wil niet dood'), 'ik wil niet dood hoor').status).toBe('GROUNDED_AFFIRMED');
+  });
   test('non-groundable types (e.g. HOPELESSNESS) are never dropped', () => {
     expect(groundMarker({ type: 'HOPELESSNESS', evidence: 'ik wil niet dood' }, N02).status).toBe('GROUNDED_AFFIRMED');
   });
@@ -58,6 +71,9 @@ describe('the lexical channel\'s own denial observation', () => {
     ['ik wil niet dood maar ik kan niet meer', false], // turn + risk word
     ['Niet dat ik dood wil.', false], // no denial form, minimising
     ['Ik voel me rustig vandaag.', false], // nothing to deny
+    ['Ik wil niet meer dood, het gaat beter.', true], // review #45
+    ['Ik weet niet wat te zeggen, maar ik wil niet dood.', true], // ambivalence in another clause
+    ['ik wil niet dood hoor', false], // ambivalence in the denial's clause
   ])('%s → %p', (text, expected) => {
     expect(collectLexicalDenials(text).denial).toBe(expected);
   });

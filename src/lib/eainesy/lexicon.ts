@@ -455,7 +455,7 @@ export function collectLexicalMarkers(text: string): { markers: RiskMarker[]; ne
  * "niet dat ik", "niet echt" are deliberately NOT denials.
  */
 export const DENIAL_FORMS: RegExp[] = [
-  /\bwil\s+(?:echt\s+|helemaal\s+|zeker\s+)?niet\s+dood\b/i,
+  /\bwil\s+(?:echt\s+|helemaal\s+|zeker\s+)?niet\s+(?:meer\s+)?dood\b/i,
   /\b(?:ben|voel\s+me)\s+(?:echt\s+|helemaal\s+)?niet\s+su[iï]cidaal\b/i,
   /\bdenk\s+(?:echt\s+)?niet\s+aan\s+(?:zelfmoord|zelfdoding|su[iï]cide)\b/i,
   /\bga\s+(?:mezelf|me)\s+(?:niets|niks)\s+aandoen\b/i,
@@ -475,8 +475,23 @@ const AMBIVALENCE = [
 /** A denial followed by a turn ("maar", "but") and a risk word in the same sentence. */
 const DENIAL_THEN_TURN = /(?:maar|toch|eigenlijk|but|though|yet)\b[^.!?\n]*\b(?:niet\s+meer|kan\s+niet|dood|leven|ophouden|stoppen|can'?t|any\s*more|go\s+on|end\s+it)\b/i;
 
-export function isAmbivalentDenialContext(sentence: string): boolean {
-  return AMBIVALENCE.some((p) => p.test(sentence)) || DENIAL_THEN_TURN.test(sentence);
+const CLAUSE_SPLIT = /[,;:()\n—–]|\b(?:maar|toch|eigenlijk|but|though|however)\b/gi;
+
+/**
+ * Is the denial at [start, start+length) in `sentence` ambivalent? Ambivalence
+ * wording counts only inside the denial's own clause ("Ik weet niet wat te
+ * zeggen, maar ik wil niet dood" stays a denial); a turn plus risk word AFTER
+ * the denial ("…niet dood maar ik kan niet meer") always counts.
+ */
+export function isAmbivalentDenial(sentence: string, start: number, length: number): boolean {
+  let clauseStart = 0, clauseEnd = sentence.length;
+  for (const m of sentence.matchAll(CLAUSE_SPLIT)) {
+    const i = m.index ?? 0;
+    if (i + m[0].length <= start) clauseStart = i + m[0].length;
+    else if (i >= start + length) { clauseEnd = i; break; }
+  }
+  const clause = sentence.slice(clauseStart, clauseEnd);
+  return AMBIVALENCE.some((p) => p.test(clause)) || DENIAL_THEN_TURN.test(sentence.slice(start));
 }
 
 /**
@@ -488,10 +503,12 @@ export function collectLexicalDenials(text: string): { denial: boolean; forms: s
   const forms: string[] = [];
   let ambivalent = false;
   for (const sentence of text.split(/[.!?\n]+/)) {
-    const hits = DENIAL_FORMS.map((p) => sentence.match(p)?.[0]).filter((m): m is string => !!m);
-    if (!hits.length) continue;
-    forms.push(...hits);
-    if (isAmbivalentDenialContext(sentence)) ambivalent = true;
+    for (const p of DENIAL_FORMS) {
+      const m = sentence.match(p);
+      if (!m || m.index === undefined) continue;
+      forms.push(m[0]);
+      if (isAmbivalentDenial(sentence, m.index, m[0].length)) ambivalent = true;
+    }
   }
   const affirmed = collectLexicalMarkers(text).markers.some((m) => ['SUICIDAL_IDEATION', 'SELF_HARM', 'AGENCY_PLAN', 'HARM_OTHERS'].includes(m.type));
   return { denial: forms.length > 0 && !affirmed && !ambivalent, forms, ambivalent };
