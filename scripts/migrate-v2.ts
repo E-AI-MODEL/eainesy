@@ -22,8 +22,8 @@ async function main() {
   const turnIds = seeds.map((s) => s.turnId).filter((x): x is string => !!x);
   const turns = await db.turn.findMany({ where: { id: { in: turnIds } }, select: { id: true, sessionId: true } });
   const sessions = await db.session.findMany({ where: { id: { in: [...new Set(turns.map((t) => t.sessionId))] } }, select: { id: true, label: true } });
-  const labelOf = new Map(sessions.map((s) => [s.id, s.label]));
-  const sessionOfTurn = new Map(turns.map((t) => [t.id, t.sessionId]));
+  const labelOf = new Map<string, string>(sessions.map((s) => [s.id, s.label]));
+  const sessionOfTurn = new Map<string, string>(turns.map((t) => [t.id, t.sessionId]));
 
   let toEval = 0, accepted = 0, rejected = 0, backfilled = 0;
   for (const s of seeds) {

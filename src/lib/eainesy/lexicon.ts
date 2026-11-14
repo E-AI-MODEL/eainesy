@@ -88,6 +88,8 @@ const RULES: LexicalRule[] = [
       // Passive death wish without "wil": "soms hoop ik dat ik niet meer wakker word".
       /\b(?:hoop|wens)\s+ik\s+(?:soms\s+)?dat\s+ik\s+niet\s+(?:meer\s+)?wakker\s+(?:te\s+)?word/i,
       /\bhoeft?\s+(voor\s+mij\s+)?niet\s+meer\s+wakker/i,
+      // "ik wil slapen en nooit meer wakker worden" / "ik wil nooit meer wakker worden"
+      /\b(?:wil|hoop|wens)\s+(?:(?:gewoon|soms|echt|alleen)\s+)?(?:(?:gaan\s+)?slapen\s+en\s+)?nooit\s+meer\s+wakker\s+(?:te\s+)?worden/i,
       /\bhet\s+hoeft\s+(voor\s+mij\s+)?(allemaal\s+)?niet\s+meer\b/i,
       /(rustig|fijn|beter|kalm|vredig|prettig|mooi)\s+zijn\s+als\s+ik\s+er\s+((?!even\b)\w+\s+)?niet\s+meer\s+(was|ben|word)/i,
       /(denk|droom|overweeg|plan)\w*\s+(ik\s+)?(er)?over\s+om\s+niet\s+meer\s+terug\s+te\s+komen\b(?!\s+(bij|op|in|naar|voor|over)\b)/i,
@@ -105,6 +107,7 @@ const RULES: LexicalRule[] = [
       // Allow adverbs ("I wish I just would not wake up").
       /\b(?:wish|hope)\s+i\s+(?:just\s+)?(?:would\s+not|wouldn't|won't|didn't)\s+wake\s+up/i,
       /\bno\s+reason\s+to\s+(wake|live|go\s+on)/i,
+      /\b(?:want|wish|hope)\s+to\s+(?:go\s+to\s+)?sleep\s+and\s+never\s+wake\s+up/i,
     ],
   },
   {
@@ -126,8 +129,8 @@ const RULES: LexicalRule[] = [
     type: 'AGENCY_PLAN',
     weight: MARKER_WEIGHTS.AGENCY_PLAN,
     patterns: [
-      /\bpillen\s+(geslagen|geslikt|ingemaakt|ingepakt|gespaard|verzameld|opgespaard|klaargelegd|klaarliggen)/i,
-      /\b(heb|heeft)\s+(al\s+)?(de\s+)?(pillen|een\s+touw|een\s+mes|alles)\s+(gekocht|klaar(gelegd|liggen)?|liggen|geregeld)/i,
+      /\bpillen\s+(al\s+|alvast\s+)?(geslagen|geslikt|ingemaakt|ingepakt|gespaard|verzameld|opgespaard|klaargelegd|klaarliggen)/i,
+      /\b(heb|heeft)\s+(al\s+)?(de\s+)?(pillen|een\s+touw|een\s+mes|alles)\s+(al\s+|alvast\s+)?(gekocht|klaar(gelegd|liggen)?|liggen|geregeld)/i,
       /\bplan\s+gemaakt\s+voor/i,
       /\bheeft\s+een\s+plan/i,
       /\bhoe\s+ik\s+het\s+ga\s+doen/i,
@@ -137,13 +140,18 @@ const RULES: LexicalRule[] = [
       /\bvanavond\s+nog\b/i,
       /\bbinnenkast|in\s+de\s+kast\s+gelegd/i,
       /\bvan\s+(een|de)\s+(brug|flat|toren|gebouw|dak)\s+(af\s+)?(te\s+)?springen/i,
+      // "vanavond spring ik van de brug" — no negator allowed in the gap
+      /\bspring(?:\s+ik)?\s+(?:(?!(?:niet|nooit|geen)\b)\w+\s+){0,2}(?:van|vanaf)\s+(?:een|de|het)\s+(?:brug|flat|toren|gebouw|dak|viaduct)\b/i,
       /\bvoor\s+(de|een)\s+trein\s+(te\s+)?(springen|gaan\s+staan|lopen)/i,
       /\b(overdosis|overdose)\b/i,
       /\bhow\s+to\s+do\s+it\b/i,
       /\b(saved\s+up|stockpil\w*|collected)\s+(my\s+|the\s+)?(pills|meds|medication)/i,
       /\bjump(ing)?\s+(off|from)\s+(a|the)\s+(bridge|building|roof)/i,
       /\bin\s+front\s+of\s+a\s+train\b/i,
-      /\b(goodbye|suicide)\s+(letter|note)\b/i,
+      /\b(goodbye|suicide|farewell)\s+(letters?|notes?)\b/i,
+      // first person only: "the pharmacist got the pills ready" / "I haven't got…" stay clean
+      /\bI(?:\s+have|'ve|\s+got|'ve\s+got|\s+have\s+got)\s+(?:the\s+|my\s+|some\s+)?(?:pills|meds|tablets)\s+(?:all\s+)?(?:ready|lined\s+up|counted\s+out|set\s+aside)\b/i,
+      /\bI(?:\s+(?:just|already|finally))?\s+(?:bought|purchased|got)\s+(?:a|the|some)\s+rope\b(?!\s+(?:for|to)\s+(?:climb|camp|hik|sail|the\s+(?:boat|tent|garden)|my\s+(?:boat|tent|dog|garden)))/i,
     ],
   },
   {
@@ -313,6 +321,33 @@ const PII_PATTERNS: RegExp[] = [
   /\b(telefoonnummer|phone number|e-?mailadres)\b/i, // solicitation targets
 ];
 
+/**
+ * Narrow scoping for a clearly attributed fictional quote: the match lies
+ * wholly inside double quotes AND the attribution right before the opening
+ * quote (last 60 characters of the same sentence) names a fictional work or
+ * character plus a speech verb, with no first-person speaker ("In mijn roman
+ * zegt het personage: \"…\""). "mijn/my" directly before the work is allowed;
+ * "…a movie with my therapist and said: \"…\"" is not fiction. Unquoted
+ * fiction framing is NOT trusted (a known evasion wrapper), "verhaal"/"story"
+ * are excluded (also "my own story"), and text outside the quotes is scanned
+ * normally. The neural channel still sees the whole message (max-fusion).
+ */
+const FICTION_WORK = /\b(roman|boek|film|serie|toneelstuk|gedicht|songtekst|liedtekst|personage|hoofdpersoon|script|novel|book|movie|series|poem|lyrics|character|protagonist)\b/i;
+const SPEECH_VERB = /\b(zegt|zei|roept|riep|schrijft|schreef|denkt|dacht|fluistert|fluisterde|antwoordt|antwoordde|says|said|writes|wrote|thinks|thought|shouts|shouted|whispers|whispered|replies|replied)\b/i;
+const FIRST_PERSON = /\b(ik|me|mij|mijn|wij|we|ons|onze|i|my|our|us)\b/i;
+function isInsideFictionQuote(text: string, index: number, length: number): boolean {
+  for (const q of text.matchAll(/["“„]([^"“”„\n]{1,400})["”]/g)) {
+    const start = (q.index ?? 0) + 1;
+    const end = start + q[1].length;
+    if (index < start || index + length > end) continue;
+    const attribution = (text.slice(0, q.index ?? 0).split(/[.!?\n]/).at(-1) ?? '').slice(-60);
+    if (!FICTION_WORK.test(attribution) || !SPEECH_VERB.test(attribution)) return false;
+    const withoutOwnWork = attribution.replace(new RegExp(`\\b(?:mijn|my)\\s+(?=${FICTION_WORK.source})`, 'gi'), '');
+    return !FIRST_PERSON.test(withoutOwnWork);
+  }
+  return false;
+}
+
 export function scoreToRiskLevel(score: number): RiskLevel {
   if (score >= RISK_THRESHOLDS.CRISIS) return 'CRISIS';
   if (score >= RISK_THRESHOLDS.HIGH) return 'HIGH';
@@ -351,14 +386,37 @@ function isResolvedHistoricalIdeation(text: string, index: number, evidence: str
   if (!/^(zelfmoord|zelfdoding|suïcid\w*|suicid\w*)$/i.test(evidence)) return false;
   const before = text.slice(0, index);
   const clause = before.split(/[.!?;,:\n]|\bmaar\b/i).at(-1) ?? '';
-  if (!/\b(vroeger|voorheen|destijds|eerder)\b/i.test(clause)) return false;
+  // Time anchor in the same clause: "vroeger", or a distance in YEARS
+  // ("twee jaar geleden", "jaren geleden"). Weeks/months are deliberately
+  // not accepted: recent ideation stays a current signal.
+  if (!/\b(vroeger|voorheen|destijds|eerder)\b|\b(?:[\w-]+\s+){0,2}(?:jaar|jaren)\s+geleden\b/i.test(clause)) return false;
   const after = text.slice(index + evidence.length);
-  const closed = after.match(/\bmaar\s+(?:dat\s+)?(?:ligt|is)\s+(?:al\s+)?(?:[\w-]+\s+){0,7}achter\s+me\b/i);
+  const closed = after.match(/\bmaar\s+(?:dat\s+)?(?:ligt|is)\s+(?:al\s+)?(?:[\w-]+\s+){0,7}achter\s+me\b/i)
+    ?? after.match(/\bmaar\s+(?:die|dat|ze|deze)\s+(?:zijn|is|waren|was)\s+(?:al\s+)?(?:lang\s+|helemaal\s+)?(?:voorbij|weg|verdwenen|achter\s+de\s+rug)\b/i);
   if (!closed || closed.index === undefined || closed.index > 100) return false;
   const remainder = after.slice(closed.index + closed[0].length);
-  if (/\b(?:nu|vandaag|momenteel|tegenwoordig)\b.{0,60}\b(?:weer|opnieuw|terug|suïcidaal|suicid|dood|pillen)\b/i.test(remainder)
-    || /\b(?:toch\s+weer|weer\s+terug|opnieuw)\b/i.test(remainder)) return false;
+  if (mentionsRecurrence(remainder)) return false;
   return true;
+}
+
+/**
+ * Recurrence after a "resolved" history disables the exception. A
+ * now-then-target hit is only dismissed when its target word is itself
+ * directly negated ("ik wil nu niet dood"). "opnieuw", "toch weer", "komen
+ * terug" always count; "weer/terug" also counts in any clause that refers
+ * back to the thoughts ("heb ik ze weer", "zijn ze er weer", "keren ze
+ * terug"), except recovery wording ("weer goed") or a return to a place.
+ */
+function mentionsRecurrence(remainder: string): boolean {
+  const NOW_THEN_TARGET = /\b(?:nu|vandaag|momenteel|tegenwoordig)\b.{0,60}?\b(?:weer|opnieuw|terug|suïcidaal|suicid|dood|pillen)\b/gi;
+  for (const m of remainder.matchAll(NOW_THEN_TARGET)) {
+    if (!/\b(?:niet|geen|nooit)\s+(?:meer\s+)?(?:dood|suïcidaal|suicid)$/i.test(m[0])) return true;
+  }
+  if (/\b(?:toch\s+weer|weer\s+terug|opnieuw|zijn\s+terug|is\s+terug|komen\s+terug|kwamen\s+terug)\b/i.test(remainder)) return true;
+  const RECOVERY = /\b(?:weer\s+(?:(?:helemaal|een\s+stuk|veel|wat)\s+)?(?:goed|beter|prima|rustig|veilig|blij|gelukkig|lekker|op\s+de\s+rails)|terug\s+(?:op|naar|bij|in|aan)\b)/gi;
+  return remainder.split(/[.!?;,:\n]|\b(?:maar|en)\b/i).some((clause) =>
+    /\b(?:ze|zij|die|deze|gedachten|gevoelens|neigingen)\b/i.test(clause) &&
+    /\b(?:weer|terug)\b/i.test(clause.replace(RECOVERY, ' ')));
 }
 
 /** A schema marker label does not itself establish an experienced symptom. */
@@ -382,6 +440,7 @@ export function collectLexicalMarkers(text: string): { markers: RiskMarker[]; ne
             (isSchemaMarkerName(m[0]) || isResolvedHistoricalIdeation(text, m.index, m[0]))) {
           continue;
         }
+        if (isInsideFictionQuote(text, m.index, m[0].length)) continue;
         markers.push({ type: rule.type, evidence: m[0].slice(0, 120) });
         break; // one marker per rule type is enough
       }
