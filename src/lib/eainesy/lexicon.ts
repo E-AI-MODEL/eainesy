@@ -449,6 +449,54 @@ export function collectLexicalMarkers(text: string): { markers: RiskMarker[]; ne
   return { markers, negated };
 }
 
+/**
+ * Closed list of explicit denials of the risk predicate itself (design
+ * docs/ontwerp-modelmarker-verankering-N02-S01.md §3.2/3.3). "niet meer",
+ * "niet dat ik", "niet echt" are deliberately NOT denials.
+ */
+export const DENIAL_FORMS: RegExp[] = [
+  /\bwil\s+(?:echt\s+|helemaal\s+|zeker\s+)?niet\s+dood\b/i,
+  /\b(?:ben|voel\s+me)\s+(?:echt\s+|helemaal\s+)?niet\s+su[iï]cidaal\b/i,
+  /\bdenk\s+(?:echt\s+)?niet\s+aan\s+(?:zelfmoord|zelfdoding|su[iï]cide)\b/i,
+  /\bga\s+(?:mezelf|me)\s+(?:niets|niks)\s+aandoen\b/i,
+  /\bga\s+(?:mezelf|me)\s+niet\s+pijn\s+doen\b/i,
+  /\bheb\s+geen\s+(?:su[iï]cidale\s+gedachten|plannen\s+om)\b/i,
+  /\b(?:do\s+not|don'?t)\s+want\s+to\s+die\b/i,
+  /\b(?:i'?m|am)\s+not\s+suicidal\b/i,
+  /\b(?:won'?t|will\s+not)\s+(?:hurt|harm|kill)\s+myself\b/i,
+  /\b(?:have\s+)?no\s+(?:suicidal\s+thoughts|plans?\s+to\s+(?:hurt|harm|kill)\s+myself)\b/i,
+];
+
+/** Wording that makes a denial ambivalent or minimising; it never relaxes risk. */
+const AMBIVALENCE = [
+  /\bniet\s+dat\s+ik\b/i, /\bnot\s+that\s+i\b/i, /\bniet\s+echt\b/i, /\bnot\s+really\b/i,
+  /\bweet\s+(?:het\s+)?niet\b/i, /\bdon'?t\s+know\b/i, /\bheus\b/i, /\bhoor\b/i,
+];
+/** A denial followed by a turn ("maar", "but") and a risk word in the same sentence. */
+const DENIAL_THEN_TURN = /(?:maar|toch|eigenlijk|but|though|yet)\b[^.!?\n]*\b(?:niet\s+meer|kan\s+niet|dood|leven|ophouden|stoppen|can'?t|any\s*more|go\s+on|end\s+it)\b/i;
+
+export function isAmbivalentDenialContext(sentence: string): boolean {
+  return AMBIVALENCE.some((p) => p.test(sentence)) || DENIAL_THEN_TURN.test(sentence);
+}
+
+/**
+ * The lexical channel's OWN observation of an explicit denial (design §3.3):
+ * a denial form occurs, no affirmed acute lexical marker exists, and no
+ * sentence holding a denial is ambivalent. Independent of the model's quote.
+ */
+export function collectLexicalDenials(text: string): { denial: boolean; forms: string[]; ambivalent: boolean } {
+  const forms: string[] = [];
+  let ambivalent = false;
+  for (const sentence of text.split(/[.!?\n]+/)) {
+    const hits = DENIAL_FORMS.map((p) => sentence.match(p)?.[0]).filter((m): m is string => !!m);
+    if (!hits.length) continue;
+    forms.push(...hits);
+    if (isAmbivalentDenialContext(sentence)) ambivalent = true;
+  }
+  const affirmed = collectLexicalMarkers(text).markers.some((m) => ['SUICIDAL_IDEATION', 'SELF_HARM', 'AGENCY_PLAN', 'HARM_OTHERS'].includes(m.type));
+  return { denial: forms.length > 0 && !affirmed && !ambivalent, forms, ambivalent };
+}
+
 export function collectProtective(text: string): string[] {
   const found: string[] = [];
   for (const p of PROTECTIVE) {

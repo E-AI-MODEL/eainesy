@@ -32,6 +32,8 @@ import { applyZ3Fallback, guessLanguage } from '../src/lib/eainesy/orchestrator'
 import { scoreToRiskLevel, collectLexicalMarkers, collectProtective, lexicalRiskScore } from '../src/lib/eainesy/lexicon';
 import { verifyOutput, CANNED_REPLIES, cannedReplyFor } from '../src/lib/eainesy/outputpolicy';
 import { CONFIDENCE_BAND_THRESHOLDS } from '../src/lib/eainesy/z3cert';
+import { groundedFusion } from '../src/lib/eainesy/evidence-grounding';
+import { RISK_MEMORY_STATES, type RiskLevel } from '../src/lib/eainesy/types';
 import type { Plan } from '../src/lib/eainesy/types';
 
 let failures = 0;
@@ -289,6 +291,26 @@ const PREGNANCY_BASE = {
   check('R11c lexicale escalatie landt in de bestaande veiligheids-/crisisfamilie',
     crisisDecide.action === 'CRISIS_PROTOCOL' && elevDecide.action === 'SAFETY_RESPONSE',
     `${crisisDecide.ruleId}/${crisisDecide.action} · ${elevDecide.ruleId}/${elevDecide.action}`);
+}
+
+// R12 — evidence grounding (design #40, shadow mode): over the whole finite
+// domain, grounding never raises risk and any reduction keeps ELEVATED unless
+// the lenient exit applies (lexical denial, risk memory not ACTIVE). Strict:
+// ELEVATED on every reduction. The proof covers the floor, not the semantics.
+{
+  const L: RiskLevel[] = ['NONE', 'ELEVATED', 'HIGH', 'CRISIS'];
+  const ix = (l: RiskLevel) => L.indexOf(l);
+  let states = 0, bad = 0;
+  for (const variant of ['lenient', 'strict'] as const)
+    for (const neuralLevel of L) for (const acceptedLevel of L) for (const lexicalLevel of L)
+      for (const lexicalDenial of [false, true]) for (const riskMemory of RISK_MEMORY_STATES) {
+        states++;
+        const fused = L[Math.max(ix(neuralLevel), ix(lexicalLevel))];
+        const next = groundedFusion({ neuralLevel, acceptedLevel, lexicalLevel, lexicalDenial, riskMemory }, variant);
+        const exit = variant === 'lenient' && lexicalDenial && riskMemory !== 'ACTIVE' && next === lexicalLevel;
+        if (ix(next) > ix(fused) || (ix(next) < ix(fused) && ix(next) < ix('ELEVATED') && !exit)) bad++;
+      }
+  check('R12 verankering (schaduw): nooit hoger, verlaging nooit onder ELEVATED behalve lexicale ontkenning zonder actief risicogeheugen', bad === 0, `${states} toestanden · ${bad} schendingen`);
 }
 
 console.log('───────────────────────────────────────────────────────────────');

@@ -322,6 +322,18 @@ export interface Certificate {
   outputPolicy: { pass: boolean; violations: string[]; repaired: boolean };
   conformal: { pValue: number; epsilon: number; abstained: boolean; n: number };
   fusion: { neuralRisk: RiskLevel; lexicalRisk: RiskLevel; fusedRisk: RiskLevel; rule: string };
+  /**
+   * Evidence grounding of the neural markers in SHADOW MODE (evidence-grounding.ts):
+   * recorded for measurement only, never used to decide. Absent without a valid frame.
+   */
+  groundingShadow?: {
+    mode: 'shadow';
+    markers: { type: RiskMarker['type']; status: 'GROUNDED_AFFIRMED' | 'GROUNDED_NEGATED' | 'UNGROUNDED'; fromHistory?: boolean }[];
+    lexicalDenial: boolean;
+    actualRisk: RiskLevel;
+    wouldBeLenient: RiskLevel;
+    wouldBeStrict: RiskLevel;
+  };
   /** Active steering for this turn (visible proof of "bijsturing"). */
   steer?: { strictness: string; style: string; replyLang: string; epsilon: number };
   /** True when a learned recognition pattern was allowed to influence this turn. */
