@@ -1,5 +1,18 @@
 # EAInesy v2
 
+> **Status (14 november 2026)**
+> - **Technische keten werkt.** [verify.yml op `main` na de reparaties (77f74d0)](https://github.com/E-AI-MODEL/eainesy/actions/runs/43600011829) is groen: 270/270 Bun-tests, formele regressies (44 invarianten, 68 + 19 regels), 58/58 fast-eval, 12/12 scenario's, tsc (ook vóór `prisma generate`), ESLint, Z3 onder Node en de productiebuild. In de [P0-run 39884213356](https://github.com/E-AI-MODEL/eainesy/actions/runs/39884213356) kregen 14/14 live beurten een echt Z3-SAT-certificaat, een modelcheck en een uitvoercontrole.
+> - **Inhoudelijk nog niet op orde.** De P0-nulmeting haalde **10/14** vooraf vastgelegde engineering-checks: uitslag **SEMANTIC_GAPS** ([run 39884213356](https://github.com/E-AI-MODEL/eainesy/actions/runs/39884213356), [document](docs/NeSy-P0-independent-baseline-2026-10-23.md)). Afwijkingen: N02, N03, N06, S01.
+> - **Gemerged sindsdien:**
+>   - N06: een medicatievraag eindigt altijd in een doorverwijzing, geborgd door invariant INV-29 en uitvoerregel OP-18 ([#37](https://github.com/E-AI-MODEL/eainesy/pull/37));
+>   - N03: historische signalen, alleen in het lexicale kanaal ([#38](https://github.com/E-AI-MODEL/eainesy/pull/38));
+>   - gaten in de woordenlijst voor plannen en passieve doodswens ([#39](https://github.com/E-AI-MODEL/eainesy/pull/39));
+>   - typecheck ([#36](https://github.com/E-AI-MODEL/eainesy/pull/36)).
+> - **Niet gebouwd:**
+>   - N02/S01 (ontkenning door het model) bestaat alleen als ontwerp ([#40](https://github.com/E-AI-MODEL/eainesy/pull/40)).
+>   - De open keuzes uit #39 en #40 worden eerst onderzocht volgens een [onderzoeksprotocol](docs/protocol-ontkenning-en-derde-persoon-2026-10-25.md) ([#43](https://github.com/E-AI-MODEL/eainesy/pull/43)). Daarvoor zijn mensen nodig voor het corpus en het labelen.
+> - **Nog geen nieuwe P0-meting uitgevoerd.** De [verwachting voor die meting](docs/NeSy-P0-herhaling-verwachtingen-2026-10-25.md) is vooraf vastgelegd: 11/14, dus nog steeds SEMANTIC_GAPS ([#42](https://github.com/E-AI-MODEL/eainesy/pull/42)). Deze status zegt niets over klinische veiligheid.
+
 **Neuro-symbolic research demonstrator** (Next.js, Bun, Prisma/SQLite, GLM, Z3). This is a software research environment using synthetic scenarios from a deliberately demanding human-interaction domain. It is **not** a clinically validated intervention, crisis service, or suitable for use with real people seeking care.
 
 The published code is a snapshot of the demonstrator. Historical demo runs, older EvAI versions, screenshots, and original Git development history are archived separately; they are not required to start a new demo instance. The formal checks concern defined symbolic actions and invariants, **not** the quality of a language model's interpretation or clinical safety.
