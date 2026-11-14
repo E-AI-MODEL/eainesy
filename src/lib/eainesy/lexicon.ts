@@ -475,6 +475,8 @@ const AMBIVALENCE = [
 /** A denial followed by a turn ("maar", "but") and a risk word in the same sentence. */
 const DENIAL_THEN_TURN = /(?:maar|toch|eigenlijk|but|though|yet)\b[^.!?\n]*\b(?:niet\s+meer|kan\s+niet|dood|leven|ophouden|stoppen|can'?t|any\s*more|go\s+on|end\s+it)\b/i;
 
+/** An outer negation before the denial makes it affirmative ("not true that I don't want to die"). */
+const OUTER_NEGATION = /\b(?:not\s+true|isn'?t\s+true|not\s+the\s+case|it'?s\s+not\s+that|niet\s+waar|niet\s+zo\s+dat|niet\s+dat|geen\s+sprake\s+van)\b[^.!?\n]*$/i;
 const CLAUSE_SPLIT = /[,;:()\n—–]|\b(?:maar|toch|eigenlijk|but|though|however)\b/gi;
 
 /**
@@ -491,7 +493,8 @@ export function isAmbivalentDenial(sentence: string, start: number, length: numb
     else if (i >= start + length) { clauseEnd = i; break; }
   }
   const clause = sentence.slice(clauseStart, clauseEnd);
-  return AMBIVALENCE.some((p) => p.test(clause)) || DENIAL_THEN_TURN.test(sentence.slice(start));
+  return AMBIVALENCE.some((p) => p.test(clause)) || DENIAL_THEN_TURN.test(sentence.slice(start))
+    || OUTER_NEGATION.test(sentence.slice(0, start));
 }
 
 /**
@@ -499,7 +502,9 @@ export function isAmbivalentDenial(sentence: string, start: number, length: numb
  * a denial form occurs, no affirmed acute lexical marker exists, and no
  * sentence holding a denial is ambivalent. Independent of the model's quote.
  */
-export function collectLexicalDenials(text: string): { denial: boolean; forms: string[]; ambivalent: boolean } {
+export function collectLexicalDenials(raw: string): { denial: boolean; forms: string[]; ambivalent: boolean } {
+  // Typographic apostrophes ("don’t") must not hide a denial or its negator.
+  const text = raw.replace(/[\u2018\u2019\u201a\u201b]/g, "'");
   const forms: string[] = [];
   let ambivalent = false;
   for (const sentence of text.split(/[.!?\n]+/)) {

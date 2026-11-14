@@ -56,6 +56,9 @@ describe('grounding a model marker in the LAST user message', () => {
   test('ambivalence wording in the denial\'s own clause still blocks it', () => {
     expect(groundMarker(SI('ik wil niet dood'), 'ik wil niet dood hoor').status).toBe('GROUNDED_AFFIRMED');
   });
+  test('an outer negation makes the denial affirmative (not negated)', () => {
+    expect(groundMarker(SI("i don't want to die"), "It is not true that I don't want to die.").status).toBe('GROUNDED_AFFIRMED');
+  });
   test('non-groundable types (e.g. HOPELESSNESS) are never dropped', () => {
     expect(groundMarker({ type: 'HOPELESSNESS', evidence: 'ik wil niet dood' }, N02).status).toBe('GROUNDED_AFFIRMED');
   });
@@ -74,6 +77,9 @@ describe('the lexical channel\'s own denial observation', () => {
     ['Ik wil niet meer dood, het gaat beter.', true], // review #45
     ['Ik weet niet wat te zeggen, maar ik wil niet dood.', true], // ambivalence in another clause
     ['ik wil niet dood hoor', false], // ambivalence in the denial's clause
+    ["It is not true that I don't want to die.", false], // review #45: double negation
+    ['Het is niet waar dat ik niet dood wil.', false], // no denial form; stays affirmed-ambiguous
+    ['I don’t want to die. I feel safe.', true], // typographic apostrophe
   ])('%s → %p', (text, expected) => {
     expect(collectLexicalDenials(text).denial).toBe(expected);
   });
