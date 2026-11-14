@@ -1,6 +1,6 @@
 # Ontwerp: modelmarkers verankeren in het laatste gebruikersbericht (P0-N02 / S01)
 
-**Status: ONTWERPVOORSTEL. Nog niet gebouwd. Bouwen pas na akkoord van de eigenaar.**
+**Status: stap 1 (schaduwmodus, §5) GEBOUWD op opdracht van de eigenaar (14 november 2026).** Het systeem berekent per beurt de verankering, de lexicale ontkenning en beide ondergrensvarianten, en legt die vast in `certificate.groundingShadow`. Dat beïnvloedt risico en actie **niet**. Welke variant ooit effect mag krijgen, beslist de O1-studie ([protocol](protocol-ontkenning-en-derde-persoon-2026-10-25.md)). Code: `src/lib/eainesy/evidence-grounding.ts`, `collectLexicalDenials` in `lexicon.ts`. Uitputtende check: R12 in `scripts/regress-formal.ts` (768 toestanden).
 Basis: `main` @ `b196201`. Aanleiding: [P0-nulmeting](NeSy-P0-independent-baseline-2026-10-23.md), run [39884213356](https://github.com/E-AI-MODEL/eainesy/actions/runs/39884213356).
 
 ## 1. Probleem

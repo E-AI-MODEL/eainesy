@@ -30,6 +30,7 @@ import {
 import {
   collectLexicalMarkers, collectProtective, estimateDistress, detectPii,
   lexicalRiskScore, scoreToRiskLevel, MARKER_WEIGHTS,
+  collectLexicalDenials,
 } from './lexicon';
 import { groundFrame } from './kg';
 import { conformalCheck, totalCalibrationSize } from './conformal';
@@ -47,6 +48,7 @@ import { parseFrame, generateReply } from './glm';
 import { ModelProviderUnavailable } from './model-provider';
 import { verifyOutput, violationFeedback, cannedReplyFor } from './outputpolicy';
 import { appendAudit } from './audit';
+import { computeGroundingShadow } from './evidence-grounding';
 import { maybeRecordABCShadow } from './abc-shadow';
 import { findMatchingSeed, type SeedRow } from './hitl-seeds';
 import { pointOfUse, applyRecurrence, type PointOfUseDecision } from './seed-authority';
@@ -247,6 +249,19 @@ export async function processTurn(
       : `max(neural=${neuralLevel} [score ${neuralScore}], lexical=${lexicalLevel} [score ${lexicalScore}]) = ${fusedLevel}`,
     detail: { neuralScore, lexicalScore, fusedLevel, riskAssessment, unknownReason },
   });
+
+  // --- 3b. evidence grounding, SHADOW MODE (measured, never decides) ---------
+  const groundingShadow = frame
+    ? computeGroundingShadow({
+        markers: frame.riskMarkers,
+        lastUserText: userText,
+        earlierUserTexts: historyPast.filter((h) => h.role === 'user').map((h) => h.content),
+        neuralLevel,
+        lexicalLevel,
+        lexicalDenial: collectLexicalDenials(userText).denial,
+        riskMemory: convState.riskMemory,
+      })
+    : undefined;
 
   // --- 4. KG grounding + forward chaining ------------------------------------
   ts = performance.now();
@@ -550,6 +565,7 @@ export async function processTurn(
     outputPolicy: { pass: outPolicy.pass, violations: outPolicy.violations.map((v) => `${v.ruleId}: ${v.description}`), repaired },
     conformal: { pValue: conformal.pValue, epsilon: conformal.epsilon, abstained: conformal.downgraded, n: totalCalibrationSize() },
     fusion: { neuralRisk: neuralLevel, lexicalRisk: lexicalLevel, fusedRisk: fusedLevel, rule: 'max(neural, lexical) — fail-closed' },
+    groundingShadow,
     steer: { strictness: steer.strictness, style: steer.style, replyLang: steer.replyLang, epsilon: steerEpsilon },
     humanConfirmed: humanConfirmed ? true : undefined,
     seed: seedMatch ? { id: seedMatch.id, weight: seedMatch.weight, allowed: seedPou?.allowed === true, reason: seedPou?.reason ?? '' } : undefined,

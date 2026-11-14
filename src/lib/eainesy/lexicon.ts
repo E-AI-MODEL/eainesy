@@ -449,6 +449,76 @@ export function collectLexicalMarkers(text: string): { markers: RiskMarker[]; ne
   return { markers, negated };
 }
 
+/**
+ * Closed list of explicit denials of the risk predicate itself (design
+ * docs/ontwerp-modelmarker-verankering-N02-S01.md §3.2/3.3). "niet meer",
+ * "niet dat ik", "niet echt" are deliberately NOT denials.
+ */
+export const DENIAL_FORMS: RegExp[] = [
+  /\bwil\s+(?:echt\s+|helemaal\s+|zeker\s+)?niet\s+(?:meer\s+)?dood\b/i,
+  /\b(?:ben|voel\s+me)\s+(?:echt\s+|helemaal\s+)?niet\s+su[iï]cidaal\b/i,
+  /\bdenk\s+(?:echt\s+)?niet\s+aan\s+(?:zelfmoord|zelfdoding|su[iï]cide)\b/i,
+  /\bga\s+(?:mezelf|me)\s+(?:niets|niks)\s+aandoen\b/i,
+  /\bga\s+(?:mezelf|me)\s+niet\s+pijn\s+doen\b/i,
+  /\bheb\s+geen\s+(?:su[iï]cidale\s+gedachten|plannen\s+om)\b/i,
+  /\b(?:do\s+not|don'?t)\s+want\s+to\s+die\b/i,
+  /\b(?:i'?m|am)\s+not\s+suicidal\b/i,
+  /\b(?:won'?t|will\s+not)\s+(?:hurt|harm|kill)\s+myself\b/i,
+  /\b(?:have\s+)?no\s+(?:suicidal\s+thoughts|plans?\s+to\s+(?:hurt|harm|kill)\s+myself)\b/i,
+];
+
+/** Wording that makes a denial ambivalent or minimising; it never relaxes risk. */
+const AMBIVALENCE = [
+  /\bniet\s+dat\s+ik\b/i, /\bnot\s+that\s+i\b/i, /\bniet\s+echt\b/i, /\bnot\s+really\b/i,
+  /\bweet\s+(?:het\s+)?niet\b/i, /\bdon'?t\s+know\b/i, /\bheus\b/i, /\bhoor\b/i,
+];
+/** A denial followed by a turn ("maar", "but") and a risk word in the same sentence. */
+const DENIAL_THEN_TURN = /\b(?:maar|toch|eigenlijk|en|want|but|though|yet|and|because)\b[^.!?\n]*\b(?:niet\s+meer|kan\s+niet|dood|ophouden|stoppen|can'?t|any\s*more|go\s+on|end\s+it)\b/i;
+
+/** An outer negation before the denial makes it affirmative ("not true that I don't want to die"). */
+const OUTER_NEGATION = /\b(?:not\s+true|isn'?t\s+true|not\s+the\s+case|it'?s\s+not\s+that|niet\s+waar|niet\s+zo\s+dat|niet\s+dat|geen\s+sprake\s+van)\b[^.!?\n]*$/i;
+const CLAUSE_SPLIT = /[,;:()\n—–]|\s-\s|\b(?:maar|en|want|omdat|dus|eigenlijk|alleen|toch|but|and|because|so|though|however|actually)\b/gi;
+
+/**
+ * Is the denial at [start, start+length) in `sentence` ambivalent? Ambivalence
+ * wording counts only inside the denial's own clause ("Ik weet niet wat te
+ * zeggen, maar ik wil niet dood" stays a denial); a turn plus risk word AFTER
+ * the denial ("…niet dood maar ik kan niet meer") always counts.
+ */
+export function isAmbivalentDenial(sentence: string, start: number, length: number): boolean {
+  let clauseStart = 0, clauseEnd = sentence.length;
+  for (const m of sentence.matchAll(CLAUSE_SPLIT)) {
+    const i = m.index ?? 0;
+    if (i + m[0].length <= start) clauseStart = i + m[0].length;
+    else if (i >= start + length) { clauseEnd = i; break; }
+  }
+  const clause = sentence.slice(clauseStart, clauseEnd);
+  return AMBIVALENCE.some((p) => p.test(clause)) || DENIAL_THEN_TURN.test(sentence.slice(start))
+    || OUTER_NEGATION.test(sentence.slice(clauseStart, start));
+}
+
+/**
+ * The lexical channel's OWN observation of an explicit denial (design §3.3):
+ * a denial form occurs, no affirmed acute lexical marker exists, and no
+ * sentence holding a denial is ambivalent. Independent of the model's quote.
+ */
+export function collectLexicalDenials(raw: string): { denial: boolean; forms: string[]; ambivalent: boolean } {
+  // Typographic apostrophes ("don’t") must not hide a denial or its negator.
+  const text = raw.replace(/[\u2018\u2019\u201a\u201b]/g, "'");
+  const forms: string[] = [];
+  let ambivalent = false;
+  for (const sentence of text.split(/[.!?\n]+/)) {
+    for (const p of DENIAL_FORMS) {
+      for (const m of sentence.matchAll(new RegExp(p.source, 'gi'))) {
+        forms.push(m[0]);
+        if (isAmbivalentDenial(sentence, m.index ?? 0, m[0].length)) ambivalent = true;
+      }
+    }
+  }
+  const affirmed = collectLexicalMarkers(text).markers.some((m) => ['SUICIDAL_IDEATION', 'SELF_HARM', 'AGENCY_PLAN', 'HARM_OTHERS'].includes(m.type));
+  return { denial: forms.length > 0 && !affirmed && !ambivalent, forms, ambivalent };
+}
+
 export function collectProtective(text: string): string[] {
   const found: string[] = [];
   for (const p of PROTECTIVE) {

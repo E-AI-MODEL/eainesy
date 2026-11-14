@@ -9,7 +9,7 @@
 >   - gaten in de woordenlijst voor plannen en passieve doodswens ([#39](https://github.com/E-AI-MODEL/eainesy/pull/39));
 >   - typecheck ([#36](https://github.com/E-AI-MODEL/eainesy/pull/36)).
 > - **Niet gebouwd:**
->   - N02/S01 (ontkenning door het model) bestaat alleen als ontwerp ([#40](https://github.com/E-AI-MODEL/eainesy/pull/40)).
+>   - N02/S01 (ontkenning door het model): het [ontwerp](docs/ontwerp-modelmarker-verankering-N02-S01.md) ([#40](https://github.com/E-AI-MODEL/eainesy/pull/40)) draait sinds 14 november in **schaduwmodus**. Het wordt per beurt gemeten en in het certificaat vastgelegd, maar het verandert nog **geen** beslissing.
 >   - De open keuzes uit #39 en #40 worden eerst onderzocht volgens een [onderzoeksprotocol](docs/protocol-ontkenning-en-derde-persoon-2026-10-25.md) ([#43](https://github.com/E-AI-MODEL/eainesy/pull/43)). Daarvoor zijn mensen nodig voor het corpus en het labelen.
 > - **Nog geen nieuwe P0-meting uitgevoerd.** De [verwachting voor die meting](docs/NeSy-P0-herhaling-verwachtingen-2026-10-25.md) is vooraf vastgelegd: 11/14, dus nog steeds SEMANTIC_GAPS ([#42](https://github.com/E-AI-MODEL/eainesy/pull/42)). Deze status zegt niets over klinische veiligheid.
 

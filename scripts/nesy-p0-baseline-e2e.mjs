@@ -160,6 +160,12 @@ try{
       lexicalRisk:cert.fusion?.lexicalRisk||null,
       neuralRisk:cert.fusion?.neuralRisk||null,
       fusedRisk:cert.fusion?.fusedRisk||null,
+      // shadow only (design #40): measured, never decided on; checks below are unchanged
+      groundingShadow:cert.groundingShadow?{
+        markerStatus:(cert.groundingShadow.markers||[]).map(m=>m.type+":"+m.status),
+        lexicalDenial:cert.groundingShadow.lexicalDenial===true,
+        wouldBeLenient:cert.groundingShadow.wouldBeLenient||null,
+        wouldBeStrict:cert.groundingShadow.wouldBeStrict||null}:null,
       finalAction:body.action||null,
       ruleId:cert.rulesFired?.[0]?.id||null,
       riskMemoryBefore:cert.conversation?.riskMemory||null,
