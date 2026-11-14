@@ -207,6 +207,8 @@ const PREGNANCY_BASE = {
 //  O2  ACUTE nood mag bij band-daling nooit uitmonden in een blote vraag
 //      zonder erkenning: P66 garandeert erkenning, P20 blijft voor rustige
 //      invoer; crisis/abuse-etiketten worden al eerder afgehandeld.
+//      Uitzondering sinds N06: een medicatievraag gaat naar P51 (verwijzing
+//      met urgentie) — óók daar is de erkenning verplicht.
 //  Bewijsgrens (eerlijk): O2 is regelboek-order + deze pin — plandinhoud
 //  zit níet in het formele rooster (het rooster ziet alleen acties).
 {
@@ -220,11 +222,12 @@ const PREGNANCY_BASE = {
       && input.piiState === 'CLEAN' && input.novelty === 'KNOWN' && input.distressLevel === 'ACUTE'
       && !['CRISIS_SIGNAL', 'ABUSE_DISCLOSURE'].includes(input.intent)) {
       o2cells++;
-      if (d.ruleId !== 'P66' || !d.planTemplate.mustInclude.includes('acknowledgment of how heavy this is')) o2++;
+      const expectedRule = input.intent === 'MEDICATION_QUESTION' ? 'P51' : 'P66';
+      if (d.ruleId !== expectedRule || !d.planTemplate.mustInclude.includes('acknowledgment of how heavy this is')) o2++;
     }
   }
   check('R10a O1: risk ≥ ELEVATED blijft in de veiligheidsfamilie op élke band', o1 === 0, `${o1} schendingen over ${enumerateControllerInputs().length} roosterpunten`);
-  check('R10b O2: ACUTE nood bij LOW-band → P66 met erkenning, nooit blote P20', o2 === 0, `${o2cells} ACUTE-cellen gecontroleerd`);
+  check('R10b O2: ACUTE nood bij LOW-band → P66 (medicatie: P51) met erkenning, nooit blote P20', o2 === 0, `${o2cells} ACUTE-cellen gecontroleerd`);
   const r1b = decide({ ...PREGNANCY_BASE, confidenceBand: 'LOW' } as ControllerInput);
   check('R10c P20 blijft de blote vraag voor niet-acute invoer (R1-pin onaangetast)',
     r1b.ruleId === 'P20' && r1b.action === 'CLARIFY');
