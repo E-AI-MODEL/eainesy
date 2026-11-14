@@ -1,0 +1,12 @@
+{
+  "protocol": "nesy-o1o2-v1",
+  "kind": "corpus",
+  "corpus": "C-O1",
+  "status": "TEMPLATE_NOT_MEASUREMENT_CORPUS",
+  "author_role": "independent_of_lexicon_author",
+  "created": "YYYY-MM-DD",
+  "cases": [
+    { "id": "O1-S1-001", "stratum": "S1", "lang": "nl", "turns": [{ "role": "user", "text": "Fictief bericht hier." }] },
+    { "id": "O1-S5-001", "stratum": "S5", "lang": "nl", "turns": [{ "role": "user", "text": "Eerste beurt (fictief)." }, { "role": "user", "text": "Tweede beurt (fictief)." }] }
+  ]
+}
